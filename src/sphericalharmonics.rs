@@ -1,4 +1,5 @@
 use is_odd::IsOdd;
+use crate::auxilliary::*;
 
 
 
@@ -17,6 +18,10 @@ use is_odd::IsOdd;
 /// 
 pub fn plmcos(l: u16, m: u16, theta: f64) -> f64 {
 
+    // Only allow valid values of m
+
+    assert!(m <= l, "plmcos: m > l");
+
     // The following array [1..13] ([0] is dummy) contains (2 n - 1)!! where j!!
     // denotes the product of all odd integers less than or equal to j.
     // E.g. oddfac[5] = (2 * 5 - 1)!! = 9!! = 945.0
@@ -25,12 +30,6 @@ pub fn plmcos(l: u16, m: u16, theta: f64) -> f64 {
     const MAX_ODDFAC_ARG_U16: u16 = MAX_ODDFAC_ARG as u16;
     const ODDFAC: [f64; MAX_ODDFAC_ARG+1] =  [ 0.0, 1.0, 3.0, 15.0, 105.0, 945.0, 10395.0, 135135.0, 2027025.0, 34459425.0,
                                                654729075.0, 13749.310575e6, 316234.143225e6, 7905853.580625e6 ];
-
-    // Only allow valid values of m
-
-    if m > l {
-        panic!("plmcos: m > l");
-    }
 
     // First compute P_m^m(costheta)
 
@@ -148,6 +147,9 @@ pub fn deriv2_plmcos(l: u16, m: u16, theta: f64) -> f64 {
 ///
 pub fn ylmnorm(l: u16, m: i16) -> f64 {
 
+    // Panic if m is not between -l and l
+
+    assert!(m.abs() as u16 <= l, "ylmnorm: |m| > l");
 
     // The following array PRECOMPUTED[0..4][0..4] contains: 
     //   if  (0 <= m <= l <= 4): 
@@ -162,13 +164,6 @@ pub fn ylmnorm(l: u16, m: i16) -> f64 {
                                         [0.846284375, 0.189234939, 0.0446031029, 0.0119206807, 0.00421459707]];
 
     const INV4PI: f64 = 0.07957747155;      // 1/(4 pi)
-
-
-    // Panic if m is not between -l and l
-
-    if m.abs() as u16 > l {
-        panic!("ylmnorm: |m| > l");
-    }
 
     // For small values of l (<= 4) use the build-in table, but take into account the Condon-Shortley 
     // phase factor, which is 1 for negative m, 1 for positive even m, and -1 for positive odd m.
@@ -211,13 +206,60 @@ pub fn ylmnorm(l: u16, m: i16) -> f64 {
 
 
 
+/// Computes the quantity d^{(l)}_{km}(angle) as defined by Condon & Odabasi 
+/// (1980, "Atomic Structure" ISBN 0 521 21859 4). 
+///
+/// These function can be used to transfrom a spherical harmonic Y_l^m between a reference frame
+/// where the z'-axis points towards the observer and a reference frame were the z-axis is the rotation axis:
+/// Y_l^m(\theta,\phi) = \sum_{k=-l}{+l} d^{(l)}_{km}(i) Y_l^k(\theta', \phi')
+///
+/// # Arguments:
+/// * l - degree of pulsation: l >= 0
+/// * k - -l <= k <= l
+/// * m - azimuthal number: -l <= m <= l
+/// * angle - angle in radians
+///
+pub fn dlkm(l: u32, k: i32, m: i32, angle: f64) -> f64 {
+
+    // Although l should be a positive integer of type u32, we will often need to subtract or
+    // compare it with i32 values, for which Rust complains. So cast it once to an i32 value.  
+
+    let l: i32 = l.try_into().unwrap();
+
+    // Verify the range of the arguments k and m
+
+    assert!(k.abs() <= l, "dlkm(): |k| > l");
+    assert!(m.abs() <= l, "dlkm(): |m| > l");
+
+    // Start computing the sum. Begin with determining the lower and upper boundaries.
+
+
+    let lower = if -m-k > 0 { -m-k } else { 0 };
+    let upper = if l-m > l-k { l-k } else { l-m };
+
+    let cos_half_angle = f64::cos(angle/2.0);
+    let sin_half_angle = f64::sin(angle/2.0);
+    let mut sum: f64 = 0.0;
+    for r in lower..=upper { 
+        let term: f64 = binomial(l+m, l-k-r) * binomial(l-m, r) 
+                * cos_half_angle.powf(f64::from(k+m+2*r)) * sin_half_angle.powf(f64::from(2*l-m-k-2*r));
+        if (l-m-r).is_odd() {
+            sum -= term;
+        } else {
+            sum += term;
+        }
+    }
+
+    // Now multiply with the big square root factor. I use exp() because I have only ln(n!) available.
+
+    sum *= (0.5 * (lnfac(l+k) + lnfac(l-k) - lnfac(l+m) - lnfac(l-m))).exp();
+
+    return sum;
+}
 
 
 
 
-// pub fn lnfac(n: u32) -> f64 {
-//
-// }
 
 
 
