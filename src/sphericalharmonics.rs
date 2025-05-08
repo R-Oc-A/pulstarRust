@@ -4,6 +4,7 @@ use crate::auxilliary::*;
 
 
 
+
 /// Computes the associated Legendre function P_l^m(x) defined by
 ///     1/2^l/(l!)*(1-x^2)^(m/2) \frac{d^(l+m)}{dx^(l+m)}(x^2-1)^l
 /// with x = cos(theta). It is an adapted version of the routine 
@@ -14,9 +15,10 @@ use crate::auxilliary::*;
 /// 
 /// * `l` - The degree l >= 0
 /// * `m` - The azimuthal number m, 0 <= m <= l
-/// * `theta`: an angle [rad]
+/// * `sintheta`: sin(theta)
+/// * `costheta`: cos(theta)
 /// 
-pub fn plmcos(l: u16, m: u16, theta: f64) -> f64 {
+pub fn plmcos(l: u16, m: u16, sintheta: f64, costheta: f64) -> f64 {
 
     // Only allow valid values of m
 
@@ -32,9 +34,6 @@ pub fn plmcos(l: u16, m: u16, theta: f64) -> f64 {
                                                654729075.0, 13749.310575e6, 316234.143225e6, 7905853.580625e6 ];
 
     // First compute P_m^m(costheta)
-
-    let sintheta = theta.sin();
-    let costheta = theta.cos();
 
     let mut pmmcostheta: f64 = match m {
         0 => 1.0,
@@ -93,11 +92,12 @@ pub fn plmcos(l: u16, m: u16, theta: f64) -> f64 {
 /// 
 /// * `l` - The degree l >= 0
 /// * `m` - The azimuthal number m, 0 <= m <= l
-/// * `theta`: an angle [rad], can not be 0 or a multiple of pi.
+/// * `sintheta`: sin(theta), can not be 0
+/// * `costheta`: cos(theta)
 ///
-pub fn deriv1_plmcos(l: u16, m: u16, theta: f64) -> f64 {
+pub fn deriv1_plmcos_dtheta(l: u16, m: u16, sintheta: f64, costheta: f64) -> f64 {
 
-    (- f64::from(l+1) * theta.cos() * plmcos(l,m,theta) + f64::from(l-m+1) * plmcos(l+1,m,theta)) / theta.sin()
+    (- f64::from(l+1) * costheta * plmcos(l,m,sintheta,costheta) + f64::from(l-m+1) * plmcos(l+1,m,sintheta,costheta)) / sintheta
 }
 
 
@@ -115,19 +115,18 @@ pub fn deriv1_plmcos(l: u16, m: u16, theta: f64) -> f64 {
 /// 
 /// * `l` - The degree l >= 0
 /// * `m` - The azimuthal number m, 0 <= m <= l
-/// * `theta`: an angle [rad], can not be 0 or a multiple of pi.
+/// * `sintheta`: sin(theta)
+/// * `costheta`: cos(theta)
 ///
 
 
-pub fn deriv2_plmcos(l: u16, m: u16, theta: f64) -> f64 {
+pub fn deriv2_plmcos_dtheta(l: u16, m: u16, sintheta: f64, costheta: f64) -> f64 {
 
-    let costheta = theta.cos();
-    let sintheta = theta.sin();
     let inv_sqr_sintheta = 1.0 / (sintheta * sintheta);
 
-    f64::from(l+1) * (1.0 + f64::from(l+2) * costheta*costheta*inv_sqr_sintheta) * plmcos(l,m,theta)
-    - 2.0 * f64::from(l-m+1) * f64::from(l+2) * costheta * inv_sqr_sintheta * plmcos(l+1,m,theta)
-    + f64::from(l-m+1) * f64::from(l-m+2) * inv_sqr_sintheta * plmcos(l+2,m,theta)
+    f64::from(l+1) * (1.0 + f64::from(l+2) * costheta*costheta*inv_sqr_sintheta) * plmcos(l,m,sintheta,costheta)
+    - 2.0 * f64::from(l-m+1) * f64::from(l+2) * costheta * inv_sqr_sintheta * plmcos(l+1,m,sintheta,costheta)
+    + f64::from(l-m+1) * f64::from(l-m+2) * inv_sqr_sintheta * plmcos(l+2,m,sintheta,costheta)
 }
 
 
@@ -277,13 +276,15 @@ mod tests {
 
     #[test]
     fn test_plmcos() {
-        let theta = 2.6;                                             // [rad]
-        let computed = plmcos(4,4,theta);
+        let theta: f64 = 2.6;                                             // [rad]
+        let (sintheta, costheta) = (theta.sin(), theta.cos());
+        let computed = plmcos(4, 4, sintheta, costheta);
         let expected = 105.0 * theta.sin().powf(4.0);
         assert_approx_eq!(computed, expected, 1.0e-10);
 
-        let theta = -0.34;
-        let computed = plmcos(3, 2, theta);
+        let theta: f64 = -0.34;
+        let (sintheta, costheta) = (theta.sin(), theta.cos());
+        let computed = plmcos(3, 2, sintheta, costheta);
         let expected = 15.0 * theta.cos() * theta.sin() * theta.sin(); 
         assert_approx_eq!(computed, expected, 1.0e-10);
     }
@@ -291,8 +292,9 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_plmcos_panic() {
-        let theta = 2.6;
-        plmcos(4,5,theta);
+        let theta: f64 = 2.6;
+        let (sintheta, costheta) = (theta.sin(), theta.cos());
+        plmcos(4, 5, sintheta, costheta);
     }
 }
 
