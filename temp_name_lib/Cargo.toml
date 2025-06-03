@@ -1,0 +1,8 @@
+[package]
+name = "temp_name_lib"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+is-odd = "1.1.1"
+assert_approx_eq = "1.1.0"

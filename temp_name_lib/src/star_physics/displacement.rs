@@ -1,4 +1,4 @@
-use crate::sphericalharmonics::*;
+//use crate::sphericalharmonics::*;
 
 
 /// Compute the Lagrangian displacement vector in spherical coordinates
@@ -12,6 +12,7 @@ use crate::sphericalharmonics::*;
 /// * `ampl_radial`     - amplitude in the radial direction * Y_l^m
 /// * `ampl_tangential` - amplitude in the tangential direction * Y_l^m
 ///
+/*
 pub fn displacement(phase: f64, theta: f64, phi: f64, l: u16, m: i16, ampl_radial: f64, ampl_tangential: f64) -> (f64, f64, f64) {
 
     let sintheta = theta.sin();
@@ -27,6 +28,6 @@ pub fn displacement(phase: f64, theta: f64, phi: f64, l: u16, m: i16, ampl_radia
     return (delta_r, delta_theta, delta_phi)
 }
 
-
+*/
 
 

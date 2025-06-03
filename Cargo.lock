@@ -15,7 +15,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "779a32fa1f0d6feb5a6894f909bd29252819bc7f85199acf47b3c1797b0fe134"
 
 [[package]]
+name = "profile"
+version = "0.1.0"
+
+[[package]]
 name = "pulstar"
+version = "0.1.0"
+
+[[package]]
+name = "temp_name_lib"
 version = "0.1.0"
 dependencies = [
  "assert_approx_eq",
