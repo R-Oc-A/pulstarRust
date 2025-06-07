@@ -1,6 +1,7 @@
 use crate::{joris_math::spherical_harmonics::plmcos::plmcos,
      type_def::VectorComponents,
-     type_def::VectorBase};
+     type_def::VectorBase,
+     type_def::Config};
 use nalgebra as na;
 
 /// Compute the Lagrangian displacement vector in spherical coordinates
@@ -14,18 +15,19 @@ use nalgebra as na;
 /// * `ampl_radial`     - amplitude in the radial direction * Y_l^m
 /// * `ampl_tangential` - amplitude in the tangential direction * Y_l^m
 ///
-impl VectorComponents{
-pub fn displacement(phase: &f64,
-                    theta: &f64, 
-                    phi: &f64,
-                    l: &i16, 
-                    m: &i16, 
-                    ampl_radial: &f64, 
-                    ampl_tangential: &f64,
+pub fn displacement(theta: f64, 
+                    phi: f64,
+                    parameter: &Config,
+                    index: usize,
+                    ampl_radial: f64, 
+                    ampl_tangential: f64,
                     ) -> VectorComponents {
-
+    let phase=parameter.phase[index];
+    let l = parameter.l[index];
+    let m=parameter.m[index];
     let sintheta = theta.sin();
     let costheta = theta.cos();
+
     let plmcostheta = plmcos(l, m.abs() as u16, sintheta, costheta); 
     let dplmcostheta_dtheta = (- f64::from(l+1) * costheta * plmcostheta            // First derivative
                                + f64::from((l as i16) - m + 1) 
@@ -47,4 +49,4 @@ pub fn displacement(phase: &f64,
     return displacement_coordinates;
 }
 
-}
+pub mod derivatives;
