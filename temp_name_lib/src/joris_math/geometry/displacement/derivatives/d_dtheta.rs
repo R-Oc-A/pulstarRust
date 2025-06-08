@@ -7,7 +7,8 @@ use crate::joris_math::spherical_harmonics::norm_factor::ylmnorm;
 ///coordinates θ,ϕ
 pub fn d_dr_rdtheta(parameters: &Config,
                         index: usize,
-                        theta: f64,
+                        sintheta: f64,
+                        costheta: f64,
                         phi: f64) -> f64{
     let r_dr=parameters.rel_deltar[index];
     let l = parameters.l[index];
@@ -15,7 +16,7 @@ pub fn d_dr_rdtheta(parameters: &Config,
     let phase = parameters.phase[index];
     
     r_dr*ylmnorm(l,m)
-    * d_plmcos_dtheta(l,m.abs() as u16,theta.sin(),theta.cos())
+    * d_plmcos_dtheta(l,m.abs() as u16,sintheta,costheta)
     * (phase + (m as f64) * phi).cos()
 }
 
@@ -23,7 +24,8 @@ pub fn d_dr_rdtheta(parameters: &Config,
 ///coordinates θ,ϕ
 pub fn d_dtheta_dtheta(parameters: &Config,
                         index: usize,
-                        theta: f64,
+                        sintheta: f64,
+                        costheta: f64,
                         phi: f64) -> f64{
 
     let r_dr=parameters.rel_deltar[index];
@@ -33,6 +35,6 @@ pub fn d_dtheta_dtheta(parameters: &Config,
     let phase = parameters.phase[index];
     
     r_dr*ylmnorm(l,m)*k
-    * d2_plmcos_dtheta(l,m.abs() as u16,theta.sin(),theta.cos())
+    * d2_plmcos_dtheta(l,m.abs() as u16,sintheta,costheta)
     * (phase + (m as f64) * phi).cos()
 }

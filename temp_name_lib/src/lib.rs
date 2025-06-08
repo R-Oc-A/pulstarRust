@@ -9,6 +9,7 @@
 pub mod joris_math;
 pub mod star_physics;
 pub mod type_def;
+pub mod utils;
 
 const GRAVCONSTANT:f64 = 6.67259e-11;       // SI-units (m^3/s^2/kg) */
 const MASSSUN:f64 = 1.9891e30;              // SI-units (kg)         */

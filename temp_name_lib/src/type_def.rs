@@ -9,10 +9,12 @@ const MAX_N_TIMES:u32 = 3000; //max number of time points
 //[Ricardo]: components of a 3d vector
 //x,y,z cartesian corresponds to coords[1], coords[2], coords[3]
 //r,theta,phi spherical corresponds to coords[1], coords[2], coords[3]
+#[derive(PartialEq)]
 pub enum VectorBase {
     Spherical,
     Cartesian,
 }
+
 pub struct VectorComponents{
     pub base:VectorBase,
     pub coords:na::Vector3<f64>,
@@ -24,14 +26,6 @@ impl VectorComponents{
     }
 }
 
-/*impl VectorComponents{
-    pub fn getcoordinates(self){
-        match self.base{
-            VectorBase::Spherical=>{}
-        }
-    }
-}
-*/
 
 //[Ricardo]: Configuration parameters of the simulation...I guess.
 // In the c++ version this are called parameters.
@@ -40,7 +34,7 @@ pub struct Config{
     pub l:Vec<u16>,
     pub m:Vec<i16>,
     pub rel_deltar:Vec<f64>,
-    pub k:Vec<f64>,//[Ricardo]: It's the value along the k unit vector.
+    pub k:Vec<f64>,//[Ricardo]: It's the value along the k unit vector.I dont know anymore, it says kapa value.
     pub phase:Vec<f64>,
 }
 
