@@ -92,7 +92,7 @@ use crate::joris_math::spherical_harmonics::norm_factor::ylmnorm;
             let mut normal_vector_coords=
             na::Vector3::new(1.0,
                              total_p_ds[1]-total_dev1,
-                             sintheta * total_p_ds[2] - total_p_ds[1]/sintheta);
+                             sintheta * total_p_ds[2] - total_dev2/sintheta);
             let lenght= sintheta * (1.0 + 2.0 * total_p_ds[0]
                              + costheta/sintheta * total_p_ds[1]
                              + total_dev3 + total_dev4);

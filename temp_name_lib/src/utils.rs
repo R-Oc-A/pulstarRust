@@ -5,3 +5,4 @@ pub enum MathErrors{
     VectorLengthZero,
     DifferentVectorBase,
 }
+

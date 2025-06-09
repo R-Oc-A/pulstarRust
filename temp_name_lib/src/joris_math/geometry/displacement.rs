@@ -1,5 +1,3 @@
-use std::iter::Map;
-
 use crate::{joris_math::spherical_harmonics::plmcos::plmcos,
      type_def::{Config, VectorBase, VectorComponents},
      utils::MathErrors};

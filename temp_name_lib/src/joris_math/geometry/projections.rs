@@ -19,13 +19,8 @@ pub fn cos_chi(surface_normal: &VectorComponents,
         match length > machine_precision{
             true => {
 
-                let cos = surface_normal.coords.dot(&k.coords)
-                /surface_normal.coords.norm();
-                
-                match cos<=1.0 {
-                    true => {Ok(cos)}
-                    false => {Err(MathErrors::CosineBiggerThanOne)}
-                }
+                Ok( surface_normal.coords.dot(&k.coords)
+                /(surface_normal.coords.norm()*k.coords.norm()) )
             }
             false => {
                 Err(MathErrors::VectorLengthZero)
