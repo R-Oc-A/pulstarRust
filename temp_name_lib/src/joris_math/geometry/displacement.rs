@@ -1,6 +1,6 @@
 use crate::{joris_math::spherical_harmonics::plmcos::plmcos,
      type_def::{Config, VectorBase, VectorComponents},
-     utils::MathErrors};
+     utils::{self, MathErrors}};
 use nalgebra as na;
 
 /// Compute the Lagrangian displacement vector in spherical coordinates
@@ -23,9 +23,7 @@ pub fn displacement(parameters: &Config,
                     ampl_tangential: f64,
                     ) -> Result<VectorComponents,MathErrors> {
 
-    let machine_precision_value = sintheta.abs()< 1.0e-8;
-
-    match machine_precision_value {
+    match sintheta.abs() <= utils::MACHINE_PRECISION {
         
         false => { 
             let phase=parameters.phase[index];

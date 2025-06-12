@@ -6,3 +6,4 @@ pub enum MathErrors{
     DifferentVectorBase,
 }
 
+pub const MACHINE_PRECISION:f64 = 1.0e-8;

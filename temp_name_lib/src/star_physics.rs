@@ -2,7 +2,7 @@
 ///of temperature, velocity, and log(g)
 ///
 pub mod local_values;
-pub mod pulsation_velocity;
+pub mod velocity;
 pub mod intensity;
 
 

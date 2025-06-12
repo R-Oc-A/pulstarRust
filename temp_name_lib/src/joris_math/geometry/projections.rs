@@ -40,10 +40,10 @@ pub fn cos_chi(surface_normal: &VectorComponents,
 ///of a surface cell
 /// 
 /// The z-axis coincides with the rotation axis.
-pub fn project_area(surface_normal: &VectorComponents,
-                    k: &VectorComponents)->Result<f64,MathErrors>{
-    match surface_normal.base == k.base {
-        true => { Ok(surface_normal.coords.dot(&k.coords))}
+pub fn project_vector(projected_vec: &VectorComponents,
+                    reference_vec: &VectorComponents)->Result<f64,MathErrors>{
+    match projected_vec.base == reference_vec.base {
+        true => { Ok(projected_vec.coords.dot(&reference_vec.coords))}
         false =>{Err(MathErrors::DifferentVectorBase)}
     }
 }
