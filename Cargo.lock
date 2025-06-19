@@ -142,6 +142,10 @@ version = "0.1.0"
 [[package]]
 name = "pulstar"
 version = "0.1.0"
+dependencies = [
+ "nalgebra",
+ "temp_name_lib",
+]
 
 [[package]]
 name = "quote"
