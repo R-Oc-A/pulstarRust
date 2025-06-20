@@ -1,7 +1,17 @@
 use std::any::Any;
-use std::io::{self, BufRead};
-use std::fs::File;
+use std::io::{self, BufRead, Lines};
+use std::fs::{self,File};
 use std::path::Path;
+use temp_name_lib::type_def::Config;
+use temp_name_lib::type_def::Eigenfunctions;
+
+pub struct StarInfo{
+    mass:f64,
+    radius:f64,
+    effective_temperature:f64,
+    rotation_velocity:f64,
+    inclination_angle:i16,
+}
 
 
 fn search_geq(vector:&[f64],key:f64)-> usize {
@@ -84,28 +94,28 @@ fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
                 else{
                     let mut aux_vec:Vec<InputKind>=Vec::new();
                     match input_vec[0]{
-                        InputKind::U16(value){ aux_vec.push(InputKind::U16((value)));}
+                        InputKind::U16(value)=>{ aux_vec.push(InputKind::U16((value)));}
                         _=>{panic!("Corrupt input file, error in mode info expected u16 for l")}
                     }
                     match input_vec[1]{
-                        InputKind::I16(value){ aux_vec.push(InputKind::I16((value)));}
+                        InputKind::I16(value)=>{ aux_vec.push(InputKind::I16((value)));}
                         _=>{panic!("Corrupt input file, error in mode info expected i16 for m")}
                     }
                     match input_vec[2]{
-                        InputKind::F64(value){ aux_vec.push(InputKind::F64((value)));}
+                        InputKind::F64(value)=>{ aux_vec.push(InputKind::F64((value)));}
                         _=>{panic!("Corrupt input file, error in mode info expected f64 for amplitude r/r0")}
                     }
                     match input_vec[3]{
-                        InputKind::F64(value){ aux_vec.push(InputKind::F64((value)));}
+                        InputKind::F64(value)=>{ aux_vec.push(InputKind::F64((value)));}
                         _=>{panic!("Corrupt input file, error in mode info expected f64 for amplitude K")}
                     }
                     match input_vec[4]{
-                        InputKind::F64(value){ aux_vec.push(InputKind::F64((value)));}
+                        InputKind::F64(value)=>{ aux_vec.push(InputKind::F64((value)));}
                         _=>{panic!("Corrupt input file, error in mode info expected f64 for amplitude freq.(c/d)")}
                     }
                     match input_vec[5]{
-                        InputKind::F64(value){ 
-                            if value>1.0||value<0 {panic!("Corrupt input file,phase offset value outside of [0,1] bounds")}
+                        InputKind::F64(value)=>{ 
+                            if value>1.0||value<0.0 {panic!("Corrupt input file,phase offset value outside of [0,1] bounds")}
                             aux_vec.push(InputKind::F64((value)));}
                         _=>{panic!("Corrupt input file, error in mode info expected f64 for amplitude phase offset")}
                     }
@@ -141,7 +151,7 @@ fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
             5u16=>{
                 //Check if well defined
                 if input_vec.len()!=2usize {panic!("Corrupt input file, error in temperature fields")}
-                let aux_vec:Vec<InputKind>=Vec::new();
+                let mut aux_vec:Vec<InputKind>=Vec::new();
                 match input_vec[0]{
                     InputKind::F64(value)=>{
                         aux_vec.push(InputKind::F64(value));
@@ -161,7 +171,7 @@ fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
             6u16=>{
                 //Check if well defined
                 if input_vec.len()!=2usize {panic!("Corrupt input file, error in gravity fields")}
-                let aux_vec:Vec<InputKind>=Vec::new();
+                let mut aux_vec:Vec<InputKind>=Vec::new();
                 match input_vec[0]{
                     InputKind::F64(value)=>{
                         aux_vec.push(InputKind::F64(value));
@@ -182,7 +192,7 @@ fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
             7u16=>{
                 //Check if well defined
                 if input_vec.len()!= 3usize{panic!("Corrupt input file, error in Star information field")}
-                let aux_vec:Vec<InputKind>=Vec::new();
+                let mut aux_vec:Vec<InputKind>=Vec::new();
                 match input_vec[0]{
                     InputKind::F64(value)=>{
                         aux_vec.push(InputKind::F64(value));
@@ -208,19 +218,45 @@ fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
 
             8u16=>{
                 //Check if well defined
-                Some(InputLines::is_time_dependent([input_vec[0]]))
+                if input_vec.len()!=1usize {panic!("Corrupt input file, error in time independence flag field")}
+                let mut aux_vec:Vec<InputKind>=Vec::new();
+                match input_vec[0]{
+                    InputKind::U16(value)=>{
+                        if value > 1 {panic!("Corrupt input file, flag for time independence can only be 0 or 1")}
+                        aux_vec.push(InputKind::U16(value));
+                    }
+                    _=>{panic!("Corrupt input file, expected u16 for time independence flag")}
+                }
+                Some(InputLines::is_time_dependent([aux_vec[0]]))
             }
 
             9u16=>{
                 //Check if well defined
-                //-snip
-                Some(InputLines::suppress_pulse_vel([input_vec[0]]))
+                if input_vec.len()!=1usize {panic!("Corrupt input file, error in flag for suppressing pulse velocity")}
+                let mut aux_vec:Vec<InputKind>=Vec::new();
+                match input_vec[0]{
+                    InputKind::U16(value)=>{
+                        if value > 1 {panic!("Corrupt input file, flag for suppressing pulse velocity can only be 0 or 1")}
+                        aux_vec.push(InputKind::U16(value));
+                    }
+                    _=>{panic!("Corrupt input file, expected u16 for suppressing pulse velocity flag")}
+                }
+                Some(InputLines::suppress_pulse_vel([aux_vec[0]]))
             }
             
             10u16=>{
                 //Check if well defined
-                //-snip
-                Some(InputLines::print_max_vel_amplitude([input_vec[0]]))
+                if input_vec.len()!=1usize {panic!("Corrupt input file, error in flag for print amplitude of velocity")}
+                let mut aux_vec:Vec<InputKind>=Vec::new();
+                match input_vec[0]{
+                    InputKind::U16(value)=>{
+                        if value > 1 {panic!("Corrupt input file, flag for print amplitude of velocity can only be 0 or 1")}
+                        aux_vec.push(InputKind::U16(value));
+                    }
+                    _=>{panic!("Corrupt input file, expected u16 for print amplitude of velocity flag")}
+                }
+                
+                Some(InputLines::print_max_vel_amplitude([aux_vec[0]]))
             }
 
             _=>{panic!("There's not an input line with that id number")}
@@ -274,7 +310,6 @@ enum InputLines{
     print_max_vel_amplitude([InputKind;1]),
 }
 
-
 fn parse_from_cell (s: &str)->InputKind{
     // Try bool
     if let Ok(b) = s.parse::<bool>(){
@@ -304,6 +339,141 @@ fn parse_from_cell (s: &str)->InputKind{
 
     panic!("Failed to parse {} as a recognized primitive value",s);
 }
+
+pub fn parse_from_file(file_name:&str,time_points:& mut u16, 
+                    time_flag:&mut bool,
+                    pulse_flag:&mut bool,
+                    print_flag:&mut bool)
+                    ->(Config,//mode parameters
+                       Vec<Eigenfunctions>,//mode temperature
+                       Vec<Eigenfunctions>,//mode gravity
+                       StarInfo){    
+    let parameter_file_contents = fs::read_to_string(file_name)
+        .expect("Should have been able to read the file");
+    let mut counter:u16 =1;
+    let mut n_modes:u16=0;
+    let mut l: Vec<u16>=Vec::new();
+    let mut m: Vec<i16>=Vec::new();
+    let mut rel_deltar:Vec<f64>=Vec::new();
+    let mut k:Vec<f64>=Vec::new();
+    let mut phase:Vec<f64>=Vec::new();
+    let mut mass:f64=0.0;
+    let mut radius:f64=0.0;
+    let mut inclination_angle:i16=0;
+    let mut rotation_velocity:f64=0.0;
+    let mut effective_temperature:f64 = 0.0;
+    let mut mode_temperature:Vec<Eigenfunctions>=Vec::new();
+    let mut mode_gravity:Vec<Eigenfunctions>=Vec::new();
+
+    // This is taking longer than expected. I need to somehow explain that I want to fill up the parameters
+    // Tomorrow I shall work on this. 
+    // LHMOM
+    while counter < 11u16 {
+        
+        let mut n_modes_ctr:u16=1;
+        //for s in parameter_file_contents.lines(){
+        for s in get_line(file_name).unwrap().map(|l| l.expect("error while reading") ){
+        match counter{
+            1u16=>{
+                if let Some(item)=parse_from_string(&s,counter){
+                match item{
+                    InputLines::time_points(value)=>{
+                        match value[0]{
+                            InputKind::U16(value2)=>{
+                                *time_points = value2;
+                                counter +=1;
+                            }
+                            _=>panic!("this should not occur!"),
+                        }
+                    }
+                    _=>{panic!("It was expecting number of time points")}
+                    };
+                }
+            }
+
+            2u16=>{
+                if let Some(item)=parse_from_string(&s,counter){
+                match item{
+                    InputLines::time_points(value)=>{
+                        match value[0]{
+                            InputKind::U16(value2)=>{
+                                n_modes = value2;
+                                counter +=1;
+                            }
+                            _=>{panic!("this should not occur! error on format of number of timepoints");}
+                        }
+                    }
+                    _=>{panic!("It was expecting number of time points")}
+                    };
+                }
+            }
+            3u16=>{
+                if let Some(item) = parse_from_string(&s, counter){
+                match item{
+                    InputLines::mode_info(value)=>{
+                        match value[0]{
+                            InputKind::U16(value2)=>{
+                                l.push(value2); 
+                            }
+                            _=>{panic!("was expecting a u16 value for l and failed")}
+                        }
+                        match value[1]{
+                            InputKind::I16(value2)=>{
+                                m.push(value2); 
+                            }
+                            _=>{panic!("was expecting a i16 value for m and failed")}
+                        }
+                        match value[2]{
+                            InputKind::F64(value2)=>{
+                                rel_deltar.push(value2); 
+                            }
+                            _=>{panic!("was expecting a f64 value for delr/r0 and failed")}
+                        }
+
+                        
+                        if n_modes_ctr = n_modes{
+                            n_modes_ctr=1;
+                            counter +=1;
+                        }
+                    }
+                    _=>{panic!("error parsing mode info l,m,amplitude,k,...")}
+                } 
+                }
+            }
+
+
+        }// match counter
+
+        }//for line iteration
+    }// while counter<11
+    
+    
+    let mode_parameters= Config{
+        n_modes: n_modes,
+        l: l,
+        m: m,
+        rel_deltar:rel_deltar,
+        k:k,
+        phase:phase,
+    };//config
+    
+    let new_star=StarInfo{
+        mass: mass,
+        radius: radius,
+        effective_temperature: effective_temperature,
+        rotation_velocity: rotation_velocity,
+        inclination_angle: inclination_angle,
+    };
+
+    (mode_parameters,
+    mode_temperature,
+    mode_gravity,
+    new_star
+    )
+
+}
+
+                    
 //cfg(Tests)
 //Test that gets you a key value.
 
