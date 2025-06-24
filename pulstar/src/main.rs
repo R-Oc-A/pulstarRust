@@ -20,8 +20,6 @@ fn main() {
     println!("--------------------");
 
     //Read input file
-    let parameter_file_contents = fs::read_to_string(parameter_file)
-        .expect("Should have been able to read the file");
 
     //asserting 
 
