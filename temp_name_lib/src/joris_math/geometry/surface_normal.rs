@@ -22,18 +22,18 @@ use crate::joris_math::spherical_harmonics::norm_factor::ylmnorm;
         parameters: &Config,
         theta_rad: f64,
         phi_rad: f64,
-        time_independent: bool) -> Result<VectorComponents,MathErrors> {
+        time_dependent: bool) -> Result<VectorComponents,MathErrors> {
         
         let sintheta=theta_rad.sin();
 
-        match time_independent{
-        true => {
+        match time_dependent{
+         false => {
             Ok(VectorComponents{
                 base: VectorBase::Spherical,
                 coords: na::Vector3::new(sintheta,0.0,0.0),}
             )
         }
-        false =>{
+        true =>{
             let costheta = theta_rad.cos();
             
             let mut total_p_ds = na::Vector3::new(0.0,0.0,0.0);

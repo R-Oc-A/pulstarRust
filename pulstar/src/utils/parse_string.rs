@@ -50,14 +50,22 @@ pub fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
                 if input_vec.len()!=6usize{panic!("Corrupt input file, error in mode info")}
                 else{
                     let mut aux_vec:Vec<InputKind>=Vec::new();
+                    let mut l_check:u16 = 0;
                     match input_vec[0]{
-                        InputKind::U16(value)=>{ aux_vec.push(InputKind::U16(value));}
-                        _=>{panic!("Corrupt input file, error in mode info expected u16 for l")}
+                        InputKind::U16(value)=>{ 
+                            l_check = value;
+                            aux_vec.push(InputKind::U16(value));
+                        }
+                        _=>{panic!("Corrupt input file, error in mode info expected u16 for l.")}
                     }
                     match input_vec[1]{
-                        InputKind::I16(value)=>{ aux_vec.push(InputKind::I16(value));}
+                        InputKind::I16(value)=>{ 
+                            if value < l_check as i16 {aux_vec.push(InputKind::I16(value));}
+                            else{panic!("Corrupt input file, error in mode info, m value greater than l.")}
+                        }
                         InputKind::U16(value)=>{
                             if value > (std::i16::MAX as u16){panic!("Corrupt input file, error in mode info i16 out of bounds")}
+                            else if value > l_check {panic!("Corrupt input file, error in mode info, m value greater than l.")}
                             else {aux_vec.push(InputKind::I16(value as i16))}
                         }
                         _=>{panic!("Corrupt input file, error in mode info expected i16 for m")}
@@ -67,7 +75,10 @@ pub fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
                         _=>{panic!("Corrupt input file, error in mode info expected f64 for amplitude r/r0")}
                     }
                     match input_vec[3]{
-                        InputKind::F64(value)=>{ aux_vec.push(InputKind::F64(value));}
+                        InputKind::F64(value)=>{ 
+                            if l_check ==0 || value != 0.0{ panic!("Corrupt input file, error in mode info k value !=0 for l=0.")}
+                            else{aux_vec.push(InputKind::F64(value));}
+                        }
                         _=>{panic!("Corrupt input file, error in mode info expected f64 for amplitude K")}
                     }
                     match input_vec[4]{

@@ -3,23 +3,23 @@
 use temp_name_lib::type_def::{Eigenfunctions,Config};
 #[derive(Debug,PartialEq)]
 pub struct PulstarConfig{
-    time_pts_nmbr:u16,
-    mode_config:Config,
-    freqcycli:Vec<f64>,
-    temperature_config:Vec<Eigenfunctions>,
-    gravity_config:Vec<Eigenfunctions>,
-    star_config:StarInfo,
-    is_time_dependent:bool,
-    suppress_pulse:bool,
-    print_amplitude:bool,
+    pub time_pts_nmbr:u16,
+    pub mode_config:Config,
+    pub freqcycli:Vec<f64>,
+    pub temperature_config:Vec<Eigenfunctions>,
+    pub gravity_config:Vec<Eigenfunctions>,
+    pub star_config:StarInfo,
+    pub is_time_dependent:bool,
+    pub suppress_pulse:bool,
+    pub print_amplitude:bool,
 }
 #[derive(Debug,PartialEq)]
 pub struct StarInfo{
-    mass:f64,
-    radius:f64,
-    effective_temperature:f64,
-    rotation_velocity:f64,
-    inclination_angle:i16,
+    pub mass:f64,
+    pub radius:f64,
+    pub effective_temperature:f64,
+    pub rotation_velocity:f64,
+    pub inclination_angle:i16,
 }
 
 mod parse_value;
