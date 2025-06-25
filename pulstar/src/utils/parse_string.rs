@@ -1,5 +1,6 @@
 use super::parse_value::parse_from_cell;
 use crate::utils::{InputLines,InputKind};
+use temp_name_lib::type_def;
 pub fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
     //skip if # or end of line
     let trimmedline = s.trim();
@@ -17,7 +18,10 @@ pub fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
                 else{
                     match input_vec[0]{
                         InputKind::U16(value)=>{
+                            if value < type_def::MAX_N_TIMES {
                             Some(InputLines::TimePoints([InputKind::U16(value)]))
+                            }
+                            else{panic!("number of timepoints must be less than {}",type_def::MAX_N_TIMES)}
                         }
                         _=>{panic!("Corrupt input file, in number of time points field\n
                                     expected a u16 value and received something else")}
@@ -31,7 +35,9 @@ pub fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
                 else{
                     match input_vec[0]{
                         InputKind::U16(value)=>{
-                            Some(InputLines::NumberOfModes([InputKind::U16(value)]))
+                            if value < type_def::MAX_N_MODES{
+                            Some(InputLines::NumberOfModes([InputKind::U16(value)]))}
+                            else{panic!("number of modes must be less than {}",type_def::MAX_N_MODES)}
                         }
                         _=>{panic!("Corrupt input file, in number of modes field\n
                                     expected a u16 value and received something else")}

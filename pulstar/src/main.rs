@@ -1,5 +1,5 @@
 use temp_name_lib::joris_math::geometry::surface_normal::surface_normal;
-use pulstar::utils;
+use pulstar::utils::{self,parse_file};
 use nalgebra as na;
 use std::{env,fs};
 fn main() {
@@ -20,8 +20,11 @@ fn main() {
     println!("--------------------");
 
     //Read input file
+    let build_pulse_config= parse_file::parse_from_file(parameter_file);
 
+    let time_points = parse_file::parse_timepoints(&time_points_file,&build_pulse_config);
     //asserting 
+
 
     //initialize param
 

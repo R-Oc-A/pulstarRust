@@ -1,7 +1,7 @@
 //use std::any::Any;
 //use std::hint::assert_unchecked;
 use temp_name_lib::type_def::{Eigenfunctions,Config};
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 pub struct PulstarConfig{
     time_pts_nmbr:u16,
     mode_config:Config,
@@ -13,7 +13,7 @@ pub struct PulstarConfig{
     suppress_pulse:bool,
     print_amplitude:bool,
 }
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 pub struct StarInfo{
     mass:f64,
     radius:f64,
@@ -25,6 +25,8 @@ pub struct StarInfo{
 mod parse_value;
 mod parse_string;
 pub mod parse_file;
+
+
 
 #[derive(Debug,Clone,Copy)]
 enum InputKind{

@@ -1,3 +1,4 @@
+use core::f64;
 use std::io::{self, BufRead, Lines};
 use std::fs::{self,File};
 use std::path::Path;
@@ -15,8 +16,8 @@ where P: AsRef<Path>, {
 
 pub fn parse_from_file(file_name:&str)->PulstarConfig{    
     //This is in case reading file from buffer needs more time to set up.
-    let parameter_file_contents = fs::read_to_string(file_name)
-        .expect("Should have been able to read the file");
+    //let parameter_file_contents = fs::read_to_string(file_name)
+    //    .expect("Should have been able to read the file");
 
     //----List of parameters-----
     let mut counter:u16 =1;
@@ -290,11 +291,11 @@ pub fn parse_from_file(file_name:&str)->PulstarConfig{
             }
         }
 
-        _=>{if counter == 11 {break;} else {panic!("undefined behavior!")}}        
+        _=>{if counter == 11 {break;}} 
         }// match counter
 
     }//for line iteration
-    
+    if counter != 11 {panic!("Corrupt input file")}; 
     
     let mode_parameters= Config{
         n_modes: n_modes,
@@ -325,6 +326,22 @@ pub fn parse_from_file(file_name:&str)->PulstarConfig{
          print_amplitude: print_amplitude }
 
 }
+
+pub fn parse_timepoints(file_name:&str, pulstar_pars:&PulstarConfig)->Vec<f64>{
+    let mut time_points:Vec<f64>=Vec::new();
+    for s in get_line(file_name).unwrap().map(|l| l.expect("error while reading") ){
+        let trimmedline = s.trim();
+        if let Ok(f) = trimmedline.parse::<f64>(){
+            time_points.push(f);
+        }
+    }
+
+    if time_points.len() != pulstar_pars.time_pts_nmbr as usize {
+        panic!("Number of time points read and number of time points to be read do not match.")
+    }else{ return time_points;}
+}
+
+
 
 #[cfg(test)]
 mod parse_file_tests;

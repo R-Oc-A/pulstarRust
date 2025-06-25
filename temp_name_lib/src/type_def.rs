@@ -1,10 +1,10 @@
 use nalgebra as na;
 
-const THETA_STEP:u32 = 4; //step in grid in the theta direction
-const PHI_STEP:u32 = 8; // step in grid in the phi direction
-const N_FLUX_POINTS:u32=10000; // number of points in one flux profile
-const MAX_N_MODES:u32 = 10; // max number of pulsation modes allowed
-const MAX_N_TIMES:u32 = 3000; //max number of time points 
+const THETA_STEP:u16 = 4; //step in grid in the theta direction
+const PHI_STEP:u16 = 8; // step in grid in the phi direction
+const N_FLUX_POINTS:u16=10000; // number of points in one flux profile
+pub const MAX_N_MODES:u16 = 10; // max number of pulsation modes allowed
+pub const MAX_N_TIMES:u16 = 3000; //max number of time points 
 
 //[Ricardo]: components of a 3d vector
 //x,y,z cartesian corresponds to coords[1], coords[2], coords[3]
@@ -29,7 +29,7 @@ impl VectorComponents{
 
 //[Ricardo]: Configuration parameters of the simulation...I guess.
 // In the c++ version this are called parameters.
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 pub struct Config{
     pub n_modes:u16,
     pub l:Vec<u16>,
@@ -44,7 +44,7 @@ pub struct Config{
 //I presume It's from a fourier transformation. Later I might encapsulate the
 //linear equation, eigenfunction, eigenvalues on the same data struct, since they all
 //seem to be related
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 pub struct Eigenfunctions{
     pub ampl: f64,
     pub phasedif: f64,
