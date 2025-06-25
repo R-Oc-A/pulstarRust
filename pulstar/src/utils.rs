@@ -1,6 +1,7 @@
 //use std::any::Any;
 //use std::hint::assert_unchecked;
 use temp_name_lib::type_def::{Eigenfunctions,Config};
+#[derive(Debug)]
 pub struct PulstarConfig{
     time_pts_nmbr:u16,
     mode_config:Config,
@@ -12,6 +13,7 @@ pub struct PulstarConfig{
     suppress_pulse:bool,
     print_amplitude:bool,
 }
+#[derive(Debug)]
 pub struct StarInfo{
     mass:f64,
     radius:f64,

@@ -52,7 +52,7 @@ pub fn parse_from_file(file_name:&str)->PulstarConfig{
                         TimePoints = value2;
                         counter +=1;
                     }
-                    _=>panic!("this should not occur!"),
+                    _=>panic!("this should not occur!error in number of timepoints"),
                 }
             }
             _=>{panic!("It was expecting number of time points")}
@@ -325,3 +325,6 @@ pub fn parse_from_file(file_name:&str)->PulstarConfig{
          print_amplitude: print_amplitude }
 
 }
+
+#[cfg(test)]
+mod parse_file_tests;

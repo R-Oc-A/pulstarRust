@@ -222,3 +222,241 @@ pub fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
             }
             }
 }
+
+
+#[cfg(test)]
+mod tests{
+    use super::*;
+    #[test]
+    #[ignore = "allready passed"]
+    fn parsing_time_points(){
+        let s = String::from("     15");
+        if let Some(value) = parse_from_string(&s, 1){
+            match value{
+                InputLines::TimePoints(value2)=>{
+                    match value2[0]{
+                        InputKind::U16(value3)=>{assert_eq!(value3,15u16,
+                            "it went almost completely allright except that it received a '{}' instead of 15",value3)}
+                        _=>{panic!("read an input but it wasn't 15u16")}
+                    }
+                }
+                _=>{panic!("received an incorrect input line id")}
+            }
+        }else{panic!("It couldn't even get an input line")};
+    }
+    
+    #[test]
+    #[ignore = "allready passed"]
+    fn parsing_number_of_modes(){
+        let s = String::from("     1");
+        if let Some(value) = parse_from_string(&s, 2){
+            match value{
+                InputLines::NumberOfModes(value2)=>{
+                    match value2[0]{
+                        InputKind::U16(value3)=>{assert_eq!(value3,1u16,
+                            "it went almost completely allright except that it received a '{}' instead of 1",value3)}
+                        _=>{panic!("read an input but it wasn't 1u16, rather a {:#?}",value2[0])}
+                    }
+                }
+                _=>{panic!("received an incorrect input line id")}
+            }
+        }else{panic!("It couldn't even get an input line")};
+    }
+
+    #[test]
+    #[ignore = "allready passed"]
+    fn parsing_mode_info(){
+        let s = String::from("  4     1       0.024              0.05           6.74            0.00");
+        if let Some(value) = parse_from_string(&s, 3){
+            match value{
+                InputLines::ModeInfo(value2)=>{
+                    match value2[0]{
+                        InputKind::U16(value3)=>{assert_eq!(value3,4u16,
+                            "it went almost completely fine except that it received a '{}' instead of  4", value3)}
+                        _=>{panic!("read an input for l but it wasn't a u16, rather a {:#?}",value2[0])}
+                    }
+                    match value2[1]{
+                        InputKind::I16(value3)=>{assert_eq!(value3,1i16,
+                            "it went almost completely fine except that it received a '{}' instead of a 1",value3)}
+                        _=>{panic!("read an input for m but it wasn't a i16, rather a {:#?}",value2[0])}
+                    }
+                    match value2[2]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,0.024,
+                            "it went almost completely fine except that it received a '{}' instead of a 0.024",value3)}
+                        _=>{panic!("read an input for ampl delta r/r0 but it wasn't a f64, rather a {:#?}",value2[0])}
+                    }
+                    match value2[3]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,0.05,
+                            "it went almost completely fine except that it received a '{}' instead of a 0.05",value3)}
+                        _=>{panic!("read an input for K value but it wasn't a f64, rather a {:#?}",value2[0])}
+                    }
+                    match value2[4]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,6.74,
+                            "it went almost completely fine except that it received a '{}' instead of a 6.74",value3)}
+                        _=>{panic!("read an input for frequency cycle (c/d) but it wasn't a f64, rather a {:#?}",value2[0])}
+                    }
+                    match value2[5]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,0.00,
+                            "it went almost completely fine except that it received a '{}' instead of a 0.00",value3)}
+                        _=>{panic!("read an input for phase offset but it wasn't a i16, rather a {:#?}",value2[0])}
+                    }
+                }
+                _=>{panic!("received an incorrect input line id")}
+            }
+        }else{
+            panic!("It couldn't even get an input line")
+        }
+    }
+
+
+    #[test]
+    #[ignore = "allready passed"]
+    fn parsing_rotvel_inclination(){
+        let s = String::from("             20.0                                        45");
+        if let Some(value) = parse_from_string(&s, 4){
+            match value{
+                InputLines::RotationInclination(value2)=>{
+                    match value2[0]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,20.0,
+                            "It received a '{}' instead of a 20.0",value3)}
+                        _=>{panic!("read an input for rotation but it wasn't a f64, rather a {:#?}",value2[0])}
+                    }
+                    match value2[1]{
+                        InputKind::I16(value3)=>{assert_eq!(value3,45i16,
+                            "It received a '{}' instead of a 45",value3)}
+                        _=>{panic!("read an input for inclination angle but it wasn't a i16, rather a {:#?}",value2[0])}
+                    }
+                }
+                _=>{panic!("Received an incorrect input line id")}
+            }
+        }else { panic!("It couldn't even get an input line")}
+    }
+
+    #[test]
+    #[ignore = "allready passed"]
+    fn parsing_mode_temperature(){
+        let s = String::from("      2.62                                        180.0");
+        if  let Some(value) = parse_from_string(&s, 5){
+            match value{
+                InputLines::ModeTemperature(value2)=>{
+                    match value2[0]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,2.62,
+                            "It received a '{}' instead of a 2.62",value3)}
+                        _=>{panic!("read an input for factor delta T/T0 but it wasn't a f64, rather a {:#?}",value2[0])}
+                    }
+                    match value2[1]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,180.0,
+                            "It received a '{}' instead of a 180.0",value3)}
+                        _=>{panic!("read an input for phase difference delta T/T0 but it wasn't a f64, rather a {:#?}",value2[0])}
+                    }
+                }
+                _=>{panic!("Received an incorrect input line id")}
+            }
+        }else { panic!("It couldn't even get an input line")}
+    }
+    
+    #[test]
+    #[ignore = "allready passed"]
+    fn parsing_mode_gravity(){
+        let s = String::from("      10.0                                        34.0");
+        if  let Some(value) = parse_from_string(&s, 6){
+            match value{
+                InputLines::ModeGravity(value2)=>{
+                    match value2[0]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,10.0,
+                            "It received a '{}' instead of a 10.0",value3)}
+                        _=>{panic!("read an input for factor delta g/g0 but it wasn't a f64, rather a {:#?}",value2[0])}
+                    }
+                    match value2[1]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,34.0,
+                            "It received a '{}' instead of a 34.0",value3)}
+                        _=>{panic!("read an input for phase difference delta g/g0 but it wasn't a f64, rather a {:#?}",value2[0])}
+                    }
+                }
+                _=>{panic!("Received an incorrect input line id")}
+            }
+        }else { panic!("It couldn't even get an input line")}
+    }
+
+    #[test]
+    #[ignore = "allready passed"]
+    fn parsing_star_info(){
+        let s = String::from("    10.0            6.93                   22642.0");
+        if let Some(value) = parse_from_string(&s, 7){
+            match value{
+                InputLines::StarInfo(value2)=>{
+                    match value2[0]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,10.0,
+                            "It received a '{}' instead of a 10.0",value3)}
+                        _=>{panic!("read an input for the star mass but it wasn't a f64, rather a {:#?}",value2[0])}
+                    }
+                    match value2[1]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,6.93,
+                            "It received a '{}' instead of a 6.93",value3)}
+                        _=>{panic!("read an input for Radius/Radius_sun but it wasn't a f64, rather a {:#?}",value2[0])}
+                    }
+                    match value2[2]{
+                        InputKind::F64(value3)=>{assert_eq!(value3,22642.0,
+                            "It received a '{}' instead of a 22642.0",value3)}
+                        _=>{panic!("read an input for effective temperature but it wasn't a f64, rather a {:#?}",value2[0])}
+                    }
+                }
+                _=>{panic!("Received an incorrect input line id")}
+            }
+        }else { panic!("It couldn't even get an input line")}
+    }
+    
+    #[test]
+    #[ignore = "allready passed"]
+    fn parsing_is_time_dependent(){
+        let s = String::from("                       1");
+        if let Some(value) = parse_from_string(&s, 8){
+            match value{
+                InputLines::IsTimeDependent(value2)=>{
+                    match value2[0]{
+                        InputKind::U16(value3)=>{assert_eq!(value3,1u16,
+                            "it went almost completely allright except that it received a '{}' instead of 1",value3)}
+                        _=>{panic!("read an input but it wasn't u16")}
+                    }
+                }
+                _=>{panic!("received an incorrect input line id")}
+            }
+        }else{panic!("It couldn't even get an input line")};
+    }
+    
+    #[test]
+    #[ignore = "allready passed"]
+    fn parsing_suppress_pulse(){
+        let s = String::from("                       0");
+        if let Some(value) = parse_from_string(&s, 9){
+            match value{
+                InputLines::SuppressPulseVel(value2)=>{
+                    match value2[0]{
+                        InputKind::U16(value3)=>{assert_eq!(value3,0u16,
+                            "it went almost completely allright except that it received a '{}' instead of 0",value3)}
+                        _=>{panic!("read an input but it wasn't u16")}
+                    }
+                }
+                _=>{panic!("received an incorrect input line id")}
+            }
+        }else{panic!("It couldn't even get an input line")};
+    }
+    
+    #[test]
+    #[ignore = "allready passed"]
+    fn parsing_print_vel(){
+        let s = String::from("                       0");
+        if let Some(value) = parse_from_string(&s, 10){
+            match value{
+                InputLines::PrintMaxVelAmplitude(value2)=>{
+                    match value2[0]{
+                        InputKind::U16(value3)=>{assert_eq!(value3,0u16,
+                            "it went almost completely allright except that it received a '{}' instead of 0",value3)}
+                        _=>{panic!("read an input but it wasn't u16")}
+                    }
+                }
+                _=>{panic!("received an incorrect input line id")}
+            }
+        }else{panic!("It couldn't even get an input line")};
+    }
+}

@@ -29,6 +29,7 @@ impl VectorComponents{
 
 //[Ricardo]: Configuration parameters of the simulation...I guess.
 // In the c++ version this are called parameters.
+#[derive(Debug)]
 pub struct Config{
     pub n_modes:u16,
     pub l:Vec<u16>,
@@ -43,6 +44,7 @@ pub struct Config{
 //I presume It's from a fourier transformation. Later I might encapsulate the
 //linear equation, eigenfunction, eigenvalues on the same data struct, since they all
 //seem to be related
+#[derive(Debug)]
 pub struct Eigenfunctions{
     pub ampl: f64,
     pub phasedif: f64,
