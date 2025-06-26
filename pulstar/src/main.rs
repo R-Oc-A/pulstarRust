@@ -1,4 +1,4 @@
-use temp_name_lib::joris_math::{geometry::{projections::cos_chi, surface_normal::surface_normal}, ref_frame_convrs::{cartesian_to_spherical, unit_vector_k}};
+use temp_name_lib::{joris_math::{geometry::{projections::{cos_chi, project_vector}, surface_normal::surface_normal}, ref_frame_convrs::{cartesian_to_spherical, unit_vector_k}}, star_physics::{local_values::local_value, velocity::velocity_projection::{project_vpuls, project_vrot}}};
 use pulstar::{utils::{self,parse_file,PulstarConfig}, DEG2RAD, PI, RADIUSSUN};
 use nalgebra as na;
 use core::time;
@@ -113,16 +113,55 @@ fn main() {
             let mut phi:u16 = 1;
             'phi_loop: while phi <= 360{
                 let phi_rad= phi as f64 * DEG2RAD;
-                let Snormal = surface_normal(&pulse_config.mode_config,
+
+                let mut local_veloc =0.0;
+                let mut local_temp =0.0;
+                let mut local_logg = 0.0;
+                let mut local_area = 0.0;
+
+                let s_normal = surface_normal(&pulse_config.mode_config,
                      theta_rad, 
                      phi_rad,
                     pulse_config.is_time_dependent).unwrap();
                 let k_spherical = cartesian_to_spherical(&k, 
                     theta_rad, phi_rad).unwrap();
-                let cos_chi = cos_chi(&Snormal,
+                let cos_chi = cos_chi(&s_normal,
                      &k_spherical).unwrap();
-//[Ricardo]: Y ahora estoy aqui! queriendo convertir los campos en ciudad!!!
-                if cos_chi > 0.0{}
+                if cos_chi > 0.0{ //If the shifted mass element is visible
+                    match pulse_config.suppress_pulse{
+                        true => {
+                            local_veloc = project_vrot(pulse_config.star_config.rotation_velocity,
+                                                    theta_rad,
+                                                    phi_rad, &k).unwrap();
+                        }
+                        false => {
+                            local_veloc = project_vpuls(&pulse_config.mode_config,
+                                 theta_rad,
+                                 phi_rad,
+                                 &k,
+                                &vampl).unwrap()
+                                + project_vrot(pulse_config.star_config.rotation_velocity,
+                                    theta_rad,
+                                    phi_rad, 
+                                    &k).unwrap();
+                        }
+                    }
+                    local_temp = local_value(&pulse_config.temperature_config,
+                        &pulse_config.mode_config,
+                        theta_rad,
+                        phi_rad,
+                        pulse_config.star_config.effective_temperature).unwrap();
+                    local_logg= local_value(&pulse_config.gravity_config,
+                        &pulse_config.mode_config,
+                        theta_rad,
+                        phi_rad,
+                        log_g0).unwrap();
+                    local_area = project_vector(&s_normal,
+                        &k_spherical).unwrap();
+                }//end if coschi > 0
+                else{
+                    //[Ricardo]: already nullified local values, so do nothing...
+                }//end else coschi > 0   
                 phi += 1;
             }//end phi loop
             theta += 1;

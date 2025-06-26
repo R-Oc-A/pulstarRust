@@ -26,8 +26,8 @@ fn non_zero_ampl(g: &[Eigenfunctions])-> bool{
 //base value. Internal use only.
 pub fn local_value(value: &[Eigenfunctions],
                    parameters: &Config,
-                   theta:f64,
-                   phi:f64,
+                   theta_rad:f64,
+                   phi_rad:f64,
                    base_unit:f64)-> Result<f64,MathErrors> {
 
     match non_zero_ampl(value){
@@ -35,8 +35,8 @@ pub fn local_value(value: &[Eigenfunctions],
 
         true =>{
             let mut res = 0.0;
-            let sintheta=theta.sin();
-            let costheta=theta.cos();
+            let sintheta=theta_rad.sin();
+            let costheta=theta_rad.cos();
             for (n,item) in value.iter().enumerate(){
                 if item.ampl != 0.0{
                     let ampl_radial= parameters.rel_deltar[n] 
@@ -58,7 +58,7 @@ pub fn local_value(value: &[Eigenfunctions],
                         0,
                         sintheta,
                         costheta,
-                        phi,
+                        phi_rad,
                         ampl_radial,
                         ampl_tangential) ? ;
 
