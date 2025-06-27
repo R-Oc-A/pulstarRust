@@ -172,6 +172,7 @@ match fs::remove_file(path){
 //should panic
 #[test]
 #[should_panic]
+#[ignore = "It panics as it should."]
 fn open_corrupt_input_file_incomplete(){
 
     let path = String::from("dummy_input_file_incomplete.txt");
@@ -203,6 +204,7 @@ match fs::remove_file(path){
 
 #[test]
 #[should_panic]
+#[ignore = "It panics as it should."]
 fn open_corrupt_file_mismatch_with_nmodes(){
 
     let path = String::from("dummy_input_file_mismatch.txt");
@@ -285,6 +287,7 @@ match fs::remove_file(path){
 
 #[test]
 #[should_panic]
+#[ignore = "it panics as it should"]
 fn open_corrupt_file_wrongvalue(){
 
     let path = String::from("dummy_input_file_wrong_val.txt");

@@ -1,7 +1,7 @@
 use nalgebra as na;
 
-const THETA_STEP:u16 = 4; //step in grid in the theta direction
-const PHI_STEP:u16 = 8; // step in grid in the phi direction
+pub const THETA_STEP:u16 = 4; //step in grid in the theta direction
+pub const PHI_STEP:u16 = 8; // step in grid in the phi direction
 const N_FLUX_POINTS:u16=10000; // number of points in one flux profile
 pub const MAX_N_MODES:u16 = 10; // max number of pulsation modes allowed
 pub const MAX_N_TIMES:u16 = 3000; //max number of time points 
@@ -35,7 +35,7 @@ pub struct Config{
     pub l:Vec<u16>,
     pub m:Vec<i16>,
     pub rel_deltar:Vec<f64>,
-    pub k:Vec<f64>,//[Ricardo]: It's the value along the k unit vector.I dont know anymore, it says kapa value.
+    pub k:Vec<f64>,// K correction
     pub phase:Vec<f64>,
 }
 

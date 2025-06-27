@@ -1,8 +1,25 @@
-use temp_name_lib::{joris_math::{geometry::{projections::{cos_chi, project_vector}, surface_normal::surface_normal}, ref_frame_convrs::{cartesian_to_spherical, unit_vector_k}}, star_physics::{local_values::local_value, velocity::velocity_projection::{project_vpuls, project_vrot}}};
-use pulstar::{utils::{self,parse_file,PulstarConfig}, DEG2RAD, PI, RADIUSSUN};
-use nalgebra as na;
-use core::time;
-use std::{env};
+use temp_name_lib::{
+    joris_math::{
+        geometry::{
+            displacement::displacement, 
+            projections::{cos_chi, project_vector}, 
+            surface_normal::surface_normal
+            }, 
+        ref_frame_convrs::{cartesian_to_spherical, unit_vector_k},
+        spherical_harmonics::norm_factor::ylmnorm
+        }, 
+    star_physics::{
+        local_values::local_value, 
+        velocity::{
+            pulsation::v_puls, 
+            velocity_projection::{project_vpuls, project_vrot}
+            }
+        }
+    };
+use pulstar::{utils::{parse_file, print_info::print_report},
+            DEG2RAD, PI, RADIUSSUN};
+use std::{env,
+        time::Instant};
 fn main() {
 
     // program start!
@@ -19,7 +36,7 @@ fn main() {
     println!("--------------------");
     println!("|PULSTARust launced|");
     println!("--------------------");
-
+    let now = Instant::now();
     //----------------------------------------
     //----------Read input file---------------
     //----------------------------------------
@@ -42,6 +59,8 @@ fn main() {
     let mut min_temp:Vec<f64> = Vec::new();
     let mut max_logg:Vec<f64> = Vec::new();
     let mut min_logg:Vec<f64> = Vec::new();
+    let mut maxvel_length =0.0;
+    let mut maxrel_length =0.0;
     //iterate in an idiomatic way
     for (n,l_val) in pulse_config.mode_config.l.iter().enumerate(){
         //--Frequency in rad/s--
@@ -158,40 +177,75 @@ fn main() {
                         log_g0).unwrap();
                     local_area = project_vector(&s_normal,
                         &k_spherical).unwrap();
+
+                    if max_veloc[n] < local_veloc {max_veloc[n]=local_veloc}
+                    if max_temp[n] < local_temp {max_temp[n]=local_temp}
+                    if max_logg[n] < local_logg {max_logg[n]=local_logg}
+                    if min_veloc[n] < local_veloc {min_veloc[n]=local_veloc}
+                    if min_temp[n] < local_temp {min_temp[n]=local_temp}
+                    if min_logg[n] < local_logg {min_logg[n]=local_logg}
+                    
                 }//end if coschi > 0
                 else{
                     //[Ricardo]: already nullified local values, so do nothing...
                 }//end else coschi > 0   
+
+                //writing data into pulstar.out files
+
+
+                let mut vel_length =0.0;
+                let mut rel_lenght = 0.0;                
+                if pulse_config.print_amplitude {
+                    let sintheta = theta_rad.sin();
+                    let costheta = theta_rad.cos();
+                    for (index,rel_deltar) in pulse_config.mode_config.rel_deltar.iter().enumerate(){
+                        vel_length += v_puls(&pulse_config.mode_config,
+                            index, 
+                            sintheta, 
+                            costheta, 
+                            phi_rad,
+                            &vampl).unwrap().coords.norm();
+                        
+                        let ampl_radial= rel_deltar 
+                                        * ylmnorm(pulse_config.mode_config.l[index], pulse_config.mode_config.m[index]);
+                        let ampl_tangential= *rel_deltar
+                                        * pulse_config.mode_config.k[index] * 
+                                        ylmnorm(pulse_config.mode_config.l[index], pulse_config.mode_config.m[index]);
+                        
+                        rel_lenght += displacement(&pulse_config.mode_config,
+                            index,
+                            sintheta,
+                            costheta,
+                            phi_rad,
+                            ampl_radial,
+                            ampl_tangential).unwrap().coords.norm();
+                    }
+                    if rel_lenght > maxrel_length { maxrel_length=rel_lenght}
+                    if vel_length > maxvel_length { maxvel_length=vel_length}
+                    
+                }
                 phi += 1;
             }//end phi loop
             theta += 1;
         }//end theta loop
-    }//end for loop time points
-    /*
-    'loop_on_theta: loop{
-        let mut phi_index:usize=1;
-        'loop_on_phi : loop{
-            phi_index += 1;
-            if phi_index > 359 {break 'loop_on_phi};
 
-            let theta_rad = theta as f64 * pulstar::DEG2RAD;
-            let phi_rad = phi as f64 * pulstar::DEG2RAD;
+        print_report(&now,//<---This gives the time of the computation
+            &pulse_config,
+            &vampl,
+            &k_theory,
+            &min_veloc, 
+            &max_veloc, 
+            &min_temp, 
+            &max_temp, 
+            &min_logg, 
+            &max_logg, 
+            &freqrad,
+            &period, 
+            maxvel_length, 
+            maxrel_length,
+            log_g0);
 
-            let surf_normal = surface_normal(&parameters,
-                                            theta_rad,
-                                            phi_rad,
-                                            false).unwrap_or_else
-                                            (|error| "problem with theta too small {error:?}");
-
-            let coschi = cos_chi
-                        (&surf_normal,
-                       cartesian_to_sphere(k,
-                                          theta_rad,
-                                          phi_rad));
-        }
-        theta_index += 1;
-        if theta_index > 179 {break 'loop_on_theta};
-    }
-    */
+        
+    }//end for time loop
     println!("Hello, world!");
 }

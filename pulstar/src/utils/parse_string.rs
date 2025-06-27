@@ -76,7 +76,7 @@ pub fn parse_from_string(s: &str, input_line_id:u16 )->Option<InputLines>{
                     }
                     match input_vec[3]{
                         InputKind::F64(value)=>{ 
-                            if l_check ==0 || value != 0.0{ panic!("Corrupt input file, error in mode info k value !=0 for l=0.")}
+                            if l_check ==0 && value != 0.0{ panic!("Corrupt input file, error in mode info k value !=0 for l=0.")}
                             else{aux_vec.push(InputKind::F64(value));}
                         }
                         _=>{panic!("Corrupt input file, error in mode info expected f64 for amplitude K")}
