@@ -20,7 +20,7 @@ pub fn print_report(now:&Instant,
     maxrellength:f64,
     log_g0:f64){
     println!("+---------------------------------------------+");
-    println!("PULSTARRust: REPORT - TIME: {} µs", now.elapsed().as_micros());
+    println!("PULSTARRust: REPORT - TIME: {} s", now.elapsed().as_secs());
     println!("+---------------------------------------------+\n");
     
 
@@ -33,10 +33,10 @@ pub fn print_report(now:&Instant,
     for (index,l) in parameters.mode_config.l.iter().enumerate(){
         print!("| {} ",index+1);
         print!("| ({},{}) ",l,parameters.mode_config.m[index]);
-        print!("|   {:8.5}  ",parameters.freqcycli[index]);
-        print!("|    {:8.5}   ",freqrad[index]);
-        print!("|   {:8.5}  ",period[index]);
-        print!("|     {:8.5}    \n",parameters.mode_config.rel_deltar[index]);
+        print!("|  {:8.5}  ",parameters.freqcycli[index]);
+        print!("|   {:8.5}   ",freqrad[index]);
+        print!("|  {:8.5}  ",period[index]);
+        print!("|    {:8.5}    ",parameters.mode_config.rel_deltar[index]);
     }
     println!("\n+---+-------+------------+--------------+------------+---------------+");
     println!(  "| # | (l,m) |  Vp (km/s) |   K (user)   | K (theory) | Y_l^m norm    |");
@@ -44,10 +44,10 @@ pub fn print_report(now:&Instant,
     for (index,l) in parameters.mode_config.l.iter().enumerate(){
         print!("| {} ",index+1);
         print!("| ({},{}) ",l,parameters.mode_config.m[index]);
-        print!("|   {:8.5}  ",vampl[index]);
-        print!("|    {:8.5}   ",parameters.mode_config.k[index]);
-        print!("|   {:8.5}  ",k_theory[index]);
-        print!("|     {:8.5}    \n", ylmnorm(*l,parameters.mode_config.m[index])); 
+        print!("|  {:8.5}  ",vampl[index]);
+        print!("|   {:8.5}   ",parameters.mode_config.k[index]);
+        print!("|  {:8.5}  ",k_theory[index]);
+        print!("|    {:8.5}    ", ylmnorm(*l,parameters.mode_config.m[index])); 
     }
     println!("\n+---+-------+------------+--------------+------------+---------------+");
     println!(  "| # | (l,m) | T_e factor |T_e phase dif |  g factor  | g phase dif   |");
@@ -55,10 +55,10 @@ pub fn print_report(now:&Instant,
     for (index,l) in parameters.mode_config.l.iter().enumerate(){
         print!("| {} ",index+1);
         print!("| ({},{}) ",l,parameters.mode_config.m[index]);
-        print!("|   {:8.5}  ",parameters.temperature_config[index].ampl*RAD2DEG);
-        print!("|    {:8.5}   ",parameters.temperature_config[index].phasedif*RAD2DEG);
-        print!("|   {:8.5}  ",parameters.gravity_config[index].ampl);
-        print!("|     {:8.5}    \n", parameters.gravity_config[index].phasedif*RAD2DEG); 
+        print!("|  {:8.3e}  ",parameters.temperature_config[index].ampl*RAD2DEG);
+        print!("|   {:8.3e}   ",parameters.temperature_config[index].phasedif*RAD2DEG);
+        print!("|  {:8.3e}  ",parameters.gravity_config[index].ampl);
+        print!("|    {:8.3e}    ", parameters.gravity_config[index].phasedif*RAD2DEG); 
     }
 
     println!("\n+---+-------+--------------+");
@@ -67,7 +67,7 @@ pub fn print_report(now:&Instant,
     for (index,l) in parameters.mode_config.l.iter().enumerate(){
         print!("| {} ",index+1);
         print!("| ({},{}) ",l,parameters.mode_config.m[index]);
-        print!("|   {:8.5}  \n",parameters.mode_config.phase[index]);
+        print!("|   {:8.3e}  \n",parameters.mode_config.phase[index]);
     }
 
     print!("- Ve: {:8.5} km/s ",parameters.star_config.rotation_velocity);
@@ -76,18 +76,18 @@ pub fn print_report(now:&Instant,
     println!(" Inclination angle: {} degrees", parameters.star_config.inclination_angle);
 
     println!("\nVISIBLE SURFACE DATA");
-    println!("+-------+-----------------+-----------------+----------+----------+-------------+-------------+\n");
-    println!("| phase | Min. Proj. Vtot | Max. Proj. Vtot |  Min. T  |  Max. T  | Min. log(g) | Max. log(g) |\n");
-    println!("+-------+-----------------+-----------------+----------+----------+-------------+-------------+\n");
+    println!("+-------+-----------------+-----------------+------------+-----------+--------------+-------------+");
+    println!("| phase | Min. Proj. Vtot | Max. Proj. Vtot |  Min. T    |  Max. T   | Min. log(g)  | Max. log(g) |");
+    println!("+-------+-----------------+-----------------+------------+-----------+--------------+-------------+");
 
     for (n,min_v) in min_vel.iter().enumerate(){
         print!("|  {:0>3}  ",n);
-        print!("|     {:8.5}    ",min_v);
-        print!("|     {:8.5}    ",max_vel[n]);
-        print!("|  {:8.5} ",min_t[n]);
-        print!("|  {:8.5} ",max_t[n]);
-        print!("|  {:8.5}   ",max_logg[n]);
-        print!("|  {:8.5}   |\n",min_logg[n]);
+        print!("|     {:8.3e}    ",*min_v);
+        print!("|     {:8.3e}    ",max_vel[n]);
+        print!("|  {:8.3e} ",min_t[n]);
+        print!("|  {:8.3e} ",max_t[n]);
+        print!("|  {:8.3e}   ",min_logg[n]);
+        print!("|  {:8.3e}   |\n",max_logg[n]);
     }
 
     let maxvel = max_vel.iter().fold(max_vel[0], |prev,curr| prev.max(*curr));
@@ -121,12 +121,12 @@ pub fn print_report(now:&Instant,
     println!("COMPUTATIONAL RESTRICTIONS");
     println!(" - Surface normal time variation taken into account: ");
     match parameters.is_time_dependent{
-        true => { println!( "no\n")}
-        false => {println!("yes\n")}
+        true => { println!( "   yes\n")}
+        false => {println!("   no\n")}
     }
     println!(" -  Artificial suppression of pulsational velocity field: ");
     match parameters.suppress_pulse{
-        true=> {println!("yes\n")}
-        false=> {println!("no\n")}
+        true=> {println!("   yes\n")}
+        false=> {println!("   no\n")}
     }
 }

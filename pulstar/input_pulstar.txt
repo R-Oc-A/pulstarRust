@@ -1,0 +1,64 @@
+# This is an input file for the program PULSTAR
+# 
+# Some rules: . between 2 input lines you can always put comment lines with `#'
+#             . you cannot put comments after a number on the same line
+#
+# 
+# Number of time phase points in time points file
+# (time points should be expressed in days)
+# -----------------------------------------------
+     15
+
+
+# Total number of modes
+# ---------------------
+     1
+
+# Make a table with mode information. For each mode:
+#
+# l     m     ampl. delta r/r0    K value      freq.(c/d)    phase offset [0,1]
+#--    ---    ----------------    -------      ----------    ------------------
+  4     1       0.024              0.05           6.74            0.00
+
+
+# equatorial rotational velocity (km/s)     inclination angle (integer degrees)
+# -------------------------------------     -----------------------------------
+             20.0                                        45
+
+
+# Make a table with mode information. For each mode:
+#
+# factor delta T/T_0         phase difference delta T/T_0 (degrees, float)
+# ------------------         ---------------------------------------------
+      2.62                                        180.0
+
+
+
+# Make a table with mode information. For each mode:
+# 
+# factor delta g/g_0         phase difference delta g/g_0 (degrees, float)
+# ------------------         ----------------------------------------------
+      10.0                                        34.0
+
+
+# Mass/Mass_sun  Radius/Radius_sun  effective temperature (K)
+# -------------  -----------------  -------------------------
+    10.0            6.93                   22642.0
+
+
+# A time dependent surface normal (0: no; 1: yes)
+# -----------------------------------------------
+                       1
+
+# Artificially suppress the pulsational velocity field (0: no; 1: yes)
+# --------------------------------------------------------------------
+                       0
+
+
+# Compute and Print the maximum length of velocity vector and relative
+# displacement vector. (0: no; 1: yes)
+# --------------------------------------------------------------------
+                       1
+
+
+

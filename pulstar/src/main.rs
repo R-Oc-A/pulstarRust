@@ -37,6 +37,8 @@ fn main() {
     println!("|PULSTARust launced|");
     println!("--------------------");
     let now = Instant::now();
+
+    
     //----------------------------------------
     //----------Read input file---------------
     //----------------------------------------
@@ -181,9 +183,9 @@ fn main() {
                     if max_veloc[n] < local_veloc {max_veloc[n]=local_veloc}
                     if max_temp[n] < local_temp {max_temp[n]=local_temp}
                     if max_logg[n] < local_logg {max_logg[n]=local_logg}
-                    if min_veloc[n] < local_veloc {min_veloc[n]=local_veloc}
-                    if min_temp[n] < local_temp {min_temp[n]=local_temp}
-                    if min_logg[n] < local_logg {min_logg[n]=local_logg}
+                    if min_veloc[n] > local_veloc {min_veloc[n]=local_veloc}
+                    if min_temp[n] > local_temp {min_temp[n]=local_temp}
+                    if min_logg[n] > local_logg {min_logg[n]=local_logg}
                     
                 }//end if coschi > 0
                 else{
@@ -229,7 +231,11 @@ fn main() {
             theta += 1;
         }//end theta loop
 
-        print_report(&now,//<---This gives the time of the computation
+
+        
+    }//end for time loop
+    
+    print_report(&now,//<---This gives the time of the computation
             &pulse_config,
             &vampl,
             &k_theory,
@@ -244,8 +250,4 @@ fn main() {
             maxvel_length, 
             maxrel_length,
             log_g0);
-
-        
-    }//end for time loop
-    println!("Hello, world!");
 }
