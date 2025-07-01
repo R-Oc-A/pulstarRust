@@ -14,10 +14,12 @@ use temp_name_lib::{
             pulsation::v_puls, 
             velocity_projection::{project_vpuls, project_vrot}
             }
-        }
+        }, type_def::{PHI_STEP, THETA_STEP}
     };
-use pulstar::{utils::{parse_file, print_info::print_report},
+use pulstar::{utils::{parse_file, print_info::print_report, write_grid_data::write_output_to_parquet},
             DEG2RAD, PI, RADIUSSUN};
+use pulstar::utils::write_grid_data::{RasterStarOutput, collect_output};
+
 use std::{env,
         time::Instant};
 fn main() {
@@ -36,6 +38,7 @@ fn main() {
     println!("--------------------");
     println!("|PULSTARust launced|");
     println!("--------------------");
+    
     let now = Instant::now();
 
     
@@ -105,6 +108,11 @@ fn main() {
     //----------Start of loop-----------------
     //---------------------------------------- 
     //idiomatic loop
+    let mut Star_Output= RasterStarOutput::new_sphere(
+        180/THETA_STEP as usize, 
+        360/PHI_STEP as usize, 
+        pulse_config.time_pts_nmbr as usize);
+
     for (n,time_stamp) in time_points.iter().enumerate(){
         println!("\n +-- Computing surface data for time point number {} with time stamp {}.", n,*time_stamp);
 
@@ -223,18 +231,32 @@ fn main() {
                             ampl_tangential).unwrap().coords.norm();
                     }
                     if rel_lenght > maxrel_length { maxrel_length=rel_lenght}
-                    if vel_length > maxvel_length { maxvel_length=vel_length}
-                    
+                    if vel_length > maxvel_length { maxvel_length=vel_length}    
                 }
-                phi += 1;
+                let coschiout = |cos_chi: f64|{if cos_chi>0.0 {cos_chi} else { 0.0}};
+                collect_output(&mut Star_Output,
+                    theta_rad,
+                    phi_rad,
+					*time_stamp,
+					local_veloc,
+					local_temp,
+					local_logg,
+					coschiout(cos_chi),
+					local_area);
+
+                phi += PHI_STEP;
             }//end phi loop
-            theta += 1;
+            theta += THETA_STEP;
         }//end theta loop
 
 
         
     }//end for time loop
-    
+    match write_output_to_parquet(&pulse_config, Star_Output){
+        Ok(_)=>{println!("\n Returned nice and well to main function")}
+        Err(e)=>{println!("Couldnt create data frame and panicqued in main function with error {}",e)}
+    };
+
     print_report(&now,//<---This gives the time of the computation
             &pulse_config,
             &vampl,
