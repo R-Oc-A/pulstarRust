@@ -14,14 +14,15 @@ use temp_name_lib::{
             pulsation::v_puls, 
             velocity_projection::{project_vpuls, project_vrot}
             }
-        }, type_def::{PHI_STEP, THETA_STEP}
+        },
+    type_def::{PHI_STEP, THETA_STEP,CYCLI2RAD,RADIUSSUN},
     };
-use pulstar::{utils::{parse_file, print_info::print_report, write_grid_data::write_output_to_parquet},
-            DEG2RAD, PI, RADIUSSUN};
+use pulstar::{utils::{parse_file, print_info::print_report, write_grid_data::write_output_to_parquet},};
 use pulstar::utils::write_grid_data::{RasterStarOutput, collect_output};
 
 use std::{env,
-        time::Instant};
+        time::Instant,
+        f64::consts::PI};
 fn main() {
 
     // program start!
@@ -29,7 +30,7 @@ fn main() {
     let env_args: Vec<String> = env::args().collect();
     
     //having the right number of arguments
-    if ( env_args.len() != 3usize){
+    if env_args.len() != 3usize {
         panic!("USAGE: pulstar <parameter file> <time points file>");
     }
     let parameter_file = &env_args[1];
@@ -69,9 +70,9 @@ fn main() {
     //iterate in an idiomatic way
     for (n,l_val) in pulse_config.mode_config.l.iter().enumerate(){
         //--Frequency in rad/s--
-        freqrad.push(pulse_config.freqcycli[n]*pulstar::CYCLI2RAD);
+        freqrad.push(pulse_config.freqcycli[n]*CYCLI2RAD);
         //--the period of pulsation in hours
-        period.push(2.0 * pulstar::PI/3.6e3/freqrad[n]);
+        period.push(2.0 * PI/3.6e3/freqrad[n]);
         //--Theoretical zero order K value, mass & radius are in solar units.
         if *l_val != 0u16 {
             k_theory.push(74.437 
@@ -88,12 +89,12 @@ fn main() {
             * pulse_config.mode_config.rel_deltar[n]
         );
         //--Convert the phase difference of the effective temperature from degrees to radians
-        t_phase_rad.push(pulse_config.temperature_config[n].phasedif * DEG2RAD);
+        t_phase_rad.push((pulse_config.temperature_config[n].phasedif).to_radians());
         //--Convert the phase difference of the effective gravity from degrees to radians
-        g_phase_rad.push(pulse_config.gravity_config[n].phasedif * DEG2RAD);
+        g_phase_rad.push((pulse_config.gravity_config[n].phasedif).to_radians());
     } 
     //--The inclination angle in radians
-    let incl_rad = pulse_config.star_config.inclination_angle as f64 * DEG2RAD;
+    let incl_rad = (pulse_config.star_config.inclination_angle as f64).to_radians();
     //--Equilibrium log(g_0) (gravity g_0 is in cgs units)
     //--Mass & radius are in solar units
     let log_g0 = 4.438 + (pulse_config.star_config.mass).log10()
@@ -138,10 +139,10 @@ fn main() {
         //--Start the loop over the whole stellar surface. Avoid the poles.
         let mut theta:u16 = 1;
         'theta_loop: while  theta < 180 {
-            let theta_rad = theta as f64 * DEG2RAD;
+            let theta_rad = (theta as f64).to_radians();
             let mut phi:u16 = 1;
             'phi_loop: while phi <= 360{
-                let phi_rad= phi as f64 * DEG2RAD;
+                let phi_rad= (phi as f64).to_radians();
 
                 let mut local_veloc =0.0;
                 let mut local_temp =0.0;

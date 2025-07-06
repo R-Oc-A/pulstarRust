@@ -1,5 +1,5 @@
 use std::time::{Instant};
-use crate::{utils::PulstarConfig, DEG2RAD, RAD2DEG, };
+use crate::{utils::PulstarConfig, };
 use temp_name_lib::{
     joris_math::spherical_harmonics::norm_factor::ylmnorm,
     type_def::{THETA_STEP,PHI_STEP}
@@ -55,10 +55,10 @@ pub fn print_report(now:&Instant,
     for (index,l) in parameters.mode_config.l.iter().enumerate(){
         print!("| {} ",index+1);
         print!("| ({},{}) ",l,parameters.mode_config.m[index]);
-        print!("|  {:8.3e}  ",parameters.temperature_config[index].ampl*RAD2DEG);
-        print!("|   {:8.3e}   ",parameters.temperature_config[index].phasedif*RAD2DEG);
+        print!("|  {:8.3e}  ",(parameters.temperature_config[index].ampl).to_radians());
+        print!("|   {:8.3e}   ",(parameters.temperature_config[index].phasedif).to_radians());
         print!("|  {:8.3e}  ",parameters.gravity_config[index].ampl);
-        print!("|    {:8.3e}    ", parameters.gravity_config[index].phasedif*RAD2DEG); 
+        print!("|    {:8.3e}    ", (parameters.gravity_config[index].phasedif).to_radians()); 
     }
 
     println!("\n+---+-------+--------------+");
@@ -72,7 +72,7 @@ pub fn print_report(now:&Instant,
 
     print!("- Ve: {:8.5} km/s ",parameters.star_config.rotation_velocity);
     print!(" Vsini: {:8.5} km/s ",parameters.star_config.rotation_velocity 
-        * ( parameters.star_config.inclination_angle as f64 * DEG2RAD).sin());
+        * ( (parameters.star_config.inclination_angle as f64).to_radians()).sin());
     println!(" Inclination angle: {} degrees", parameters.star_config.inclination_angle);
 
     println!("\nVISIBLE SURFACE DATA");

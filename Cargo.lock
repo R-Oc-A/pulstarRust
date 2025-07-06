@@ -2026,6 +2026,12 @@ dependencies = [
 [[package]]
 name = "profile"
 version = "0.1.0"
+dependencies = [
+ "nalgebra",
+ "polars",
+ "pulstar",
+ "temp_name_lib",
+]
 
 [[package]]
 name = "psm"

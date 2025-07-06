@@ -84,11 +84,11 @@ pub fn write_output_to_parquet(parameters: &PulstarConfig, output: RasterStarOut
     //Reading test
     let mut file = std::fs::File::open(&filename).unwrap();
 
-//    let ddf = ParquetReader::new(&mut file).finish().unwrap();
-//    println!("---------------------------------------");
-//    println!("DataFrame for Raster Star Output  opened ");
-//    println!("First 5 rows:");
-//    println!("{}", ddf.head(Some(5usize)));
+    let ddf = ParquetReader::new(&mut file).finish().unwrap();
+    println!("---------------------------------------");
+    println!("DataFrame for Raster Star Output  opened ");
+    println!("First 5 rows:");
+    println!("{}", ddf.head(Some(5usize)));
 
     Ok(())
 }

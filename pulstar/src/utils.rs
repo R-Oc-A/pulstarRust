@@ -74,29 +74,3 @@ enum InputLines{
     //bool Compute and print the max velocity amplitude and relative disp vector
     PrintMaxVelAmplitude([InputKind;1]),
 }
-
-fn search_geq(vector:&[f64],key:f64)-> usize {
-    //non empty vector
-    let first_element =vector.get(0);
-    if let Some(first_value) = first_element{
-        if key <= *first_value {0usize}
-        else{
-            let size = vector.len();
-            let mut top = size - 1;
-            let mut bottom = 0;
-            let mut middle = bottom + (top - bottom) / 2;
-            if key > vector[top]{panic!("key value is too large")}
-
-            while bottom<top{
-                if vector[middle] <key{
-                    bottom = middle + 1;
-                } else {
-                    top = middle;
-                }
-                middle = bottom + (top - bottom)/2;
-            }
-            top
-        }
-    }
-    else{ panic!("empty vector!")}
-}
