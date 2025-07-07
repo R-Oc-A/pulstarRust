@@ -1,5 +1,5 @@
 use polars::prelude::*;
-use temp_name_lib::type_def::CLIGHT;
+use temp_name_lib::type_def::{CLIGHT, N_FLUX_POINTS};
 use std::fs::File;
 use std::sync::Arc;
 pub struct config{
@@ -51,13 +51,11 @@ impl IntensityGrids{
     }
 }
 
-
-
 pub fn read_intensity_grid_file(path:&str) -> PolarsResult<LazyFrame> {
     //let file = File::open(&path)?;
 
     let schema =  Schema::from_iter(vec![
-		Field::new("wave_length".into(), DataType::Float64),
+		Field::new("wavelength".into(), DataType::Float64),
 		Field::new("a".into(), DataType::Float64),
 		Field::new("b".into(), DataType::Float64),
 		Field::new("c".into(), DataType::Float64),
@@ -134,7 +132,56 @@ pub fn append_doppler_shift(df:LazyFrame)// I take ownership of the data frame s
     result
 }
 
-pub fn create_df_wavelength_Flux_continuum(){}
+//this function receives a lazy frame read from the .txt intensity grid files. It's purpose is to create a lf containing
+// lambda column (only with relevant wavelengths), Flux_column created using the limb_darkening law and the continuum column.
+pub fn create_lf_wavelength_flux_continuum(lf:LazyFrame, coschi:f64)->LazyFrame{
+    let mu = coschi.sqrt();
+
+    let bcoef = 1.0 - mu; 
+    let ccoef = 1.0 - coschi;
+    let dcoef = 1.0-mu.powi(3);
+
+    let i_lambda = col("a") 
+        + col("b") * lit(bcoef) 
+        + col("c") * lit(ccoef)
+        + col("d") * lit(dcoef);
+
+    let i_cont = col("ac") 
+        + col("bc") * lit(bcoef) 
+        + col("cc") * lit(ccoef)
+        + col("dc") * lit(dcoef);
+    
+    lf.select([
+        col("wavelength"),i_lambda.alias("flux"),i_cont.alias("continuum")
+    ])
+}
+//Estoy Aqui.
+
+
+//get flux, continuum for each temperature gravity as an array
+pub fn get_flux_continuum(profile_config:Profile
+    grid_filename:String,
+    wavelengths:&[f64],
+    doppler_shift:f64,
+    coschi:f64)->Option< Vec<Vec<f64>> >{
+    if let Ok(lf) = read_intensity_grid_file(&grid_filename){
+        let shifted_wavelengths = get_doppler_shifted_wavelengths(doppler_shift,
+             wavelengths);
+        match 
+        let lf_relevant = match wavelengths.size() < (N_FLUX_POINTS/2) as usize{
+            true => {
+                lf
+                .filter(filter_if_contains_wavelenght(&shifted_wavelengths,
+                0.2).unwrap())}
+            false => {lf}
+        }
+        let 
+    }else{
+    None
+    }
+}
+
+
 
 //function that returns the flux for each cell
 pub fn return_flux_for_cell_thetaphi(
