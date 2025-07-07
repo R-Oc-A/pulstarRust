@@ -12,28 +12,45 @@ pub struct config{
 
 
 pub struct IntensityGrids{
-    pub grids:Vec<GridFeatures>,//<--effective temperature,log gravity;name_of_grid_file
-    pub lambda:Vec<f64>,//<-relevant wavelengths of grids
-
-    pub t_eff_useful_index: usize,
-    pub log_g_useful_index: usize,
-    pub lambda_useful_index: usize,
+    temperatures:Vec<f64>,
+    log_g:Vec<f64>,
+    filenames:Vec<String>,
 }
 
-pub struct GridFeatures{
-    pub t_eff:f64,
-    pub log_g:f64,
-    pub file_name:String,
-}
+impl IntensityGrids{
+    pub fn create_dataframe_sorted(self)->DataFrame{
+        let filenames_str:Vec<&str> = self.filenames.iter().map(|s| s.as_str()).collect();
 
-impl GridFeatures{
-    pub fn new(t_eff_value:f64,log_g_value:f64,file_name:&str)->Self{
-        GridFeatures { t_eff: t_eff_value,
-             log_g: log_g_value,
-             file_name: file_name.to_string() }
+        let temperature_series = Series::new("temperature".into(),self.temperatures);
+        let log_gravity_serie=Series::new("log_gravity".into(),self.log_g);
+        let file_name_serie = Series::new("file name".into(),filenames_str);
+        
+        let df = DataFrame::new(vec![temperature_series.into(),
+            log_gravity_serie.into(),
+            file_name_serie.into()]).unwrap()
+            .sort(["temperature","log_gravity"], 
+            SortMultipleOptions::default()
+            .with_order_descending_multi([false,false]));
+
+       df.unwrap()
     }
 
+    pub fn sort_intensitygrid(self)->IntensityGrids{
+        let df = self.create_dataframe_sorted();
+        let temperature_series = df.column("temperature").unwrap();
+        let log_gravity_series = df.column("log_gravity").unwrap();
+        let file_name_series = df.column("file name").unwrap();
+
+        let temperatures:Vec<f64> = temperature_series.f64().unwrap().into_iter().flatten().collect();
+        let log_g:Vec<f64> = log_gravity_series.f64().unwrap().into_iter().flatten().collect();
+        let filenames_str:Vec<&str> = file_name_series.str().unwrap().into_iter().flatten().collect();
+
+        let filenames:Vec<String> = filenames_str.iter().map(|s| s.to_string()).collect();
+
+        IntensityGrids { temperatures, log_g, filenames}
+    }
 }
+
 
 
 pub fn read_intensity_grid_file(path:&str) -> PolarsResult<LazyFrame> {
@@ -51,27 +68,59 @@ pub fn read_intensity_grid_file(path:&str) -> PolarsResult<LazyFrame> {
 		Field::new("dc".into(), DataType::Float64)
     ]); 
    
-    /*let parse_options = CsvParseOptions{
-        separator: b' ',
-        ..Default::default()
-    };*/
-
-/*    let read_options = CsvReadOptions{
-        has_header:false,
-        schema: Some(Arc::new(schema)),
-        parse_options: Arc::new(parse_options),
-        ..Default::default()     
-    };*/
     let lf= LazyCsvReader::new(path)
     .with_separator(b' ')
     .with_has_header(false)
     .with_schema(Some(Arc::new(schema))).finish()?;
     
-/*    let df = CsvReader::new(file)
-        .with_options (read_options)
-        .finish()?;
-*/
     Ok(lf)
+
+}
+
+pub fn get_rectangles_lazy(lf:LazyFrame,
+    temperature:f64,
+    log_gravity:f64)->LazyFrame{
+
+    let combined_filter_mask = col("temperature").lt_eq(lit(temperature))
+        .and(col("log_gravity").lt_eq(lit(log_gravity)));
+    let lower_temp_lower_grav_lf = lf.clone()
+    .filter(combined_filter_mask)
+    .sort(["temperature","log_gravity"], 
+    SortMultipleOptions::new()
+    .with_order_descending_multi([true,true]))
+    .first();
+
+    let combined_filter_mask = col("temperature").lt_eq(lit(temperature))
+        .and(col("log_gravity").gt_eq(lit(log_gravity)));
+    let lower_temp_upper_grav_lf = lf.clone()
+    .filter(combined_filter_mask)
+    .sort(["temperature","log_gravity"], 
+    SortMultipleOptions::new()
+    .with_order_descending_multi([true,false]))
+    .first();
+    
+    let combined_filter_mask = col("temperature").gt_eq(lit(temperature))
+        .and(col("log_gravity").lt_eq(lit(log_gravity)));
+    let upper_temp_lower_grav_lf = lf.clone()
+    .filter(combined_filter_mask)
+    .sort(["temperature","log_gravity"], 
+    SortMultipleOptions::new()
+    .with_order_descending_multi([false,true]))
+    .first();
+
+    let combined_filter_mask = col("temperature").gt_eq(lit(temperature))
+        .and(col("log_gravity").gt_eq(lit(log_gravity)));
+    let upper_temp_upper_grav_lf = lf.clone()
+    .filter(combined_filter_mask)
+    .sort(["temperature","log_gravity"], 
+    SortMultipleOptions::new()
+    .with_order_descending_multi([false,false]))
+    .first();
+
+    concat([lower_temp_lower_grav_lf,
+        lower_temp_upper_grav_lf,
+        upper_temp_lower_grav_lf,
+        upper_temp_upper_grav_lf],UnionArgs::default()).unwrap()
 
 }
 
@@ -85,7 +134,7 @@ pub fn append_doppler_shift(df:LazyFrame)// I take ownership of the data frame s
     result
 }
 
-
+pub fn create_df_wavelength_Flux_continuum(){}
 
 //function that returns the flux for each cell
 pub fn return_flux_for_cell_thetaphi(
@@ -104,11 +153,12 @@ pub fn return_flux_for_cell_thetaphi(
     let shifted_wavelengths = get_doppler_shifted_wavelengths(doppler_shift, wavelengths);
     let filter_exp = filter_if_contains_wavelenght(&shifted_wavelengths, 
         0.1); 
+    
     //function that appends Ic and I to each data frame
 	//function that linearly interpolates Ic and I from the 8 grids
     //
 
-    vec![vec![0.0]]
+    vec![vec![0.0],vec![0.0]]
 }
 
 fn get_doppler_shifted_wavelengths(doppler_shift:f64,

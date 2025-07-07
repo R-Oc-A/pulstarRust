@@ -84,7 +84,7 @@ fn main() {
         
 
         for theta_step in theta_steps.iter(){
-            let expr = col("theta").eq(lit(*theta_step));
+            let expr: Expr = col("theta").eq(lit(*theta_step));
             let phi_frame=theta_frame.clone().filter(expr);
             let expr = col("coschi").gt(lit(0.0));
             let pf_visible =phi_frame.filter(expr);
@@ -107,7 +107,8 @@ fn main() {
                     temperature[i],
                     log_gravity[i],
                     doppler_shift[i],
-                    area[i]);
+                    area[i],
+                    &wavelength);
             }
         }
 
