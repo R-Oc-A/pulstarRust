@@ -73,15 +73,14 @@ fn main() {
     let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
     let extract_time_series = tf.column("time").unwrap();
     let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();
-
+    let theta_df = lf.clone().select([col("theta").unique()]).collect().unwrap();
+    let theta_steps_serie = theta_df.column("theta").unwrap();
+    let theta_steps:Vec<f64> = theta_steps_serie.f64().unwrap().into_iter().flatten().collect();
+    
     for phases in time_points.iter() {
         //get vector of theta points
         let expr = col("time").eq(lit(*phases));
         let theta_frame = lf.clone().filter(expr);
-        let theta_df = theta_frame.clone().select([col("theta").unique()]).collect().unwrap();
-        let theta_steps_serie = theta_df.column("theta").unwrap();
-        let theta_steps:Vec<f64> = theta_steps_serie.f64().unwrap().into_iter().flatten().collect();
-        
 
         for theta_step in theta_steps.iter(){
             let expr: Expr = col("theta").eq(lit(*theta_step));

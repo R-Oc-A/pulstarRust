@@ -159,7 +159,7 @@ pub fn create_lf_wavelength_flux_continuum(lf:LazyFrame, coschi:f64)->LazyFrame{
 
 
 //get flux, continuum for each temperature gravity as an array
-pub fn get_flux_continuum(profile_config:Profile
+pub fn get_flux_continuum(profile_config:config,
     grid_filename:String,
     wavelengths:&[f64],
     doppler_shift:f64,
@@ -167,21 +167,35 @@ pub fn get_flux_continuum(profile_config:Profile
     if let Ok(lf) = read_intensity_grid_file(&grid_filename){
         let shifted_wavelengths = get_doppler_shifted_wavelengths(doppler_shift,
              wavelengths);
-        match 
-        let lf_relevant = match wavelengths.size() < (N_FLUX_POINTS/2) as usize{
+        
+        let lf_relevant = match wavelengths.len() < (N_FLUX_POINTS/10) as usize{
             true => {
                 lf
                 .filter(filter_if_contains_wavelenght(&shifted_wavelengths,
                 0.2).unwrap())}
             false => {lf}
-        }
-        let 
+        };
+
+        let lf_flux = create_lf_wavelength_flux_continuum(lf_relevant,coschi).collect().unwrap();
+        
+        let lbd_from_df = extract_column_as_vector("wavelength", &lf_flux);
+        let flux_from_df = extract_column_as_vector("flux", &lf_flux);
+        let continuum_from_df = extract_column_as_vector("continuum", &lf_flux);
+
+        Some(vec![lbd_from_df,
+            flux_from_df,
+            continuum_from_df])
     }else{
     None
     }
 }
-
-
+//----------------------------------------
+//EStoy aqui
+fn extract_column_as_vector(column_name: &str,df:&DataFrame)->Vec<f64>{
+        let column = df.column(column_name).unwrap();
+        let vec_result:Vec<f64> = column.f64().unwrap().into_iter().flatten().collect();
+        vec_result
+}
 
 //function that returns the flux for each cell
 pub fn return_flux_for_cell_thetaphi(
