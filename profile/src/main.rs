@@ -1,6 +1,7 @@
 use std::{env,fs::File};
 use polars::prelude::{LazyFrame,LazyGroupBy};
 use polars::prelude::*;
+use profile::intensity::IntensityGrids;
 use temp_name_lib::type_def::{CLIGHT, N_FLUX_POINTS};
 use profile::*;
 use std::sync::Arc;
@@ -69,6 +70,13 @@ fn main() {
     let path= String::from("pulstar_output.parquet");
     let lf = LazyFrame::scan_parquet(path, Default::default()).unwrap();
     
+    let grid_id_df = IntensityGrids{
+        temperatures:vec![20000.0,20000.0,21000.0,21000.0],
+        log_g: vec![3.5,3.5,4.0,4.0],
+        filenames: vec![String::from("name1"),String::from("name2"),String::from("name3"),String::from("name4")]
+    }.create_dataframe_sorted();
+    
+    let grid_id_lf= grid_id_df.lazy();
     //get vector of time_points
     let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
     let extract_time_series = tf.column("time").unwrap();
@@ -107,7 +115,9 @@ fn main() {
                     log_gravity[i],
                     doppler_shift[i],
                     area[i],
-                    &wavelength);
+                    &wavelength,
+                    grid_id_lf.clone()
+                );
             }
         }
 

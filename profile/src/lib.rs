@@ -1,5 +1,7 @@
 use polars::prelude::*;
 use temp_name_lib::type_def::{CLIGHT};
+
+use crate::{intensity::{get_doppler_shifted_wavelengths, get_flux_continuum, get_temp_logg_filenames}, interpolate::interpolate};
 //use std::fs::File;
 //use std::sync::Arc;
 
@@ -12,6 +14,7 @@ pub struct Config{
     pub v_max: f64,
     pub n_phases:u32,
 }
+
 
 //function that appends doppler shift to the pulstar df
 pub fn append_doppler_shift(df:LazyFrame)// I take ownership of the data frame since I will produce a new one and want the old one to be dropped after appending
@@ -42,26 +45,44 @@ pub fn return_flux_for_cell_thetaphi(
     doppler_shift:f64,
     area:f64,
     wavelengths:&[f64],
-    grid_id_df:&DataFrame
-    )->Vec<Vec<f64>>{
-    
-    
+    grid_id_lf:LazyFrame
+    )->(Vec<f64>,Vec<f64>){
     
 	//function that selects 4 grids temperature +_ times gravity+_ ..and 
-    
-    //a function that creates lazyframes for the intensity grids
-    //filter values that are outside of wavelength range
-    //construct a lambda array dopplershifted
-    //look for a function that select lambdas that are close to the values of the lambda array
-    
-    //function that appends Ic and I to each data frame
-	//function that linearly interpolates Ic and I from the 8 grids
-    //
+    let grids_info = get_temp_logg_filenames(grid_id_lf, temperature, log_gravity);
+    let grid_temperatures = grids_info.0;
+    let grid_loggs = grids_info.1;
+    let grid_names = grids_info.2;
 
-    vec![vec![0.0],vec![0.0]]
+    // function that gets the I_lambda and I_continuum for each of the 4 grids
+    let mut flux_collection:Vec<Vec<f64>>=Vec::new();
+    let mut cont_collection:Vec<Vec<f64>> = Vec::new();
+    let mut wavelength_collection:Vec<Vec<f64>> = Vec::new();
+    let shifted_wavelengths= get_doppler_shifted_wavelengths(doppler_shift, wavelengths);
+    for name in grid_names.into_iter(){
+        let fluxes_from_grid = get_flux_continuum(name, 
+            &shifted_wavelengths, 
+            coschi).unwrap();
+        flux_collection.push(fluxes_from_grid.0);
+        cont_collection.push(fluxes_from_grid.1);
+        wavelength_collection.push(fluxes_from_grid.2);
+    }
+	
+    //function that linearly interpolates Ic and I from the 4 grids
+    let fluxcont_interpolated = interpolate(&grid_temperatures,
+         &grid_loggs, 
+         &shifted_wavelengths, 
+         &flux_collection, 
+         &cont_collection, 
+         &wavelength_collection, 
+         temperature, 
+         log_gravity);
+    
+    (fluxcont_interpolated.0,//<-flux
+        fluxcont_interpolated.1)//<-continuum
 }
 
-
+///This function returns the index where vector[index-1]<key<vector[index]
 fn search_geq(vector:&[f64],key:f64)-> usize {
     //non empty vector
     let first_element =vector.get(0);

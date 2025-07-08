@@ -4,9 +4,9 @@ use temp_name_lib::{star_physics::local_values::temperature, type_def::N_FLUX_PO
 mod define_parameter_space;
 
 pub struct IntensityGrids{
-    temperatures:Vec<f64>,
-    log_g:Vec<f64>,
-    filenames:Vec<String>,
+    pub temperatures:Vec<f64>,
+    pub log_g:Vec<f64>,
+    pub filenames:Vec<String>,
 }
 
 impl IntensityGrids{
@@ -28,18 +28,8 @@ impl IntensityGrids{
 
        df.unwrap()
     }
-
     pub fn sort_intensitygrid(self)->IntensityGrids{
         let df = self.create_dataframe_sorted();
-        let temperature_series = df.column("temperature").unwrap();
-        let log_gravity_series = df.column("log_gravity").unwrap();
-        let file_name_series = df.column("file name").unwrap();
-
-        let temperatures:Vec<f64> = temperature_series.f64().unwrap().into_iter().flatten().collect();
-        let log_g:Vec<f64> = log_gravity_series.f64().unwrap().into_iter().flatten().collect();
-        let filenames_str:Vec<&str> = file_name_series.str().unwrap().into_iter().flatten().collect();
-
-        let filenames:Vec<String> = filenames_str.iter().map(|s| s.to_string()).collect();
 
         let temperatures = extract_column_as_vectorf64("temperature", &df);
         let log_g = extract_column_as_vectorf64("log_gravity", &df);
@@ -55,7 +45,7 @@ impl IntensityGrids{
 
 pub fn get_temp_logg_filenames(grid_id_lf:LazyFrame,
     temperature:f64,
-    log_gravity:f64)->(Vec<Vec<f64>>,Vec<String>){
+    log_gravity:f64)->(Vec<f64>,Vec<f64>,Vec<String>){
         let lf_relevant = define_parameter_space::get_rectangles_in_parameter_space(grid_id_lf, temperature, log_gravity);
         let df_relevant = lf_relevant.collect().unwrap();
 
@@ -63,21 +53,20 @@ pub fn get_temp_logg_filenames(grid_id_lf:LazyFrame,
         let log_g_vec = extract_column_as_vectorf64("log_gravity", &df_relevant);
         let name_of_files = extract_column_as_vector_string("file name", &df_relevant);
 
-        (vec![temperature_vec,log_g_vec] , name_of_files)
+        (temperature_vec,log_g_vec , name_of_files)
     }
 
 
 // Returns the flux, continuum for each temperature,gravity as a f64 vector
-// The input is the file name of the intensity grid file and the coschi value
+// Input: name -> file name of the intensity grid file 
+//        shifted_wavelengths -> collection of doppler shifted wavelenghts from where intensity shall be queried.
+//        coschi -> projection of the surface cell normal onto the observer's unitary position vector;
 pub fn get_flux_continuum(grid_filename:String,
-    wavelengths:&[f64],
-    doppler_shift:f64,
-    coschi:f64)->Option< Vec<Vec<f64>> >{
+    shifted_wavelengths:&[f64],
+    coschi:f64)->Option< (Vec<f64> , Vec<f64>, Vec<f64>)>{
     if let Ok(lf) = read_intensity_grid_file(&grid_filename){
-        let shifted_wavelengths = get_doppler_shifted_wavelengths(doppler_shift,
-             wavelengths);
         
-        let lf_relevant = match wavelengths.len() < (N_FLUX_POINTS/10) as usize{
+        let lf_relevant = match shifted_wavelengths.len() < (N_FLUX_POINTS/10) as usize{
             true => {
                 lf
                 .filter(filter_if_contains_wavelenght(&shifted_wavelengths,
@@ -85,15 +74,15 @@ pub fn get_flux_continuum(grid_filename:String,
             false => {lf}
         };
 
-        let lf_flux = create_lf_wavelength_flux_continuum(lf_relevant,coschi).collect().unwrap();
+        let df_flux = create_lf_wavelength_flux_continuum(lf_relevant,coschi).collect().unwrap();
         
-        let lbd_from_df = extract_column_as_vectorf64("wavelength", &lf_flux);
-        let flux_from_df = extract_column_as_vectorf64("flux", &lf_flux);
-        let continuum_from_df = extract_column_as_vectorf64("continuum", &lf_flux);
+        let lbd_from_df = extract_column_as_vectorf64("wavelength", &df_flux);
+        let flux_from_df = extract_column_as_vectorf64("flux", &df_flux);
+        let continuum_from_df = extract_column_as_vectorf64("continuum", &df_flux);
 
-        Some(vec![lbd_from_df,
-            flux_from_df,
-            continuum_from_df])
+        Some(( flux_from_df,
+            continuum_from_df,
+            lbd_from_df))
     }else{
     None
     }
