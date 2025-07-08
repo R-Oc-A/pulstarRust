@@ -15,7 +15,7 @@ fn main() {
     panic!("USAGE: profile -- <profile_input.txt>");
    }
 
-   let profile_config=config{
+   let profile_config=Config{
     lambda_0:412.0,
     lambda_f:413.0,
     delta_lbd:0.01,
