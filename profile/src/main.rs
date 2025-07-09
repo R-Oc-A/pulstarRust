@@ -1,11 +1,8 @@
-use std::{env,fs::File};
-use polars::prelude::{LazyFrame,LazyGroupBy};
+use std::env;
 use polars::prelude::*;
 use profile::intensity::IntensityGrids;
-use temp_name_lib::type_def::{CLIGHT, N_FLUX_POINTS};
+use temp_name_lib::type_def::N_FLUX_POINTS;
 use profile::*;
-use std::sync::Arc;
-//use pulstar::utils::PulstarConfig;
 
 fn main() {
 
@@ -39,32 +36,9 @@ fn main() {
                 + profile_config.delta_lbd * i as f64 );
     }
 
-    let lambda_lower = wavelength[0] * (1.0 - profile_config.v_max/CLIGHT*1.0e3);
-    let lambda_upper= wavelength.last().unwrap() * (1.0 + profile_config.v_max/CLIGHT*10.0e3);
+    //let lambda_lower = wavelength[0] * (1.0 - profile_config.v_max/CLIGHT*1.0e3);
+    //let lambda_upper= wavelength.last().unwrap() * (1.0 + profile_config.v_max/CLIGHT*10.0e3);
 
-
-    //open parquet file with pulsations
-    //open txt file as csv !heel moeilijk
-
-    //group by timepoints
-
-    //Loop over the phases
-//    for i in 0..=profile_config.n_phases{
-//        let mut flux=vec![0.0;capacity];
-//       let mut continuum = vec![0.0;capacity];
-        
-
-
-        //----------------------------------------
-        // Start the loop over all points of the visible surface
-        // Compute the local line profile in each point. 
-        // Add the appropriate contribution to each point of the global line profile.
-        
-        // lambda_rest = wavelength[j]/(1.0_Vtotal/CLIGHT * 1.0e3)
-
-
-        //write the profile lines!<- gold!
-//    }
     let path= String::from("pulstar_output.parquet");
     let lf = LazyFrame::scan_parquet(path, Default::default()).unwrap();
     
@@ -87,6 +61,10 @@ fn main() {
     let theta_steps_serie = theta_df.column("theta").unwrap();
     let theta_steps:Vec<f64> = theta_steps_serie.f64().unwrap().into_iter().flatten().collect();
 
+    let mut all_fluxes:Vec<f64> = Vec::new();
+    let mut all_cont: Vec<f64> = Vec::new();
+    let mut all_times: Vec<f64> = Vec::new();
+    let mut all_wavelengths: Vec<f64> = Vec::new();
     //time loop    
     for phases in time_points.iter() {
         
@@ -95,7 +73,7 @@ fn main() {
 
         let mut flux = vec![0.0;capacity];
         let mut cont = vec![0.0;capacity];
-
+        let mut time_vec = vec![*phases;capacity];
         //theta loop
         for theta_step in theta_steps.iter(){
             
@@ -131,50 +109,27 @@ fn main() {
                     grid_id_lf);
                 let flux_thetaphi = fluxcont.0;
                 let cont_thetaphi = fluxcont.1;
+                //collect fluxex
                 for (index,flux_item) in flux_thetaphi.into_iter().enumerate(){
                     flux[index] += flux_item;
                     cont[index] += cont_thetaphi[index]; 
-                }
-            }
-        }
+                }//end collect fluxes
 
-        //write profile line
-        
-    }
-
-    /*let mut output_schema= lf.collect_schema().unwrap();
+            }//end phi loop
+        }//end theta loop
+        all_fluxes.append(& mut flux);
+        all_cont.append(& mut cont);
+        all_times.append(& mut time_vec);
+        all_wavelengths.extend(wavelength.iter().copied());
+    }//end time loop
     
-    //output_schema.remove("theta".into());
-    //output_schema.remove("phi".into());
-    //output_schema.remove("time".into());
-
-    output_schema.insert("flux".into(), DataType::List(Box::new(DataType::Float64)));
-    output_schema.insert("continuum".into(), DataType::List(Box::new(DataType::Float64)));
-    
-    let analyzed = lf
-    .filter(col("coschi").gt(lit(0.0)))
-    .group_by(["time","theta","phi"])
-    .apply(|group_df| {
-        let doppler_shift = group_df.column("doppler shift")?.get(0)?.try_extract::<f64>()?;
-        let temperature = group_df.column("temperature")?.get(0)?.try_extract::<f64>()?;
-        let log_gravity = group_df.column("log gravity")?.get(0)?.try_extract::<f64>()?;
-        let coschi = group_df.column("coschi")?.get(0)?.try_extract::<f64>()?;
-        let area = group_df.column("area")?.get(0)?.try_extract::<f64>()?;
-        
-        let flux_vec = vec![0.0;capacity];
-        let cont_vec = vec![0.0;capacity];
-        
-        let analysis_series = Series::new("flux".into(), flux_vec);
-        let analysis_series2 = Series::new("continuum".into(),cont_vec);
-        
-        let res = group_df.with_columns(analysis_series);
-
-
-
-
-    },output_schema)  
-    .collect();
-    */
+    //Write parquet file
+    let output_file_name= String::from("wavelengths.parquet");
+    utils::write_into_parquet(&output_file_name,
+         &all_wavelengths, 
+         &all_fluxes, 
+         &all_cont, 
+         &all_times);
 
     
 }
