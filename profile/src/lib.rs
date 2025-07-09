@@ -7,6 +7,8 @@ use crate::{intensity::{get_doppler_shifted_wavelengths, get_flux_continuum, get
 
 pub mod intensity;
 pub mod interpolate;
+pub mod utils;
+
 pub struct Config{
     pub lambda_0:f64,
     pub lambda_f:f64,
@@ -37,7 +39,10 @@ fn extract_column_as_vector_string (column_name: &str, df:&DataFrame)->Vec<Strin
 
     vecc
 }
-//function that returns the flux for each cell
+/// This function that returns the intensity flux and the continuum flux interpolated from the intensity grids
+/// for each cell.
+/// INPUTS: coschi-> projection of the normal vector of the surface cell with the unit vector towards the observer.
+///         temperature -> 
 pub fn return_flux_for_cell_thetaphi(
     coschi:f64,
     temperature:f64,
@@ -78,8 +83,8 @@ pub fn return_flux_for_cell_thetaphi(
          temperature, 
          log_gravity);
     
-    (fluxcont_interpolated.0,//<-flux
-        fluxcont_interpolated.1)//<-continuum
+    (multiply_vecf64_by_scalar(fluxcont_interpolated.0,area),//<-flux
+        multiply_vecf64_by_scalar(fluxcont_interpolated.1, area))//<-continuum
 }
 
 ///This function returns the index where vector[index-1]<key<vector[index]
@@ -107,4 +112,11 @@ fn search_geq(vector:&[f64],key:f64)-> usize {
         }
     }
     else{ panic!("empty vector!")}
+}
+
+
+fn multiply_vecf64_by_scalar(vecf64:Vec<f64>,scalar:f64)->Vec<f64>{
+    //let mut vec_result:Vec<f64> = Vec::new();
+    let vec_result = vecf64.into_iter().map(|s| s * scalar).collect();
+    vec_result
 }
