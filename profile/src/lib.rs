@@ -14,7 +14,7 @@ pub struct Config{
     pub lambda_f:f64,
     pub delta_lbd:f64,
     pub v_max: f64,
-    pub n_phases:u32,
+    //pub n_phases:u32,
 }
 
 

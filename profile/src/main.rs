@@ -18,7 +18,6 @@ fn main() {
     lambda_f:413.0,
     delta_lbd:0.01,
     v_max:1.0e2,
-    n_phases:10,
    };
 
 

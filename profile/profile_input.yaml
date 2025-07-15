@@ -1,0 +1,37 @@
+---
+# This will be the typical structure of the input file for the 
+# profile program
+
+# The field below indicates the range of wavelenghts to be simulated.
+# The units are in nanometers
+wavelength_range:
+ start: 412.0  
+ end: 413.0
+ step: 0.01
+
+# Upper limit of velocity pulsation. Units are in km/s.
+# This velocity is used to compute what wave_lenght block will be read
+# from the intensity grids.
+max_velocity: 1.0e2
+
+# Intensity grids data
+# Temperature is in K
+temperatures:
+ - 21000.0
+ - 21000.0
+ - 24000.0
+ - 24000.0
+
+# log g
+log_g:
+ - 3.5
+ - 4.5
+ - 3.5
+ - 4.5
+
+# Name of intensity grid files
+filenames:
+ - "grids/t21000g35.txt"
+ - "grids/t21000g45.txt"
+ - "grids/t24000g35.txt"
+ - "grids/t24000g45.txt"

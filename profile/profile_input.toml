@@ -1,0 +1,29 @@
+# This will be the typical structure of 
+# the input file for the input file for the profile code. 
+
+# Set the wave length range. The units are in nm 
+[wavelength_range]
+start = 412.0
+end = 413.0
+step = 0.01
+
+
+# Upper limit of velocity pulsation. Units are in km/s.
+# This velocity is used to compute what wave_lenght block will be read
+# from the intensity grids.
+[pulsation_velocity]
+max_velocity = 1.0e2
+
+# Information of the intensity grid files
+[intensity_grids_id]
+
+# Temperatures are in Kelvin
+temperatures = [21000.0,21000.0,24000.0,24000.0]
+# Logarithm of surface gravity
+log_gravity = [3.5,4.5,3.5,4.5]
+# Path to  intensity grid files
+filenames = [
+"grids/21000g35.txt",
+"grids/21000g45.txt",
+"grids/24000g35.txt",
+"grids/24000g35.txt"]

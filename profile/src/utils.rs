@@ -1,6 +1,10 @@
 use std::path::PathBuf;
 use polars:: prelude::*;
 
+pub mod read_yaml;
+pub mod read_toml;
+
+
 pub fn write_into_parquet(
     output_file_name: &str,
     wavelength_vec:&[f64],
@@ -8,7 +12,7 @@ pub fn write_into_parquet(
     all_cont: &[f64],
     all_time: &[f64]
 ){
-
+    let time_0 = all_time[0];
     // create a data frame with all of the data, then create a lazy frame
     let output_df = df!(
         "time" => all_time,
@@ -40,7 +44,7 @@ pub fn write_into_parquet(
     println!("---------------------------------------");
     println!("DataFrame for  Profile output  opened ");
     println!("First 5 rows:");
-    println!("{}", llf.collect()
+    println!("{}", llf.filter(col("time").eq(lit(time_0))).collect()
     .unwrap().head(Some(5usize)));
 
     // wait for some one to ask "what's up doc?"
