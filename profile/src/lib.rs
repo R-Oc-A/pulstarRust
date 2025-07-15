@@ -1,6 +1,6 @@
 use polars::prelude::*;
 use serde::Deserialize;
-use temp_name_lib::type_def::{CLIGHT};//Velocity of light in m/s
+use temp_name_lib::type_def::{CLIGHT,N_FLUX_POINTS};//Velocity of light in m/s
 
 use crate::{intensity::{get_doppler_shifted_wavelengths, get_flux_continuum, get_temp_logg_filenames}, interpolate::interpolate};
 use std::fs;
@@ -44,7 +44,6 @@ pub filename: String,
 
 
 impl ProfileConfig {
-
     /// This function is used to fill the parameters required for the profile program to run out of the toml configuration file.
     /// #### Arguments:
     ///     `path_to_file` - this is a string that indicates the path to the `profile_input.toml` file
@@ -67,11 +66,24 @@ impl ProfileConfig {
         }
     }
 
-    
-
 }
 
-
+impl WavelengthRange{
+    /// This method returns the wavelength vector out of  the range specified on the toml file
+    /// It also checks if the step size is reasonable enough
+    pub fn get_wavelength_vector(&self)->Vec<f64>{
+        if self.end < self.start {panic!("Wave length range is ill defined. Please correct the toml file")}
+        let capacity = ((self.end-self.start)/self.step).floor() as usize + 1usize;
+        if capacity >= N_FLUX_POINTS as usize {panic!("Error, too many flux points requested.")}
+	    
+        let mut wavelength:Vec<f64> = Vec::with_capacity(capacity);
+	    wavelength.push(self.start);
+	    for i in 0..=capacity {//<- inclussive loop so wavelength[capacity]==λ_f.
+	            wavelength.push( self.start + self.step * (i as f64) );
+        }
+        wavelength
+    }
+}
 
 
 pub struct Config{

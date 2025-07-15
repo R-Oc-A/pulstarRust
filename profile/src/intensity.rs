@@ -1,6 +1,6 @@
 use polars::prelude::*;
 use super::*;
-use temp_name_lib::{star_physics::local_values::temperature, type_def::N_FLUX_POINTS};
+use temp_name_lib::type_def::N_FLUX_POINTS;
 mod define_parameter_space;
 use std::{fs::File, io::ErrorKind};
 
@@ -14,22 +14,50 @@ impl ProfileConfig{
         }
         Ok(())
     }
+
+    /// This function unwrapps the collection of the grid file id. 
+    /// Producing an ordered vector with all of the temperatures
+    /// an ordered vector with all of the log g
+    /// an ordered vector with all of the file names
+    fn unwrap_grids(&self)->UnwrappedGrids{
+
+        let mut temperature_vector:Vec<f64>=Vec::new();
+        let mut logg_vector:Vec<f64>=Vec::new();
+        let mut filename_vector:Vec<String>=Vec::new();
+        for grid in self.intensity_grids.iter(){
+            temperature_vector.push(grid.temperature);
+            logg_vector.push(grid.log_gravity);
+            filename_vector.push(
+                format!("{}{}",
+                self.path_to_grids,
+                grid.filename.clone())
+            );
+        }
+        UnwrappedGrids { temperatures: temperature_vector, 
+            log_g: logg_vector, 
+            filenames: filename_vector}
+    }
+
 }
 impl IntensityGrid{
     /// This function asses whether the purported intensity grid file is stored in a given directory.
     /// ### Argument:
     /// * path - a string that indicates the relative path to the directory of the intensity grid files.
     /// ### Returns:
-    /// * Ok(_) if it's able to locate the intensity file and is able to open it.
+    /// * Ok(File) if it's able to locate the intensity file and is able to open it.
     /// * Error - otherwise.
     fn is_there_a_file(&self,path:&str)->Result<File,std::io::Error>{
         let file_name = self.filename.clone();
         let full_name = format!("{}{}",String::from(path), file_name);
         File::open(&full_name)
     }
+
+
 }
 
-pub struct IntensityGrids{
+/// This struct is useful to create a the database that handles all of the intensity grid files.
+/// The data base produced using this structure will be easier to query from.
+struct UnwrappedGrids{
     pub temperatures:Vec<f64>,
     pub log_g:Vec<f64>,
     pub filenames:Vec<String>,

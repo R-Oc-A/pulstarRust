@@ -26,26 +26,12 @@ fn main() {
    // |--> Check if the Profile_input.toml is well written.
    // |--> Check if the Intensity Grid files exist.
    // |--> Initialize the profile parameters.
-   // let profile_config_path = eng_args[1];
+   let profile_config_path = env_args[1];
    let profile_config = ProfileConfig::read_from_toml(&profile_config_path);
 
-   let profile_config=Config{
-    lambda_0:412.0,
-    lambda_f:413.0,
-    delta_lbd:0.01,
-    v_max:1.0e2,
-   };
    //|-->Initialize the wavelength array that tracks the intensity flux profile.
-   //let wavelength = profile_config.get_wavelength();
-   let capacity = ((profile_config.lambda_f - profile_config.lambda_0)
-        /profile_config.delta_lbd).floor() as usize + 1usize ;
-    if capacity >= N_FLUX_POINTS as usize {panic!("Error, too many flux points requested.")}
-    let mut wavelength:Vec<f64> = Vec::with_capacity(capacity);
-    wavelength.push(profile_config.lambda_0);
-    for i in 0..=capacity {//<- inclussive loop so wavelength[capacity]==λ_f.
-            wavelength.push(profile_config.lambda_0 
-                + profile_config.delta_lbd * i as f64 );
-    }
+
+    let wavelength = profile_config.wavelength_range.get_wavelength_vector();
 
     // |-->Create a data frame with all of the intensity grids information
     let grid_id_df = IntensityGrids{
