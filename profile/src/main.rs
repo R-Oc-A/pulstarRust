@@ -6,6 +6,7 @@ use profile::*;
 
 fn main() {
 
+   // First receive the arguments for running the program. 
    let env_args:Vec<String> = env::args().collect(); 
 
    if env_args.len() < 2usize {

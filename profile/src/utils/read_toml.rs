@@ -1,6 +1,5 @@
-use serde::{Serialize,Deserialize};
+use serde::Deserialize;
 use std::fs;
-use std::process::exit;
 use toml;
 
 
@@ -38,7 +37,7 @@ fn load_config_params (path_to_file: &str)->ConfigParams{
     };
     let params = match toml::from_str(&contents){
         Ok(d) => d,
-        Err(_) => { panic!("Unable to load data from {}",contents)}
+        Err(_) => { panic!("Unable to load data from {}",path_to_file)}
     }; 
 
     params 
