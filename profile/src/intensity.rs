@@ -2,6 +2,32 @@ use polars::prelude::*;
 use super::*;
 use temp_name_lib::{star_physics::local_values::temperature, type_def::N_FLUX_POINTS};
 mod define_parameter_space;
+use std::{fs::File, io::ErrorKind};
+
+impl ProfileConfig{
+    /// This function checks within the collection of intensity grid files provided by the toml file
+    /// to see if all of the grid files are loaded into the directory.
+    /// If they are not, it should return a ErrorKind::NotFound
+    pub fn intensity_grids_are_loaded(&self)->Result<(),std::io::Error>{
+        for grid in self.intensity_grids.iter(){
+            grid.is_there_a_file(&self.path_to_grids)?;
+        }
+        Ok(())
+    }
+}
+impl IntensityGrid{
+    /// This function asses whether the purported intensity grid file is stored in a given directory.
+    /// ### Argument:
+    /// * path - a string that indicates the relative path to the directory of the intensity grid files.
+    /// ### Returns:
+    /// * Ok(_) if it's able to locate the intensity file and is able to open it.
+    /// * Error - otherwise.
+    fn is_there_a_file(&self,path:&str)->Result<File,std::io::Error>{
+        let file_name = self.filename.clone();
+        let full_name = format!("{}{}",String::from(path), file_name);
+        File::open(&full_name)
+    }
+}
 
 pub struct IntensityGrids{
     pub temperatures:Vec<f64>,

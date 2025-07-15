@@ -1,13 +1,78 @@
 use polars::prelude::*;
-use temp_name_lib::type_def::{CLIGHT};
+use serde::Deserialize;
+use temp_name_lib::type_def::{CLIGHT};//Velocity of light in m/s
 
 use crate::{intensity::{get_doppler_shifted_wavelengths, get_flux_continuum, get_temp_logg_filenames}, interpolate::interpolate};
-//use std::fs::File;
+use std::fs;
 //use std::sync::Arc;
 
-pub mod intensity;
+mod intensity;
 pub mod interpolate;
 pub mod utils;
+
+// This are the necessary parameters to run the profile program.
+/// The initialization of the program requires to specify the wavelength range over which the intensity fluxes will be computed.
+/// 
+/// This structure also captures the maximum pulsation velocity, which is used to look within the intensity grids, and 
+/// a collection of the intensity grid files that will be used for the interpolation. And the path to the intensity grids which are meant to be collected on the same folder. 
+#[derive(Deserialize,Debug,PartialEq)]
+pub struct ProfileConfig{
+    pub wavelength_range:WavelengthRange,
+    pub max_velocity:f64,
+    pub path_to_grids: String,
+    pub intensity_grids:Vec<IntensityGrid>,
+}
+/// The wave length range is defined in nanometers.
+/// The start should be bigger than the end and the step should be reasonable enough
+#[derive(Deserialize,Debug,PartialEq)]
+struct WavelengthRange{
+    pub start: f64,
+    pub end: f64,
+    pub step: f64,
+}
+/// The intensity grids are characterized by
+/// 
+/// - the path to the file stored as a string,
+/// - the temperature in Kelvin
+/// - the logarithm of the surface gravity
+#[derive(Deserialize,Debug,PartialEq)]
+struct IntensityGrid{
+pub temperature: f64,
+pub log_gravity: f64,
+pub filename: String,
+}
+
+
+impl ProfileConfig {
+
+    /// This function is used to fill the parameters required for the profile program to run out of the toml configuration file.
+    /// #### Arguments:
+    ///     `path_to_file` - this is a string that indicates the path to the `profile_input.toml` file
+    /// #### Returns:
+    ///      new instance of the profile config structure.
+    pub fn read_from_toml(path_to_file:&str)->Self{
+        let contents = match fs::read_to_string(path_to_file){
+            Ok(c)=>c,
+             Err(_) => { panic!("Could not read file {}",path_to_file)}
+            };
+        let params: ProfileConfig = match toml::from_str(&contents){
+            Ok(d) => d,
+            Err(_) => { panic!("Unable to load data from {}",path_to_file)}
+        }; 
+
+        match params.intensity_grids_are_loaded(){
+            Ok(()) => { params }
+            Err(e) => { panic!("Intensity files are not properly loaded into the directory, '{}' not found.
+ Either load the file into the directory or check the toml file to see if there was a miss spelling",e)}
+        }
+    }
+
+    
+
+}
+
+
+
 
 pub struct Config{
     pub lambda_0:f64,

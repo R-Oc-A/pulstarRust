@@ -3,7 +3,6 @@ use std::fs;
 use toml;
 
 
-#[derive(Deserialize,Debug,PartialEq)]
 struct ConfigParams{
     wavelength_range: WavelengthRange,
     pulsation_velocity: PulsationVelocity,
