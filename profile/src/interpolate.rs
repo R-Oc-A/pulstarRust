@@ -72,7 +72,7 @@ pub fn interpolate(
                 _=> {0.0}};
 
             for (n,lambda) in shifted_wavelengths.iter().enumerate(){//<-this is to carry the same process onto every wavelength
-                
+
                 let index = search_geq(&wavelengths_vec[counter], *lambda);
                 let t2 = (lambda - wavelengths_vec[counter][index-1])/
                 (wavelengths_vec[counter][index]-wavelengths_vec[counter][index-1]);
@@ -124,4 +124,4 @@ delta_logg:f64,
 delta_lamb:f64,
 value:f64)->f64{
     delta_temp*delta_logg*delta_lamb*value
-}
+}  

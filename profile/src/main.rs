@@ -43,8 +43,8 @@ fn main() {
     let rasterized_star_path = env_args[2].clone();
     let lf = LazyFrame::scan_parquet(rasterized_star_path, Default::default()).unwrap();
     //get vector of time_points
-   
 
+    
     let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
     let extract_time_series = tf.column("time").unwrap();
     let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();
@@ -91,7 +91,7 @@ fn main() {
             let pf_visible =phi_frame.filter(expr);
             
             // Append relative doppler wavelength shift 
-            let pf = append_doppler_shift(pf_visible).collect().unwrap();
+            let pf = insert_col_relative_dlambda(pf_visible).collect().unwrap();
 
             // Obtain the relevant quantities to compute the flux on each cell of the surface of the rasterized star
             // |--> relative doppler wavelength shift
@@ -100,7 +100,7 @@ fn main() {
             // |--> temperature over the surface cell
             // |--> log gravity value over the surface cell
 
-            let doppler_shift_series = pf.column("doppler shift").unwrap();
+            let doppler_shift_series = pf.column("relative shift").unwrap();
             let area_series = pf.column("area").unwrap();
             let coschi_series = pf.column("coschi").unwrap();
             let temperature_series = pf.column("temperature").unwrap();
