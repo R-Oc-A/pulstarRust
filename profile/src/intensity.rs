@@ -2,8 +2,25 @@ use polars::prelude::*;
 use super::*;
 use temp_name_lib::type_def::N_FLUX_POINTS;
 mod define_parameter_space;
-use std::{fs::File, io::ErrorKind};
+use std::fs::File;
 
+/// This module contains the methods and functions to process the intensity grids. 
+/// It has two parts.
+/// 
+/// The first part consist of methods to produce a DataFrame that stores the file name of the relevant
+/// intensity grid files
+/// 
+/// The second part consist of methods to obtain a LazyFrame from the contents of the intensity grid file and compute 
+/// the Energy fluxes. 
+/// 
+
+
+
+
+/// The implementations for the profile config structure defined in this module are used to 
+/// extract a DataFrame that works as a database for the intensity grid files. 
+/// 
+/// With this approach searching for the appropriate intensity grid files are carried out faster. 
 impl ProfileConfig{
     /// This function checks within the collection of intensity grid files provided by the toml file
     /// to see if all of the grid files are loaded into the directory.
@@ -15,12 +32,15 @@ impl ProfileConfig{
         Ok(())
     }
 
-    /// This function unwrapps the collection of the grid file id. 
-    /// Producing an ordered vector with all of the temperatures
-    /// an ordered vector with all of the log g
-    /// an ordered vector with all of the file names
+    /// This function unwrapps the collection of the "grid file identification data", 
+    /// producing
+    /// 
+    /// an ordered vector with all of the temperatures,
+    /// 
+    /// an ordered vector with all of the log g,
+    /// 
+    /// an ordered vector with all of the file names.
     fn unwrap_grids(&self)->UnwrappedGrids{
-
         let mut temperature_vector:Vec<f64>=Vec::new();
         let mut logg_vector:Vec<f64>=Vec::new();
         let mut filename_vector:Vec<String>=Vec::new();
@@ -37,8 +57,18 @@ impl ProfileConfig{
             log_g: logg_vector, 
             filenames: filename_vector}
     }
+    /// This function creates a Data frame out of the intensity grid collection stored
+    /// in the profile_config structure. 
+    /// 
+    /// The columns have the following headers
+    /// 
+    /// `temperature`| `log_gravity`| `file name`
+    pub fn get_intensity_grids_dataframe(&self)->DataFrame{
+        self.unwrap_grids().create_dataframe_sorted()
+    }
 
 }
+
 impl IntensityGrid{
     /// This function asses whether the purported intensity grid file is stored in a given directory.
     /// ### Argument:
@@ -63,10 +93,12 @@ struct UnwrappedGrids{
     pub filenames:Vec<String>,
 }
 
-impl IntensityGrids{
-    //This function creates a data frame with the columns "temperature","log_gravity","file name"
-    // that are Float64, Float64, &[str] in that order. The data frame is ordered from lower to greater both in temperature and gravity. 
-    pub fn create_dataframe_sorted(self)->DataFrame{
+impl UnwrappedGrids{
+    /// This function creates a data frame with the columns "temperature","log_gravity","file name"
+    /// that are Float64, Float64, &[str] in that order. 
+    /// 
+    /// The data frame is ordered from lower to greater both in temperature and gravity. 
+    fn create_dataframe_sorted(self)->DataFrame{
         let filenames_str:Vec<&str> = self.filenames.iter().map(|s| s.as_str()).collect();
 
         let temperature_series = Series::new("temperature".into(),self.temperatures);
@@ -82,45 +114,74 @@ impl IntensityGrids{
 
        df.unwrap()
     }
-    pub fn sort_intensitygrid(self)->IntensityGrids{
-        let df = self.create_dataframe_sorted();
-
-        let temperatures = extract_column_as_vectorf64("temperature", &df);
-        let log_g = extract_column_as_vectorf64("log_gravity", &df);
-        let filenames = extract_column_as_vector_string("file name", &df);
-        IntensityGrids { temperatures, log_g, filenames}
-    }
 }
 
 
 //----------------------------------------
-// Functions for parsing intensity grids
+//------parsing intensity grids-----------
 //---------------------------------------- 
 
+/// This function selects the four points closer to
+/// (temperature,Log_g)
+/// on the parameter space whose coordinates have an associated intensity grid file
+/// 
+/// ### Arguments:
+/// 
+/// `grid_id_lf` - A polars LazyFrame that contains the information of the intensity grids.
+/// 
+/// `temperature`` - a `f64` value for the temperature on a surface cell
+/// 
+/// `log g`- a `f64` value for the logarithm of gravity on a surface cell
+/// 
+/// ### Returns:
+/// 
+/// `(temperature_vec, log_g_vec, Filenames_vec)` - This is a tuple that contains three vectors where
+/// 
+/// `temperature vec` - is a vector of `f64` that contains 4 ordered temperatures of the coordinates in the parameter space
+/// 
+/// `log_g_vec` - is a vector of `f64 that contains 4 ordered values of log_g of the coordinates in the parameter space
+/// 
+/// `Filenames_vec` - is a vector of `String` that contains the paths for the 4 intensity grid files.
 pub fn get_temp_logg_filenames(grid_id_lf:LazyFrame,
     temperature:f64,
     log_gravity:f64)->(Vec<f64>,Vec<f64>,Vec<String>){
-        let lf_relevant = define_parameter_space::get_rectangles_in_parameter_space(grid_id_lf, temperature, log_gravity);
-        let df_relevant = lf_relevant.collect().unwrap();
+    let lf_relevant = define_parameter_space::get_rectangles_in_parameter_space(grid_id_lf, temperature, log_gravity);
+    let df_relevant = lf_relevant.collect().unwrap();
 
-        let temperature_vec = extract_column_as_vectorf64("temperature", &df_relevant);
-        let log_g_vec = extract_column_as_vectorf64("log_gravity", &df_relevant);
-        let name_of_files = extract_column_as_vector_string("file name", &df_relevant);
+    let temperature_vec = extract_column_as_vectorf64("temperature", &df_relevant);
+    let log_g_vec = extract_column_as_vectorf64("log_gravity", &df_relevant);
+    let name_of_files = extract_column_as_vector_string("file name", &df_relevant);
 
-        (temperature_vec,log_g_vec , name_of_files)
-    }
+    (temperature_vec,log_g_vec , name_of_files)
+}
 
 
-// Returns the flux, continuum for each temperature,gravity as a f64 vector
-// Input: name -> file name of the intensity grid file 
-//        shifted_wavelengths -> collection of doppler shifted wavelenghts from where intensity shall be queried.
-//        coschi -> projection of the surface cell normal onto the observer's unitary position vector;
+/// This function extracts the intensity
+/// 
+/// ### Arguments: 
+/// 
+///  `name` - file name of the intensity grid file 
+/// 
+///  `shifted_wavelengths` - collection of doppler shifted wavelenghts from where intensity shall be queried.
+/// 
+///  `coschi` - projection of the surface cell normal onto the observer's unit position vector;
+/// 
+/// ### Returns: 
+/// 
+/// `(Flux, Continuum, wavelength_vec)` - a tupple containing three vectors of type `f64` where
+/// 
+/// `Flux` - Is the intensity flux
+/// 
+/// `Continuum` - continuus intensity flux
+/// 
+/// `wavelength_vec` - is the wavelength values where the intensities are computed.
 pub fn get_flux_continuum(grid_filename:String,
     shifted_wavelengths:&[f64],
     coschi:f64)->Option< (Vec<f64> , Vec<f64>, Vec<f64>)>{
     if let Ok(lf) = read_intensity_grid_file(&grid_filename){
-        
-        let lf_relevant = match shifted_wavelengths.len() < (N_FLUX_POINTS/10) as usize{
+
+        // if the number of flux points to be calculated is really small, it's useful to filter out some of the wavelengths from the data frame so that the queries are performed faster.
+        let lf_relevant = match shifted_wavelengths.len() < (N_FLUX_POINTS/100) as usize{
             true => {
                 lf
                 .filter(filter_if_contains_wavelenght(&shifted_wavelengths,
@@ -128,6 +189,7 @@ pub fn get_flux_continuum(grid_filename:String,
             false => {lf}
         };
 
+        // Here the lazy frame is transformed into a data frame that contains three columns: the intensity fluxes (specific, continuous) and the relevant wavelengths.
         let df_flux = create_lf_wavelength_flux_continuum(lf_relevant,coschi).collect().unwrap();
         
         let lbd_from_df = extract_column_as_vectorf64("wavelength", &df_flux);
@@ -142,7 +204,25 @@ pub fn get_flux_continuum(grid_filename:String,
     }
 }
 
-
+/// This function is used to create a polars LazyFrame out of the intensity grid file in order to perform 
+/// column wise operations faster. 
+/// 
+/// The Kurukz intensity files contain the coefficients $a_k$ useful to calculate the intensity via the limb darkening law
+/// given by 
+/// 
+/// $ I_{\lambda}(\mu) =a_0 \sum_{k=1}^{3} a_k \left( 1 - \mu^k  \right) $
+///
+/// where $\mu$ is the $cos(\xi)$
+///  
+/// ### Arguments:
+/// 
+/// `path` - a reference to a string slice that contains the relative path to the intensity grid file
+/// 
+/// ### Returns:
+/// 
+/// `PolarsResult<LazyFrame>` - where the lazy frame has as headers
+/// 
+/// `|wavelength|a|b|c|d|ac|bc|cc|dc|`
 // This function returns a lazy frame with the apropiate column names of the intensity grid file
 // the column names are 
 // "wavelength","a","b","c","d","ac","bc","cc","dc"
@@ -171,9 +251,27 @@ pub fn get_flux_continuum(grid_filename:String,
 
 }
 
-// this function's purpose is to create a lazy frame containing
-// lambda column (only with relevant wavelengths), Flux column created using the limb_darkening law and the continuum column.
-// Input: lf is a lazy frame created with the read_intensity_grid_file function.
+/// This function receives a lazy frame containing the coefficients of the limb
+/// darkening law
+/// 
+/// $$
+/// I_{\lambda}(\mu) =a_0 \sum_{k=1}^{3} a_k \left( 1 - \mu^k  \right) 
+/// $$
+/// 
+/// and returns another lazy frame with the wavelengths and their intensity fluxes.
+///
+///
+/// ### Arguments:
+/// 
+/// `lf` - A lazy frame read from the intensity grid file
+/// 
+/// `coschi` - a `f64` value that is the projection of the unit surface normal onto the unit vector towards the observer.
+///  
+/// ### Returns:
+/// 
+/// `LazyFrame` - The column headers of this lazy frame are given by 
+/// 
+/// `|wavelength|flux|continuum|`
  fn create_lf_wavelength_flux_continuum(lf:LazyFrame, coschi:f64)->LazyFrame{
     let mu = coschi.sqrt();
 
@@ -197,20 +295,22 @@ pub fn get_flux_continuum(grid_filename:String,
     ])
 }
 
-
-
-// This function applies a doppler shift to the observed wavelengths
-pub fn get_doppler_shifted_wavelengths(doppler_shift:f64,
-        wavelengths:&[f64])->Vec<f64>{
-            let mut shifted:Vec<f64>=Vec::new();
-            for lambda in wavelengths.iter(){
-                shifted.push(*lambda * doppler_shift);
-            }
-            shifted
-}
-
-//this function filters
- fn filter_if_contains_wavelenght(shifted_wavelengths:&[f64],threshold:f64)->Option<Expr>{
+/// This function constructs a polars expression that filters out wavelengths that are not close to the 
+/// observed (requested) ones.
+/// 
+/// polars expressions are useful to indicate the order of operations and quering before materializing a data frame. They reduce memory consumption.
+/// 
+/// ### Arguments: 
+/// 
+/// `shifted_wavelengths` - The observed wavelengths
+/// 
+/// `threshold` - a f64 value that specifies how close wavelengths need to be.
+/// 
+/// ### Returns:
+/// 
+/// `Option<Expr>` -  where `Expr` is polars expression  that filters out unrelevant wavelengths from the lazyframe of an intensity grid file.
+/// 
+fn filter_if_contains_wavelenght(shifted_wavelengths:&[f64],threshold:f64)->Option<Expr>{
 
     let mut combined_filter_exp: Option<Expr> = None;
 

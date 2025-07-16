@@ -2,7 +2,7 @@ use polars::prelude::*;
 use serde::Deserialize;
 use temp_name_lib::type_def::{CLIGHT,N_FLUX_POINTS};//Velocity of light in m/s
 
-use crate::{intensity::{get_doppler_shifted_wavelengths, get_flux_continuum, get_temp_logg_filenames}, interpolate::interpolate};
+use crate::{intensity::{get_flux_continuum, get_temp_logg_filenames}, interpolate::interpolate};
 use std::fs;
 //use std::sync::Arc;
 
@@ -191,9 +191,30 @@ fn search_geq(vector:&[f64],key:f64)-> usize {
     else{ panic!("empty vector!")}
 }
 
-
+/// This function multiplies a vector of `f64` by a scalar
+/// 
+/// ### Arguments:
+/// 
+/// `vecf64` - a vector containing `f64` values
+/// 
+/// `scalar` - an `f64` value
+/// 
+/// ### Returns:
+/// 
+/// `vec_result` - The multiplied vector.
 fn multiply_vecf64_by_scalar(vecf64:Vec<f64>,scalar:f64)->Vec<f64>{
     //let mut vec_result:Vec<f64> = Vec::new();
     let vec_result = vecf64.into_iter().map(|s| s * scalar).collect();
     vec_result
+}
+
+
+/// This function applies a doppler shift to the observed wavelengths. It is a multiplication by a scalar
+fn get_doppler_shifted_wavelengths(doppler_shift:f64,
+        wavelengths:&[f64])->Vec<f64>{
+            let mut shifted:Vec<f64>=Vec::new();
+            for lambda in wavelengths.iter(){
+                shifted.push(*lambda * doppler_shift);
+            }
+            shifted
 }

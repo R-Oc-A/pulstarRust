@@ -28,17 +28,11 @@ fn main() {
    // |--> Initialize the profile parameters.
    let profile_config_path = env_args[1];
    let profile_config = ProfileConfig::read_from_toml(&profile_config_path);
-
    //|-->Initialize the wavelength array that tracks the intensity flux profile.
-
     let wavelength = profile_config.wavelength_range.get_wavelength_vector();
 
     // |-->Create a data frame with all of the intensity grids information
-    let grid_id_df = IntensityGrids{
-        temperatures:vec![20000.0,20000.0,21000.0,21000.0],
-        log_g: vec![3.5,3.5,4.0,4.0],
-        filenames: vec![String::from("name1"),String::from("name2"),String::from("name3"),String::from("name4")]
-    }.create_dataframe_sorted();
+    let grid_id_df = profile_config.get_intensity_grids_dataframe();
     // |--> Create a lazy frame that will be cloned inside the loop so that querys can be chained from here.
     let grid_id_lf_original = grid_id_df.lazy();
 
@@ -47,8 +41,8 @@ fn main() {
    //----Parsing rasterized_star.parquet-----
    //----------------------------------------
    // Obtain the lazy frame of the parquet file, Obtain the time points, obtain the theta points
-    let path= String::from("pulstar_output.parquet");
-    let lf = LazyFrame::scan_parquet(path, Default::default()).unwrap();
+    let rasterized_star_path = env_args[2];
+    let lf = LazyFrame::scan_parquet(rasterized_star_path, Default::default()).unwrap();
     //get vector of time_points
     let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
     let extract_time_series = tf.column("time").unwrap();
