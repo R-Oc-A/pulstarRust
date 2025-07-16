@@ -7,7 +7,7 @@ use std::fs;
 //use std::sync::Arc;
 
 mod intensity;
-pub mod interpolate;
+mod interpolate;
 pub mod utils;
 
 // This are the necessary parameters to run the profile program.
@@ -32,7 +32,7 @@ struct WavelengthRange{
 }
 /// The intensity grids are characterized by
 /// 
-/// - the path to the file stored as a string,
+/// - the file name stored as a string,
 /// - the temperature in Kelvin
 /// - the logarithm of the surface gravity
 #[derive(Deserialize,Debug,PartialEq)]
