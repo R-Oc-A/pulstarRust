@@ -1,7 +1,6 @@
 use std::env;
 use polars::prelude::*;
-use profile::intensity::IntensityGrids;
-use temp_name_lib::type_def::N_FLUX_POINTS;
+//use profile::intensity::IntensityGrids;
 use profile::*;
 
 fn main() {
@@ -26,7 +25,7 @@ fn main() {
    // |--> Check if the Profile_input.toml is well written.
    // |--> Check if the Intensity Grid files exist.
    // |--> Initialize the profile parameters.
-   let profile_config_path = env_args[1];
+   let profile_config_path = env_args[1].clone();
    let profile_config = ProfileConfig::read_from_toml(&profile_config_path);
    //|-->Initialize the wavelength array that tracks the intensity flux profile.
     let wavelength = profile_config.wavelength_range.get_wavelength_vector();
@@ -41,9 +40,11 @@ fn main() {
    //----Parsing rasterized_star.parquet-----
    //----------------------------------------
    // Obtain the lazy frame of the parquet file, Obtain the time points, obtain the theta points
-    let rasterized_star_path = env_args[2];
+    let rasterized_star_path = env_args[2].clone();
     let lf = LazyFrame::scan_parquet(rasterized_star_path, Default::default()).unwrap();
     //get vector of time_points
+   
+
     let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
     let extract_time_series = tf.column("time").unwrap();
     let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();
@@ -68,6 +69,7 @@ fn main() {
         //--------------------------------------------------
         
         // Define the fluxes over the whole star.
+        let capacity = wavelength.len();
         let mut flux = vec![0.0;capacity];
         let mut cont = vec![0.0;capacity];
         let mut time_vec = vec![*phase;capacity];

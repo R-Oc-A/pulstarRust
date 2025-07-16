@@ -25,7 +25,7 @@ pub struct ProfileConfig{
 /// The wave length range is defined in nanometers.
 /// The start should be bigger than the end and the step should be reasonable enough
 #[derive(Deserialize,Debug,PartialEq)]
-struct WavelengthRange{
+pub struct WavelengthRange{
     pub start: f64,
     pub end: f64,
     pub step: f64,
@@ -36,7 +36,7 @@ struct WavelengthRange{
 /// - the temperature in Kelvin
 /// - the logarithm of the surface gravity
 #[derive(Deserialize,Debug,PartialEq)]
-struct IntensityGrid{
+pub struct IntensityGrid{
 pub temperature: f64,
 pub log_gravity: f64,
 pub filename: String,
