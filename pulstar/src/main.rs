@@ -112,7 +112,7 @@ fn main() {
     //---------------------------------------- 
     //----------Start of loop-----------------
     //---------------------------------------- 
-    //idiomatic loop
+    
     let mut Star_Output= RasterStarOutput::new_sphere(
         180/THETA_STEP as usize, 
         360/PHI_STEP as usize, 

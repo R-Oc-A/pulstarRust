@@ -66,7 +66,7 @@ pub fn local_value(value: &[Eigenfunctions],
                 }
             }
 
-            Ok(res)
+            Ok((1.0+res)*base_unit)
         }
 
     }
