@@ -37,7 +37,7 @@ fn main() {
     let time_points_file = &env_args[2];
 
     println!("--------------------");
-    println!("|PULSTARust launced|");
+    println!("|PULSTARust launched|");
     println!("--------------------");
     
     let now = Instant::now();

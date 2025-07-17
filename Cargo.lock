@@ -2050,7 +2050,9 @@ version = "0.1.0"
 dependencies = [
  "nalgebra",
  "polars",
+ "serde",
  "temp_name_lib",
+ "toml",
 ]
 
 [[package]]
