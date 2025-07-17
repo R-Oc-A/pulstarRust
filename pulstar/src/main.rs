@@ -68,6 +68,10 @@ fn main() {
     let mut maxvel_length =0.0;
     let mut maxrel_length =0.0;
     //iterate in an idiomatic way
+
+    //----------------------------------------
+    //-----Constructing the pulsation values--
+    //----------------------------------------
     for (n,l_val) in pulse_config.mode_config.l.iter().enumerate(){
         //--Frequency in rad/s--
         freqrad.push(pulse_config.freqcycli[n]*CYCLI2RAD);

@@ -72,7 +72,7 @@ pub fn write_output_to_parquet(parameters: &PulstarConfig, output: RasterStarOut
     //println!("First 5 rows:");
     //println!("{}", df.head(Some(5usize)));
     let id = String::from(parameters.mode_config.n_modes.to_string());
-    let filename= format!("raster_star_tempid{}.parquet",id);
+    let filename= format!("rasterized_star.parquet");
     
     let file_parquet = File::create(&filename)?;
 

@@ -1,6 +1,6 @@
 use super::*;
 
-/// Computes by linear interpolation (see [trilinear interpolation]{https://paulbourke.net/miscellaneous/interpolation/}) the specific and continuum intensity for a surface cell.
+/// Computes by linear interpolation (see [trilinear interpolation](https://paulbourke.net/miscellaneous/interpolation/) ) the specific and continuum intensity for a surface cell.
 /// 
 /// ### Arguments:
 /// 

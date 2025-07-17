@@ -6,8 +6,15 @@ use crate::{intensity::{get_flux_continuum, get_temp_logg_filenames}, interpolat
 use std::fs;
 //use std::sync::Arc;
 
-mod intensity;
-mod interpolate;
+/// The profile program reads a the quantities calculated over a Rasterized star on selecetd time points
+/// and reurns a parquet file that contains the time series of the mean intensity flux produced 
+/// for relevant observed wavelengths.
+/// 
+
+
+
+ mod intensity;
+ mod interpolate;
 pub mod utils;
 
 // This are the necessary parameters to run the profile program.
@@ -56,7 +63,8 @@ impl ProfileConfig {
             };
         let params: ProfileConfig = match toml::from_str(&contents){
             Ok(d) => d,
-            Err(_) => { panic!("Unable to load data from {}",path_to_file)}
+            Err(e) => {println!("Unable to load data from {}",path_to_file);
+                panic!("error {}",e)}
         }; 
 
         match params.intensity_grids_are_loaded(){
