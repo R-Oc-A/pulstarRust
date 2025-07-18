@@ -48,6 +48,9 @@ fn main() {
     let ppath = String::from("pulstar_input.toml");
     let ppulse_config = PPulstarConfig::read_from_toml(&ppath);
     let ttime_points = ppulse_config.get_time_points(); 
+    let mesh_structure = ppulse_config.get_mesh_structure();
+    let theta_step = mesh_structure.0;
+    let phi_step = mesh_structure.1;
     println!("This is a cute little test for printing ");
     println!("the param config {:#?}",ppulse_config);
     //----------------------------------------
@@ -121,24 +124,21 @@ fn main() {
     //---------------------------------------- 
     
     let mut Star_Output= RasterStarOutput::new_sphere(
-        180/THETA_STEP as usize, 
-        360/PHI_STEP as usize, 
-        pulse_config.time_pts_nmbr as usize);
+        (180.0/theta_step) as usize, 
+        (360.0/phi_step) as usize, 
+        ttime_points.len());
 
-    for (n,time_stamp) in time_points.iter().enumerate(){
-        println!("\n +-- Computing surface data for time point number {} with time stamp {}.", n,*time_stamp);
+    for (n,time_stamp) in ttime_points.iter().enumerate(){
+        println!("\n +-- Computing surface data for time point number {} with time stamp {:.3}.", n,*time_stamp);
 
-        //idiomatic loop
+        //Collecting the phase_offset of all the modes. 
         let mut phase_offset:Vec<f64> = Vec::new();
-        for (m,phase_val) in pulse_config.mode_config.phase.iter().enumerate(){
-            phase_offset.push(2.0 * (*phase_val //here I'm dereferencing to obtain the phase val
-                + pulse_config.freqcycli[m] * *time_stamp)//here I'm dereferencing to obtain time value
-                * PI );
-        }//end for loop n_modes
-
-        // initialize files to be created.[Ricardo]: This might not be necessary on Rust.
-        // initialize format conventions. [Ricardo]: This might not be necessary on Rust.
-
+        for mode in ppulse_config.mode_data.iter(){
+            phase_offset.push(2.0 * PI * (mode.phase_offset + 
+                mode.frequency * *time_stamp) )//<- [Ricardo]: Here I'm dereferencing to obtain the f64 value pointed by time stamp
+                //[Ricardo]: I'm seriously considering iterating time_stamps by into_iter() so I don't have to  dereference.
+        }
+        
         //--Initialize the minimum and maximum arrays
         max_veloc.push(-1.0e30);
         min_veloc.push(1.0e30);

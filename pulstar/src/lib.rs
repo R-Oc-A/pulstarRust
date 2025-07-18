@@ -3,7 +3,6 @@
 //! for each of the surface cells. 
 use serde::Deserialize;
 use std::fs;
-pub mod utils;
 
 
 /// This structure is necessary for starting the program. 
@@ -130,4 +129,15 @@ impl PPulstarConfig {
             }
         }
     }
+
+    /// This function extracts the mesh structure from the configuration file of the pulstar code. 
+    pub fn get_mesh_structure(&self)->(f64,f64){
+        match self.mesh{
+            MeshConfig::Sphere { theta_step,
+                 phi_step } => {(theta_step,phi_step)}
+        }
+    }
 }
+
+
+pub mod utils;
