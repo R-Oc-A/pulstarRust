@@ -3,10 +3,15 @@
 
 # Time points to be simulated between 0 and 1. 
 # Ask Joris
-[time_points]
-Uniform = {start = 0.01, end = 0.1,step = 0.01}
 #[time_points]
-#type = "Explicit"
+#Uniform = {start = 0.01, end = 0.1,step = 0.01}
+
+[time_points.Uniform]
+start = 0.01
+end = 0.1
+step = 0.01
+
+#[time_points.Explicit]
 #collection = [0.01,0.3,0.32]
 
 [[mode_data]]
@@ -27,3 +32,7 @@ radius = 6.93
 effective_temperature = 22642.0
 v_sini = 20.0
 inclination_angle = 45.0
+
+[mesh.Sphere]
+theta_step = 4.0
+phi_step = 8.0

@@ -46,9 +46,10 @@ fn main() {
     let now = Instant::now();
 
     let ppath = String::from("pulstar_input.toml");
-    let params = PPulstarConfig::read_from_toml(&ppath);
+    let ppulse_config = PPulstarConfig::read_from_toml(&ppath);
+    let ttime_points = ppulse_config.get_time_points(); 
     println!("This is a cute little test for printing ");
-    println!("the param config {:#?}",params);
+    println!("the param config {:#?}",ppulse_config);
     //----------------------------------------
     //----------Read input file---------------
     //----------------------------------------
@@ -78,42 +79,42 @@ fn main() {
     //----------------------------------------
     //-----Constructing the pulsation values--
     //----------------------------------------
-    for (n,l_val) in pulse_config.mode_config.l.iter().enumerate(){
-        //--Frequency in rad/s--
-        freqrad.push(pulse_config.freqcycli[n]*CYCLI2RAD);
-        //--the period of pulsation in hours
-        period.push(2.0 * PI/3.6e3/freqrad[n]);
-        //--Theoretical zero order K value, mass & radius are in solar units.
-        if *l_val != 0u16 {
+    for (n,mode) in ppulse_config.mode_data.iter().enumerate(){
+        // Frequency in rad/s
+        freqrad.push(mode.frequency.to_radians());
+        // Period of pulsation in hours
+        period.push(2.0*PI/3.6e3/freqrad[n]);
+        // Theoretical zero order K value, mass & radius are in solar units
+        if mode.l != 0u16 {
             k_theory.push(74.437 
-                * pulse_config.star_config.mass 
-                /pulse_config.star_config.radius.powi(3)//r^3
-                /pulse_config.freqcycli[n].powi(2));//freq^2
+                * ppulse_config.star_data.mass 
+                /ppulse_config.star_data.radius.powi(3)//r^3
+                /mode.frequency.powi(2));//freq^2
         }
-        else {
+        else{
             k_theory.push(0.0);
         }
+        
         //--Amplitude of the pulse velocity (/1000.0 because from m-> km)
-        vampl.push(pulse_config.star_config.radius
+        vampl.push(ppulse_config.star_data.radius
             * freqrad[n] * RADIUSSUN * 1.0e-3
-            * pulse_config.mode_config.rel_deltar[n]
+            * mode.rel_dr
         );
         //--Convert the phase difference of the effective temperature from degrees to radians
-        t_phase_rad.push((pulse_config.temperature_config[n].phasedif).to_radians());
+        t_phase_rad.push(mode.phase_rel_dtemp.to_radians());
         //--Convert the phase difference of the effective gravity from degrees to radians
-        g_phase_rad.push((pulse_config.gravity_config[n].phasedif).to_radians());
-    } 
+        g_phase_rad.push(mode.phase_rel_dg.to_radians());
+    }
+
     //--The inclination angle in radians
-    let incl_rad = (pulse_config.star_config.inclination_angle as f64).to_radians();
+    let incl_rad = ppulse_config.star_data.inclination_angle.to_radians();
     //--Equilibrium log(g_0) (gravity g_0 is in cgs units)
     //--Mass & radius are in solar units
-    let log_g0 = 4.438 + (pulse_config.star_config.mass).log10()
-            - 2.0 * (pulse_config.star_config.radius).log10();
+    let log_g0 = 4.438 + ppulse_config.star_data.mass.log10()
+            - 2.0 * ppulse_config.star_data.radius.log10();
     //--The components of a unit vector pointing towards the observer
     let k = unit_vector_k(incl_rad);//cartesian
     //--Reset the maximum length of velocity and relative displacement vector
-    let mut maxrellength =0.0;
-    let mut maxvelolength = 0.0;
     
     //---------------------------------------- 
     //----------Start of loop-----------------

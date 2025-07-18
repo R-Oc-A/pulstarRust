@@ -54,12 +54,13 @@ pub struct PPulstarConfig{
     pub mode_data:Vec<PulsationMode>,
     pub star_data:StarData,
     pub time_points:TimeType,
+    pub mesh: MeshConfig,
 }
 
 #[derive(Deserialize,Debug,PartialEq)]
 pub struct PulsationMode{
-    pub l: f64, 
-    pub m: f64,
+    pub l: u16, 
+    pub m: i32,
     pub rel_dr: f64,
     pub k: f64,
     pub frequency: f64,
@@ -79,10 +80,17 @@ pub struct StarData{
     pub inclination_angle: f64,
 }
 
-#[derive(Deserialize,Debug,PartialEq)]
+#[derive(Deserialize,Debug,PartialEq,Clone)]
 pub enum  TimeType{
     Explicit{collection:Vec<f64>},
     Uniform{ start:f64, end:f64, step:f64}
+}
+
+#[derive(Deserialize,Debug,PartialEq)]
+pub enum MeshConfig{
+    Sphere{theta_step:f64,
+           phi_step:f64},
+    //Here maybe some other geometries may rise
 }
 
 //----------------------------------------
@@ -106,5 +114,20 @@ impl PPulstarConfig {
                 panic!("error {}",e)}
         }; 
         params
+    }
+
+    /// This function extracts the time points from the configuration file of the pulstar code as a vector with elements of `f64` type
+    pub fn get_time_points(&self)->Vec<f64>{
+        match self.time_points.clone() {
+            TimeType::Explicit { collection } =>{collection}
+            TimeType::Uniform { start, end, step } =>{
+                let mut time_vec:Vec<f64> = Vec::new();
+                let steps = ((end - start)/step) as usize;
+                for i in 0..=steps {
+                    time_vec.push(start + i as f64 * step);
+                }
+                time_vec
+            }
+        }
     }
 }
