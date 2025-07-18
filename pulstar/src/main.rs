@@ -17,7 +17,7 @@ use temp_name_lib::{
         },
     type_def::{PHI_STEP, THETA_STEP,CYCLI2RAD,RADIUSSUN},
     };
-use pulstar::{utils::{parse_file, print_info::print_report, write_grid_data::write_output_to_parquet},};
+use pulstar::{utils::{parse_file, print_info::print_report, write_grid_data::write_output_to_parquet}, PPulstarConfig,};
 use pulstar::utils::write_grid_data::{RasterStarOutput, collect_output};
 
 use std::{env,
@@ -33,6 +33,9 @@ fn main() {
     if env_args.len() != 3usize {
         panic!("USAGE: pulstar <parameter file> <time points file>");
     }
+
+        
+
     let parameter_file = &env_args[1];
     let time_points_file = &env_args[2];
 
@@ -42,7 +45,10 @@ fn main() {
     
     let now = Instant::now();
 
-    
+    let ppath = String::from("pulstar_input.toml");
+    let params = PPulstarConfig::read_from_toml(&ppath);
+    println!("This is a cute little test for printing ");
+    println!("the param config {:#?}",params);
     //----------------------------------------
     //----------Read input file---------------
     //----------------------------------------

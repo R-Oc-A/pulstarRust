@@ -1,0 +1,29 @@
+# This will be the typical structure of 
+# the input file for the profile code. 
+
+# Time points to be simulated between 0 and 1. 
+# Ask Joris
+[time_points]
+Uniform = {start = 0.01, end = 0.1,step = 0.01}
+#[time_points]
+#type = "Explicit"
+#collection = [0.01,0.3,0.32]
+
+[[mode_data]]
+l = 4
+m = 1
+rel_dr = 0.024
+k = 0.05
+frequency = 6.74
+phase_offset = 0.00
+rel_dtemp = 2.62
+phase_rel_dtemp = 180.0
+rel_dg = 10.0
+phase_rel_dg = 34.0
+
+[star_data]
+mass = 10.0
+radius = 6.93
+effective_temperature = 22642.0
+v_sini = 20.0
+inclination_angle = 45.0
