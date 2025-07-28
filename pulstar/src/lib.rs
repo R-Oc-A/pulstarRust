@@ -2,50 +2,36 @@
 //! the (linear) variations on surface temperature, log g, and also the pulsation velocity components.
 //! for each of the surface cells. 
 use serde::Deserialize;
+use temp_name_lib::{joris_math::spherical_harmonics::plmcos::plmcos, 
+    utils::MathErrors};
 use std::fs;
+use nalgebra as na;
 
 
 /// This structure is necessary for starting the program. 
 /// It contains `mode_data` which is a collection of the pulsation modes to be implemented, the `star_data` that characterizes the star, and the `time points` to be simulated. 
 /// 
 /// The pulsation mode contains: 
-/// 
-/// `l` - degree of the mode.
-/// 
-/// `m` - azimuthal order
-/// 
-/// `rel_dr` - relative displacement, that is dr/r0
-/// 
-/// `k` - correction factor
-/// 
-/// `frequency` - this is the frequency of oscillation in cycles per day
-/// 
-/// `phase offset` - this quantity is in rad
-/// 
-/// `rel_dtemp` - relative temperature diference, that is dT/T0
-/// 
-/// `phase_rel_dtemp` - 
-/// 
-/// `rel_dg` - relative gravity diference, that is dg/g0
-/// 
-/// `phase_rel_dg` -
+/// * `l` - degree of the mode.
+/// * `m` - azimuthal order
+/// * `rel_dr` - relative displacement, that is dr/r0
+/// * `k` - correction factor
+/// * `frequency` - this is the frequency of oscillation in cycles per day
+/// * `phase offset` - this quantity is in rad
+/// * `rel_dtemp` - relative temperature diference, that is dT/T0
+/// * `phase_rel_dtemp` - 
+/// * `rel_dg` - relative gravity diference, that is dg/g0
+/// * `phase_rel_dg` -
 /// 
 /// The `star_data` contains
-/// 
-/// `mass` - the mass of the star
-/// 
-/// `radius` - the radius of the star
-/// 
-/// `effective_temperature` - the effective temperature of the star.
-/// 
-/// `v_sin_i` - the equatorial rotational velocity.
-/// 
-/// `inclination angle` - the inclination angle respective to the observer. 
-/// 
+/// * `mass` - the mass of the star
+/// * `radius` - the radius of the star
+/// * `effective_temperature` - the effective temperature of the star.
+/// * `v_sin_i` - the equatorial rotational velocity.
+/// * `inclination angle` - the inclination angle respective to the observer. 
 /// 
 /// The `time_points` contains
-/// 
-/// - a vector of all of the oscillation phases to be created. 
+/// * a vector of all of the oscillation phases to be created. 
 /// It could be provided as an `Explicit` collection where the individual terms are posted explicitly 
 /// or as a `Uniform` collection where the array is characterized by a beggining, an end, and the number of time points. 
 #[derive(Deserialize,Debug,PartialEq)]
@@ -59,7 +45,7 @@ pub struct PPulstarConfig{
 #[derive(Deserialize,Debug,PartialEq)]
 pub struct PulsationMode{
     pub l: u16, 
-    pub m: i32,
+    pub m: i16,
     pub rel_dr: f64,
     pub k: f64,
     pub frequency: f64,
@@ -99,9 +85,9 @@ pub enum MeshConfig{
 impl PPulstarConfig {
     /// This function is used to fill the parameters required for the pulstar program to run out of the toml configuration file.
     /// #### Arguments:
-    ///     `path_to_file` - this is a string that indicates the path to the `profile_input.toml` file
+    /// * `path_to_file` - this is a string that indicates the path to the `profile_input.toml` file
     /// #### Returns:
-    ///      new instance of the profile config structure.
+    /// * new instance of the profile config structure.
     pub fn read_from_toml(path_to_file:&str)->Self{
         let contents = match fs::read_to_string(path_to_file){
             Ok(c)=>c,
@@ -141,3 +127,6 @@ impl PPulstarConfig {
 
 
 pub mod utils;
+
+
+pub mod reference_frames;
