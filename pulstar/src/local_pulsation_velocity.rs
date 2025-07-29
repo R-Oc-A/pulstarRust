@@ -129,3 +129,36 @@ pub fn observed_pulsation_velocity(
         }
     }
 }
+
+/// Computes the projected (on the line of sight) rotational velocity. 
+/// The result will have the same dimensions as the equatorial rotation velocity. There is an assumption 
+/// of a uniform rotation with the positive z axis oriented as the rotation axis.
+/// 
+/// ### Arguments:
+/// * `parameters` - The data contained in [PPulstarConfig], here you find the parameters that describe the pulsation modes and the star.
+/// * `theta_rad` - The colatitude angle in rads, must not be too small in order to avoid the poles.
+/// * `phi_rad` - The azimuthal angle in rads
+/// * `k` - Unit vector in directed towards the observer it is prefered to be in spherical coordinates.
+/// ### Returns:
+/// `projected_velocity` - Where the projected_velocity is a f64 value and which has the same units as v_sini
+pub fn project_vrot(
+    parameters:&PPulstarConfig,
+    theta_rad:f64,
+    phi_rad:f64,
+    k:&Coordinates
+    )->f64 {
+        let v_omega = Coordinates::Cartesian(
+            parameters.star_data.v_sini *  na::Vector3::new(
+                theta_rad.sin() * phi_rad.sin(),
+                theta_rad.sin() * phi_rad.cos(),
+                0.0
+            )
+        );
+        match k{
+            Coordinates::Cartesian(_)=>{ v_omega.project_vector(k).unwrap()}
+            Coordinates::Spherical(_)=>{
+                let k_cartesian = k.transform(theta_rad, phi_rad);
+                v_omega.project_vector(&k_cartesian).unwrap()
+        }
+    }
+}
