@@ -2,16 +2,16 @@
 //! the (linear) variations on surface temperature, log g, and also the pulsation velocity components.
 //! for each of the surface cells. 
 use serde::Deserialize;
-use temp_name_lib::{joris_math::spherical_harmonics::plmcos::plmcos, 
-    utils::MathErrors};
+use temp_name_lib::joris_math::spherical_harmonics;
+use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
 use std::fs;
 use nalgebra as na;
 
 
 /// This structure is necessary for starting the program. 
-/// It contains `mode_data` which is a collection of the pulsation modes to be implemented, the `star_data` that characterizes the star, and the `time points` to be simulated. 
+/// It contains `mode_data` which is a [Vec] collection of the pulsation modes to be implemented, the `star_data` that characterizes the star, and the `time points` to be simulated. 
 /// 
-/// The pulsation mode contains: 
+/// Each pulsation mode contains: 
 /// * `l` - degree of the mode.
 /// * `m` - azimuthal order
 /// * `rel_dr` - relative displacement, that is dr/r0
@@ -36,32 +36,69 @@ use nalgebra as na;
 /// or as a `Uniform` collection where the array is characterized by a beggining, an end, and the number of time points. 
 #[derive(Deserialize,Debug,PartialEq)]
 pub struct PPulstarConfig{
+    /// A vector collection of all of the modes that will be analyzed
     pub mode_data:Vec<PulsationMode>,
+
+    /// The parameters that describe the star
     pub star_data:StarData,
+
+    /// A vector collection of all the time points to be analized in the range [0,1]
     pub time_points:TimeType,
+
+    /// This structure indicates that the star analysis will be performed on a spherical surface parameterized by the colatitude and the azimuthal angles on a regular grid with spacing Δθ Δφ
     pub mesh: MeshConfig,
 }
 
+/// This structure parameterizes a pulsation mode
 #[derive(Deserialize,Debug,PartialEq)]
 pub struct PulsationMode{
+    /// The degree of the mode
     pub l: u16, 
+
+    /// The azimuthal order of the mode
     pub m: i16,
+
+    /// The relative radial displacement Δr/r_0
     pub rel_dr: f64,
+    
+    /// The correction factor k
     pub k: f64,
+
+    /// The frequency of oscillation in cycles per day
     pub frequency: f64,
+
+    /// The phase offset
     pub phase_offset: f64,
+
+    /// The relative temperature difference ΔT/T_0
     pub rel_dtemp: f64,
+
+    /// The phase offset of temperature
     pub phase_rel_dtemp: f64,
+
+    /// The relative gravity difference Δg/g0
     pub rel_dg: f64,
+
+    /// The phase offset of gravity
     pub phase_rel_dg: f64,
 }
 
+/// This structure parameterizes the star
 #[derive(Deserialize,Debug,PartialEq)]
 pub struct StarData{
+    /// The mass of the star in solar units
     pub mass: f64,
+
+    /// The radius of the star in solar units
     pub radius: f64,
+
+    /// The effective temperature in K
     pub effective_temperature: f64,
+
+    /// The equatorial rotational velocity
     pub v_sini: f64,
+
+    /// The inclination angle in degrees
     pub inclination_angle: f64,
 }
 
@@ -75,7 +112,7 @@ pub enum  TimeType{
 pub enum MeshConfig{
     Sphere{theta_step:f64,
            phi_step:f64},
-    //Here maybe some other geometries may rise
+    //[Ricardo:]Here maybe some other geometries may rise
 }
 
 //----------------------------------------
@@ -125,8 +162,19 @@ impl PPulstarConfig {
     }
 }
 
-
+/// This module contains the functions and methods used for input/output
 pub mod utils;
 
-
+/// This module contains the functions, methods, and structures that are used for describing the 
+/// geometry of the star, such as the aproximate deformation of a surface cell due to pulsations, the 
+/// lagrangian displacement. It also contains methods to change between cartesian and spherical coordinates.
 pub mod reference_frames;
+
+
+/// This module contains the functions and methods used to compute the normal component of the pulsation velocity 
+/// over a specific surface cell (e.g. coordinates (θ,φ) and size Δθ×Δφ).
+pub mod local_pulsation_velocity;
+
+/// This module contains the functions and methods used to compute the variation of temperature and gravity 
+/// over  a specific surface cell (e.g. coordinates (θ,φ) and size Δθ×Δφ).
+pub mod local_temperature_and_gravity;

@@ -10,7 +10,6 @@ step = 0.01
 
 #[time_points.Explicit]
 #collection = [0.01,0.3,0.32]
-
 [[mode_data]]
 l = 4
 m = 1
