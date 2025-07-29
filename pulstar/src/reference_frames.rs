@@ -157,6 +157,22 @@ impl Coordinates {
                 Coordinates::Cartesian(t_matrix * value)}
         }
     }
+    
+    /// This method obtains the r component of the spherical coordinates
+    /// 
+    /// ### Arguments: 
+    /// * `self` - A [Coordinates] instance that should be Spherical variant.
+    /// 
+    /// ### Returns:
+    /// * `Option` - This method returns a `Some(f64)` that has the binded the r component value, in case it was casted by a sperical variant, or a  `None` otherwise.
+    pub fn r_component(&self)->Option<f64>{
+        match self{
+            Coordinates::Spherical(value)=>{
+                Some(value[0])
+            }
+            _=>{None}
+        }
+    }
 }
 
 
@@ -238,8 +254,8 @@ phi_rad: f64
 	let mut total_dev4=0.0;
     for mode in parameters.mode_data.iter(){
 
-        let radial_amplitude = mode.rel_dr * ylmnorm(mode.l, mode.m);
-        let tangential_amplitude = mode.rel_dr * ylmnorm(mode.l, mode.m);
+        let radial_amplitude = ampl_r(mode);
+        let tangential_amplitude = ampl_t(mode);
         
         let pulsation_displacement = ddisplacement(
             mode,
@@ -327,4 +343,27 @@ pub fn cos_chi(surface_normal:&Coordinates,
             /(k.vector_length()*surface_normal.vector_length())
         }
     }
+}
+
+
+/// This function calculates the amplitude of the relative radial displacement multiplied by the normalization factor `Y_l^m`
+/// 
+/// ### Arguments:
+/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PPulstarConfig]
+/// 
+/// ### Returns:
+/// * `radial_amplitude` - A `f64` value that contains the amplitude of relative radial displacement (thus without units) caused by the pulsations of a given mode. 
+pub fn ampl_r(mode:&PulsationMode)->f64{
+    mode.rel_dr * ylmnorm(mode.l, mode.m)
+}
+
+/// This function calculates the amplitude of the relative tangential displacement multiplied by the normalization factor `Y_l^m`
+/// 
+/// ### Arguments:
+/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PPulstarConfig]
+/// 
+/// ### Returns:
+/// * `tangential_amplitude` - A `f64` value that contains the amplitude of relative tangential displacement (thus without units) caused by the pulsations of a given mode. 
+pub fn ampl_t(mode:&PulsationMode)->f64{
+    mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k
 }
