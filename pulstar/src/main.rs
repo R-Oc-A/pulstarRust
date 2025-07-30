@@ -1,6 +1,6 @@
 use temp_name_lib::type_def::{PHI_STEP, THETA_STEP,CYCLI2RAD,RADIUSSUN};
 use pulstar::{local_pulsation_velocity::observed_pulsation_velocity, local_temperature_and_gravity::local_surface_temperature_logg, reference_frames::{self, ssurface_normal, Coordinates}, utils::{parse_file, print_info::print_report, write_grid_data::write_output_to_parquet}, PPulstarConfig};
-use pulstar::utils::write_grid_data::{RasterStarOutput, collect_output};
+use pulstar::utils::write_grid_data::{RasterizedStarOutput, collect_output};
 
 use std::{env, f64::consts::PI, time::Instant};
 fn main() {
@@ -98,15 +98,14 @@ fn main() {
     //---------------------------------------- 
     //----------Start of loop-----------------
     //---------------------------------------- 
-    
-    let mut Star_Output= RasterStarOutput::new_sphere(
-        (180.0/theta_step) as usize, 
-        (360.0/phi_step) as usize, 
-        ttime_points.len());
 
     for (n,time_stamp) in ttime_points.iter().enumerate(){
         println!("\n +-- Computing surface data for time point number {} with time stamp {:.3}.", n,*time_stamp);
 
+        let mut star_output = RasterizedStarOutput::new_sphere(
+            (180.0/theta_step) as usize, 
+            (360.0/phi_step) as usize, 
+            ttime_points.len());
         //Collecting the phase_offset of all the modes. 
         let mut phase_offset:Vec<f64> = Vec::new();
         for mode in ppulse_config.mode_data.iter(){
@@ -202,7 +201,9 @@ fn main() {
                 */
 
                 let coschiout = |cos_chi: f64|{if cos_chi>0.0 {cos_chi} else { 0.0}};
-                collect_output(&mut Star_Output,
+                
+                
+                collect_output(&mut star_output,
                     theta_rad,
                     phi_rad,
 					*time_stamp,
@@ -216,9 +217,7 @@ fn main() {
             }//end phi loop
             theta += THETA_STEP;
         }//end theta loop
-
-
-        
+        write_output_to_parquet(star_output, n as u16 +1).unwrap();
     }//end for time loop
     //match write_output_to_parquet(&pulse_config, Star_Output){
     //    Ok(_)=>{println!("\n Returned nice and well to main function")}
