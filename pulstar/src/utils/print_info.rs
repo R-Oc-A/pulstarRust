@@ -1,12 +1,11 @@
 use std::time::{Instant};
-use crate::{utils::PulstarConfig, };
+use crate::{utils::PulstarConfig, PPulstarConfig, StarData, };
 use temp_name_lib::{
     joris_math::spherical_harmonics::norm_factor::ylmnorm,
     type_def::{THETA_STEP,PHI_STEP}
     };
 pub fn print_report(now:&Instant,
-    parameters: &PulstarConfig,
-    vampl:&[f64],
+    parameters: &PPulstarConfig,
     k_theory:&[f64],
     min_vel:&[f64],
     max_vel:&[f64],
@@ -19,6 +18,7 @@ pub fn print_report(now:&Instant,
     maxvellength:f64,
     maxrellength:f64,
     log_g0:f64){
+    let vampl = parameters.get_velocity_amplitudes();
     println!("+---------------------------------------------+");
     println!("PULSTARRust: REPORT - TIME: {} s", now.elapsed().as_secs());
     println!("+---------------------------------------------+\n");
@@ -30,50 +30,49 @@ pub fn print_report(now:&Instant,
     println!("| # | (l,m) | freq (c/d) | freq (rad/s) | period (h) | ampl.(xi_r/r) |");
     println!("+---+-------+------------+--------------+------------+---------------+");
 
-    for (index,l) in parameters.mode_config.l.iter().enumerate(){
+    for (index,mode) in parameters.mode_data.iter().enumerate(){
         print!("| {} ",index+1);
-        print!("| ({},{}) ",l,parameters.mode_config.m[index]);
-        print!("|  {:8.5}  ",parameters.freqcycli[index]);
+        print!("| ({},{}) ",mode.l,mode.m);
+        print!("|  {:8.5}  ",mode.frequency);
         print!("|   {:8.5}   ",freqrad[index]);
         print!("|  {:8.5}  ",period[index]);
-        print!("|    {:8.5}    ",parameters.mode_config.rel_deltar[index]);
+        print!("|    {:8.5}    ",mode.rel_dr);
     }
     println!("\n+---+-------+------------+--------------+------------+---------------+");
     println!(  "| # | (l,m) |  Vp (km/s) |   K (user)   | K (theory) | Y_l^m norm    |");
     println!(  "+---+-------+------------+--------------+------------+---------------+");
-    for (index,l) in parameters.mode_config.l.iter().enumerate(){
+    for (index,mode) in parameters.mode_data.iter().enumerate(){
         print!("| {} ",index+1);
-        print!("| ({},{}) ",l,parameters.mode_config.m[index]);
+        print!("| ({},{}) ",mode.l,mode.m);
         print!("|  {:8.5}  ",vampl[index]);
-        print!("|   {:8.5}   ",parameters.mode_config.k[index]);
+        print!("|   {:8.5}   ",mode.k);
         print!("|  {:8.5}  ",k_theory[index]);
-        print!("|    {:8.5}    ", ylmnorm(*l,parameters.mode_config.m[index])); 
+        print!("|    {:8.5}    ", ylmnorm(mode.l,mode.m)); 
     }
     println!("\n+---+-------+------------+--------------+------------+---------------+");
     println!(  "| # | (l,m) | T_e factor |T_e phase dif |  g factor  | g phase dif   |");
     println!(  "+---+-------+------------+--------------+------------+---------------+");
-    for (index,l) in parameters.mode_config.l.iter().enumerate(){
+    for (index,mode) in parameters.mode_data.iter().enumerate(){
         print!("| {} ",index+1);
-        print!("| ({},{}) ",l,parameters.mode_config.m[index]);
-        print!("|  {:8.3e}  ",(parameters.temperature_config[index].ampl).to_radians());
-        print!("|   {:8.3e}   ",(parameters.temperature_config[index].phasedif).to_radians());
-        print!("|  {:8.3e}  ",parameters.gravity_config[index].ampl);
-        print!("|    {:8.3e}    ", (parameters.gravity_config[index].phasedif).to_radians()); 
+        print!("| ({},{}) ",mode.l,mode.m);
+        print!("|  {:8.3e}  ",mode.rel_dtemp);
+        print!("|   {:8.3e}   ",mode.phase_rel_dtemp.to_radians());
+        print!("|  {:8.3e}  ",mode.rel_dg);
+        print!("|    {:8.3e}    ", mode.phase_rel_dg.to_radians()); 
     }
 
     println!("\n+---+-------+--------------+");
     println!(  "| # | (l,m) | phase offset |");
     println!(  "+---+-------+--------------+");
-    for (index,l) in parameters.mode_config.l.iter().enumerate(){
+    for (index,mode) in parameters.mode_data.iter().enumerate(){
         print!("| {} ",index+1);
-        print!("| ({},{}) ",l,parameters.mode_config.m[index]);
-        print!("|   {:8.3e}  \n",parameters.mode_config.phase[index]);
+        print!("| ({},{}) ",mode.l,mode.m);
+        print!("|   {:8.3e}  \n",mode.phase_offset);
     }
 
-    print!("- Ve: {:8.5} km/s ",parameters.star_config.rotation_velocity);
-    print!(" Vsini: {:8.5} km/s ",parameters.star_config.rotation_velocity 
-        * ( (parameters.star_config.inclination_angle as f64).to_radians()).sin());
-    println!(" Inclination angle: {} degrees", parameters.star_config.inclination_angle);
+    print!("- Ve: {:8.5} km/s ",parameters.star_data.v_omega);
+    print!(" Vsini: {:8.5} km/s ",parameters.star_data.v_omega * parameters.star_data.inclination_angle.to_radians().sin());
+    println!(" Inclination angle: {} degrees", parameters.star_data.inclination_angle);
 
     println!("\nVISIBLE SURFACE DATA");
     println!("+-------+-----------------+-----------------+------------+-----------+--------------+-------------+");
@@ -102,31 +101,15 @@ pub fn print_report(now:&Instant,
     println!("T_eff :  {:8.3} -> {:8.3} (diff. = {:8.3} )",mint,maxt,maxt-mint);
     println!("- log(g) :  {:8.3} -> {:8.3} (diff. = {:8.3} )",minlogg,maxlogg,maxlogg-minlogg);
 
-    if parameters.print_amplitude {
-        println!("\n AMPLITUDE GUARDING:");
-        println!(" - Maximum length of puls. velocity vector: {:8.4}", maxvellength);
-        println!(" - Maximum length of rel. displacement vecotr: {:8.4} \n", maxrellength);
-    }
 
     println!("STAR PARAMETERS");
-    println!(" - Mass/Mass_sun: {:8.4}",parameters.star_config.mass);
-    println!(" - Radius/Radius_sun: {:8.4}", parameters.star_config.radius);
-    println!(" - T_eff (Kelvin): {:8.4}", parameters.star_config.effective_temperature);
+    println!(" - Mass/Mass_sun: {:8.4}",parameters.star_data.mass);
+    println!(" - Radius/Radius_sun: {:8.4}", parameters.star_data.radius);
+    println!(" - T_eff (Kelvin): {:8.4}", parameters.star_data.effective_temperature);
     println!(" - Log(g_0): {:8.4}\n",log_g0);
 
     println!("RESOLUTION");
     println!(" - Delta theta: {}",THETA_STEP);
     println!(" - Delta phi: {}\n",PHI_STEP);
 
-    println!("COMPUTATIONAL RESTRICTIONS");
-    println!(" - Surface normal time variation taken into account: ");
-    match parameters.is_time_dependent{
-        true => { println!( "   yes\n")}
-        false => {println!("   no\n")}
-    }
-    println!(" -  Artificial suppression of pulsational velocity field: ");
-    match parameters.suppress_pulse{
-        true=> {println!("   yes\n")}
-        false=> {println!("   no\n")}
-    }
 }

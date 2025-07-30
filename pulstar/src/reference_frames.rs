@@ -27,7 +27,7 @@ impl ops::Add for Coordinates{
                     Coordinates::Spherical(value2)=>{
                         Ok(Coordinates::Spherical(value + value2))
                     }
-                    Coordinates::Cartesian(value2)=>{
+                    Coordinates::Cartesian(_)=>{
                         Err(MathErrors::DifferentVectorBase)
                     }
                 }
@@ -37,7 +37,7 @@ impl ops::Add for Coordinates{
                     Coordinates::Cartesian(value2)=>{
                         Ok(Coordinates::Spherical(value + value2))
                     }
-                    Coordinates::Spherical(value2)=>{
+                    Coordinates::Spherical(_)=>{
                         Err(MathErrors::DifferentVectorBase)
                     }
                 }
@@ -55,6 +55,18 @@ impl ops::AddAssign for Coordinates{
 
 }
 
+/// This is operation overloading so that we can multiply by a scalar (from the left) as `scalar * vector`
+impl ops::Mul<Coordinates> for f64{
+    type Output = Coordinates;
+
+    fn mul(self, rhs: Coordinates) -> Self::Output {
+        match rhs{
+            Coordinates::Cartesian(value)=>{ Coordinates::Cartesian(self * value)}
+            Coordinates::Spherical(value)=>{ Coordinates::Spherical(self * value)}
+        }
+    }
+}
+
 impl Coordinates {
     /// Projects a vector onto another one
     /// ### Arguments:
@@ -70,7 +82,7 @@ impl Coordinates {
                     Coordinates::Cartesian(value2)=>{
                         Ok(value.dot(value2))
                     }
-                    Coordinates::Spherical(value2)=>{
+                    Coordinates::Spherical(_)=>{
                         Err(MathErrors::DifferentVectorBase)
                     }
                 }
@@ -80,7 +92,7 @@ impl Coordinates {
                     Coordinates::Spherical(value2)=>{
                         Ok(value.dot(value2))
                     }
-                    Coordinates::Cartesian(value2)=>{
+                    Coordinates::Cartesian(_)=>{
                         Err(MathErrors::DifferentVectorBase)
                     }
                 }
@@ -200,7 +212,7 @@ pub fn ddisplacement(
         match sintheta.abs() <= f64::EPSILON.sqrt(){
             true => {Err(MathErrors::DivisionByZero)}
             false => {
-                let phase = mode.phase_offset;
+                let phase = mode.phase_offset.to_radians();
                 let l = mode.l;
                 let m =  mode.m;
                 

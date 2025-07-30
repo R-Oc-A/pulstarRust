@@ -87,7 +87,6 @@ pub fn v_pulse_single_mode(
 /// * `theta_rad` - The colatitude angle in rads, must not be too small in order to avoid the poles.
 /// * `phi_rad` - The azimuthal angle in rads
 /// * `k` - Unit vector in directed towards the observer it is prefered to be in spherical coordinates.
-/// * `velocity_amplitudes` - A [Vec] collection of the expected velocity amplitudes (with `f64` values) per mode. This collection is ordered in a way that there's a match with the pulsation mode in km/s.
 /// 
 /// ### Returns:
 /// This function returns a [Result] with the following variants:
@@ -100,6 +99,7 @@ pub fn observed_pulsation_velocity(
     k:&Coordinates,
     )->Result<f64,MathErrors>{
     
+// * `velocity_amplitudes` - A [Vec] collection of the expected velocity amplitudes (with `f64` values) per mode. This collection is ordered in a way that there's a match with the pulsation mode in km/s.
     let sintheta = theta_rad.sin();
     let costheta = theta_rad.cos();
 
@@ -147,18 +147,18 @@ pub fn project_vrot(
     phi_rad:f64,
     k:&Coordinates
     )->f64 {
-        let v_omega = Coordinates::Cartesian(
-            parameters.star_data.v_sini *  na::Vector3::new(
+        let v_rot = Coordinates::Cartesian(
+            parameters.star_data.v_omega *  na::Vector3::new(
                 theta_rad.sin() * phi_rad.sin(),
                 theta_rad.sin() * phi_rad.cos(),
                 0.0
             )
         );
         match k{
-            Coordinates::Cartesian(_)=>{ v_omega.project_vector(k).unwrap()}
+            Coordinates::Cartesian(_)=>{ v_rot.project_vector(k).unwrap()}
             Coordinates::Spherical(_)=>{
                 let k_cartesian = k.transform(theta_rad, phi_rad);
-                v_omega.project_vector(&k_cartesian).unwrap()
+                v_rot.project_vector(&k_cartesian).unwrap()
         }
     }
 }

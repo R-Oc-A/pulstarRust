@@ -1,28 +1,8 @@
-use temp_name_lib::{
-    joris_math::{
-        geometry::{
-            displacement::displacement, 
-            projections::{cos_chi, project_vector}, 
-            surface_normal::surface_normal
-            }, 
-        ref_frame_convrs::{cartesian_to_spherical, unit_vector_k},
-        spherical_harmonics::norm_factor::ylmnorm
-        }, 
-    star_physics::{
-        local_values::local_value, 
-        velocity::{
-            pulsation::v_puls, 
-            velocity_projection::{project_vpuls, project_vrot}
-            }
-        },
-    type_def::{PHI_STEP, THETA_STEP,CYCLI2RAD,RADIUSSUN},
-    };
-use pulstar::{utils::{parse_file, print_info::print_report, write_grid_data::write_output_to_parquet}, PPulstarConfig,};
+use temp_name_lib::type_def::{PHI_STEP, THETA_STEP,CYCLI2RAD,RADIUSSUN};
+use pulstar::{local_pulsation_velocity::observed_pulsation_velocity, local_temperature_and_gravity::local_surface_temperature_logg, reference_frames::{self, ssurface_normal, Coordinates}, utils::{parse_file, print_info::print_report, write_grid_data::write_output_to_parquet}, PPulstarConfig};
 use pulstar::utils::write_grid_data::{RasterStarOutput, collect_output};
 
-use std::{env,
-        time::Instant,
-        f64::consts::PI};
+use std::{env, f64::consts::PI, time::Instant};
 fn main() {
 
     // program start!
@@ -84,7 +64,7 @@ fn main() {
     //----------------------------------------
     for (n,mode) in ppulse_config.mode_data.iter().enumerate(){
         // Frequency in rad/s
-        freqrad.push(mode.frequency.to_radians());
+        freqrad.push(mode.frequency*CYCLI2RAD);
         // Period of pulsation in hours
         period.push(2.0*PI/3.6e3/freqrad[n]);
         // Theoretical zero order K value, mass & radius are in solar units
@@ -98,11 +78,6 @@ fn main() {
             k_theory.push(0.0);
         }
         
-        //--Amplitude of the pulse velocity (/1000.0 because from m-> km)
-        vampl.push(ppulse_config.star_data.radius
-            * freqrad[n] * RADIUSSUN * 1.0e-3
-            * mode.rel_dr
-        );
         //--Convert the phase difference of the effective temperature from degrees to radians
         t_phase_rad.push(mode.phase_rel_dtemp.to_radians());
         //--Convert the phase difference of the effective gravity from degrees to radians
@@ -115,8 +90,9 @@ fn main() {
     //--Mass & radius are in solar units
     let log_g0 = 4.438 + ppulse_config.star_data.mass.log10()
             - 2.0 * ppulse_config.star_data.radius.log10();
+    let g0 = 10.0_f64.powf(log_g0);
     //--The components of a unit vector pointing towards the observer
-    let k = unit_vector_k(incl_rad);//cartesian
+    let kk = Coordinates::unit_vector_k(incl_rad);
     //--Reset the maximum length of velocity and relative displacement vector
     
     //---------------------------------------- 
@@ -160,46 +136,24 @@ fn main() {
                 let mut local_logg = 0.0;
                 let mut local_area = 0.0;
 
-                let s_normal = surface_normal(&pulse_config.mode_config,
-                     theta_rad, 
-                     phi_rad,
-                    pulse_config.is_time_dependent).unwrap();
-                let k_spherical = cartesian_to_spherical(&k, 
-                    theta_rad, phi_rad).unwrap();
-                let cos_chi = cos_chi(&s_normal,
-                     &k_spherical).unwrap();
-                if cos_chi > 0.0{ //If the shifted mass element is visible
-                    match pulse_config.suppress_pulse{
-                        true => {
-                            local_veloc = project_vrot(pulse_config.star_config.rotation_velocity,
-                                                    theta_rad,
-                                                    phi_rad, &k).unwrap();
-                        }
-                        false => {
-                            local_veloc = project_vpuls(&pulse_config.mode_config,
-                                 theta_rad,
-                                 phi_rad,
-                                 &k,
-                                &vampl).unwrap()
-                                + project_vrot(pulse_config.star_config.rotation_velocity,
-                                    theta_rad,
-                                    phi_rad, 
-                                    &k).unwrap();
-                        }
-                    }
-                    local_temp = local_value(&pulse_config.temperature_config,
-                        &pulse_config.mode_config,
-                        theta_rad,
-                        phi_rad,
-                        pulse_config.star_config.effective_temperature).unwrap();
-                    local_logg= local_value(&pulse_config.gravity_config,
-                        &pulse_config.mode_config,
-                        theta_rad,
-                        phi_rad,
-                        log_g0).unwrap();
-                    local_area = project_vector(&s_normal,
-                        &k_spherical).unwrap();
+                let s_normal = ssurface_normal(&ppulse_config,
+                     theta_rad, phi_rad).unwrap();
+                let k_spherical = kk.transform(theta_rad, phi_rad);
+                let cos_chi = reference_frames::cos_chi(&s_normal, &k_spherical, theta_rad, phi_rad);
 
+                if cos_chi > 0.0{ //If the shifted mass element is visible
+
+                    local_veloc = observed_pulsation_velocity(&ppulse_config, theta_rad, phi_rad, &kk).unwrap();
+                    let local_values = local_surface_temperature_logg(
+                        &ppulse_config,
+                        theta_rad, 
+                        phi_rad, 
+                        g0, 
+                        ppulse_config.star_data.effective_temperature);
+                    local_temp = local_values.0;
+                    local_logg = local_values.1;
+                    local_area = s_normal.project_vector(&k_spherical).unwrap();
+                    
                     if max_veloc[n] < local_veloc {max_veloc[n]=local_veloc}
                     if max_temp[n] < local_temp {max_temp[n]=local_temp}
                     if max_logg[n] < local_logg {max_logg[n]=local_logg}
@@ -217,7 +171,7 @@ fn main() {
 
                 let mut vel_length =0.0;
                 let mut rel_lenght = 0.0;                
-                if pulse_config.print_amplitude {
+                /*if pulse_config.print_amplitude {
                     let sintheta = theta_rad.sin();
                     let costheta = theta_rad.cos();
                     for (index,rel_deltar) in pulse_config.mode_config.rel_deltar.iter().enumerate(){
@@ -245,6 +199,8 @@ fn main() {
                     if rel_lenght > maxrel_length { maxrel_length=rel_lenght}
                     if vel_length > maxvel_length { maxvel_length=vel_length}    
                 }
+                */
+
                 let coschiout = |cos_chi: f64|{if cos_chi>0.0 {cos_chi} else { 0.0}};
                 collect_output(&mut Star_Output,
                     theta_rad,
@@ -264,14 +220,13 @@ fn main() {
 
         
     }//end for time loop
-    match write_output_to_parquet(&pulse_config, Star_Output){
-        Ok(_)=>{println!("\n Returned nice and well to main function")}
-        Err(e)=>{println!("Couldnt create data frame and panicqued in main function with error {}",e)}
-    };
+    //match write_output_to_parquet(&pulse_config, Star_Output){
+    //    Ok(_)=>{println!("\n Returned nice and well to main function")}
+    //    Err(e)=>{println!("Couldnt create data frame and panicqued in main function with error {}",e)}
+    //};
 
     print_report(&now,//<---This gives the time of the computation
-            &pulse_config,
-            &vampl,
+            &ppulse_config ,
             &k_theory,
             &min_veloc, 
             &max_veloc, 

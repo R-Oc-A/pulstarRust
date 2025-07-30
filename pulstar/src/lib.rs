@@ -96,7 +96,7 @@ pub struct StarData{
     pub effective_temperature: f64,
 
     /// The equatorial rotational velocity
-    pub v_sini: f64,
+    pub v_omega: f64,
 
     /// The inclination angle in degrees
     pub inclination_angle: f64,
