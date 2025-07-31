@@ -5,7 +5,7 @@
 # Ask Joris why
 [time_points.Uniform]
 start = 0.01
-end = 0.1
+end = 0.01
 step = 0.01
 
 #[time_points.Explicit]

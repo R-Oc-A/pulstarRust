@@ -2,4 +2,5 @@
 .DS_Store
 tags
 *.parquet
+!profile/rasterized_star_1tp.parquet
 profile/grids/*
