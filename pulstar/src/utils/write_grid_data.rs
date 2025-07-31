@@ -1,4 +1,5 @@
 use polars::prelude::*;
+use core::time;
 use std::{fs::File, path};
 use polars::prelude::LazyFrame;
 
@@ -124,8 +125,12 @@ fn append_current_lf_into_collection_lf(star_lazyframe:LazyFrame,parquet_file_la
 /// This function returns a [Result] with the following variants:
 /// * `Ok(_)` - if everything went ok.
 /// * `Err(std::io::Error)` - where the error is passed to the calling function to indicate that it could not remove the file. 
-fn remove_temp_parquet_file(path_to_parquet:&std::path::PathBuf)->Result<(), std::io::Error>{
-    std::fs::remove_file(path_to_parquet)
+fn remove_temp_parquet_file(time_points:u16)->Result<(), std::io::Error>{
+    //let old_path = std::path::PathBuf::from(format!("rasterized_star_{}tp.parquet",time_points-1));
+    let old_file =format!("rasterized_star_{}tp.parquet",time_points-1); 
+    println!("deletting {}",old_file);
+    std::fs::remove_file(old_file)?;
+    Ok(())
 }
 
 
@@ -162,13 +167,15 @@ pub fn write_output_to_parquet(
             lf.collect()?;
         }else {eprint!("unable to sink to a parket in {} time_point",time_points)};
     //Reading test
+    println!("{:#?} file created",new_path);
     let mut file = std::fs::File::open(new_path).unwrap();
-
     let ddf = ParquetReader::new(&mut file).finish().unwrap();
     println!("---------------------------------------");
     println!("DataFrame for Rasterized Star Output  opened ");
     println!("First 5 rows:");
     println!("{}", ddf.head(Some(5usize)));
+    if time_points > 1u16
+        {remove_temp_parquet_file(time_points)?}
     
     Ok(())
     /*ParquetWriter::new(file_parquet)
