@@ -2,7 +2,7 @@ use polars::prelude::*;
 use super::*;
 use temp_name_lib::type_def::N_FLUX_POINTS;
 mod define_parameter_space;
-use std::fs::File;
+use std::{fmt::LowerExp, fs::File};
 
 /// This module contains the methods and functions to process the intensity grids. 
 /// It has two parts.
@@ -181,13 +181,17 @@ pub fn get_flux_continuum(grid_filename:String,
     if let Ok(lf) = read_intensity_grid_file(&grid_filename){
 
         // if the number of flux points to be calculated is really small, it's useful to filter out some of the wavelengths from the data frame so that the queries are performed faster.
-        let lf_relevant = match shifted_wavelengths.len() < (N_FLUX_POINTS/100) as usize{
+        let lf_relevant = match filter_if_contains_wavelenghts(shifted_wavelengths){
+            Some(relevant_range) => {lf.filter(relevant_range)}
+            None => {lf}
+        };
+        /*lf;match shifted_wavelengths.len() < (N_FLUX_POINTS/100) as usize{
             true => {
                 lf
                 .filter(filter_if_contains_wavelenght(&shifted_wavelengths,
                 0.2).unwrap())}
             false => {lf}
-        };
+        };*/
 
         // Here the lazy frame is transformed into a data frame that contains three columns: the intensity fluxes (specific, continuous) and the relevant wavelengths.
         let df_flux = create_lf_wavelength_flux_continuum(lf_relevant,coschi).collect().unwrap();
@@ -295,38 +299,24 @@ pub fn get_flux_continuum(grid_filename:String,
     ])
 }
 
-/// This function constructs a polars expression that filters out wavelengths that are not close to the 
-/// observed (requested) ones.
-/// 
-/// polars expressions are useful to indicate the order of operations and quering before materializing a data frame. They reduce memory consumption.
+/// This function constructs a polars expression [Expr] that filters out wavelengths that are not close to the 
+/// observed (requested) ones. This reduces memory consumption and computation time.
 /// 
 /// ### Arguments: 
-/// 
-/// `shifted_wavelengths` - The observed wavelengths
-/// 
-/// `threshold` - a f64 value that specifies how close wavelengths need to be.
-/// 
+/// * `shifted_wavelengths` - The observed wavelengths
+/// * `threshold` - a f64 value that specifies how close wavelengths need to be.
 /// ### Returns:
+/// *`Option<Expr>` -  where `Expr` is polars expression  that filters out unrelevant wavelengths from the lazyframe of an intensity grid file.
 /// 
-/// `Option<Expr>` -  where `Expr` is polars expression  that filters out unrelevant wavelengths from the lazyframe of an intensity grid file.
-/// 
-fn filter_if_contains_wavelenght(shifted_wavelengths:&[f64],threshold:f64)->Option<Expr>{
+fn filter_if_contains_wavelenghts(shifted_wavelengths:&[f64])->Option<Expr>{
 
-    let mut combined_filter_exp: Option<Expr> = None;
+    let max_wavelength = shifted_wavelengths.last().unwrap().clone();
+    let min_wavelength = shifted_wavelengths.get(0).unwrap().clone();
 
-    for wavelength in shifted_wavelengths.iter(){
-        let lower_bound = lit(*wavelength-threshold);
-        let upper_bound = lit(*wavelength + threshold);
-        
-        let current_filter_exp = col("wave_length")
-        .gt_eq(lower_bound)
-        .and(col("wave_length").lt_eq(upper_bound));
+    let filter_lower_expr = col("wavelength").gt(lit(min_wavelength));
+    let filter_greater_expr = col("wavelength").lt(lit(max_wavelength));
 
-        combined_filter_exp = match combined_filter_exp{
-            Some(expr) => {Some(expr.or(current_filter_exp))}
-            None => {Some(current_filter_exp)}
-        }
-    }   
-    combined_filter_exp
+    let combined_filter_exp = filter_lower_expr.or(filter_greater_expr);
+    Some(combined_filter_exp)
 }
 

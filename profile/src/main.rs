@@ -2,6 +2,7 @@ use std::env;
 use polars::prelude::*;
 //use profile::intensity::IntensityGrids;
 use profile::*;
+use std::time::Instant;
 
 fn main() {
 
@@ -16,6 +17,13 @@ fn main() {
     println!("Not enough arguments.");
     panic!("USAGE: profile -- profile_input.toml rasterized_star.parquet");
    }
+
+
+   //--------------------------------------------------
+   //---------Program Start!---------------------------
+   //--------------------------------------------------
+    let start_computing_time = Instant::now();   
+
 
 
    //---------------------------------------- 
@@ -48,7 +56,10 @@ fn main() {
     let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
     let extract_time_series = tf.column("time").unwrap();
     let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();
-
+    println!("Finish getting time_points,");
+    println!("here they are:");
+    println!("{:#?}",time_points);
+    println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
     // Initialize the arrays that contain all the output information. This will be saved at the end of the computation on a parquet file.
     let mut all_fluxes:Vec<f64> = Vec::new(); // Intensity fluxes.
     let mut all_cont: Vec<f64> = Vec::new(); // Continuum fluxes.
@@ -78,6 +89,8 @@ fn main() {
         let theta_df = theta_frame.clone().select([col("theta").unique()]).collect().unwrap();
         let theta_steps_serie = theta_df.column("theta").unwrap();
         let theta_steps:Vec<f64> = theta_steps_serie.f64().unwrap().into_iter().flatten().collect();
+        println!("finished collecting a the star pulsation profile for the timestep {}",phase);
+        println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
 
         //theta loop
         for theta_step in theta_steps.iter(){
@@ -110,7 +123,6 @@ fn main() {
             let coschi:Vec<f64> = coschi_series.f64().unwrap().into_iter().flatten().collect();
             let temperature:Vec<f64> = temperature_series.f64().unwrap().into_iter().flatten().collect();
             let log_gravity:Vec<f64> = log_gravity_series.f64().unwrap().into_iter().flatten().collect();
-            
             // phi loop
             for i in 0..coschi.len(){
                 // Clone the lazy frame as the program will search on the Intensity grids data base
@@ -123,7 +135,8 @@ fn main() {
                     doppler_shift[i],
                     area[i],
                     &wavelength,
-                    grid_id_lf);
+                    grid_id_lf,
+                &start_computing_time);
                 // Store the fluxes over the cell on vectors
                 let flux_thetaphi = fluxcont.0;
                 let cont_thetaphi = fluxcont.1;
@@ -132,15 +145,18 @@ fn main() {
                     flux[index] += flux_item;
                     cont[index] += cont_thetaphi[index]; 
                 }
-
+                //println!("ended a phi_loop with {:1.4} coschi val",coschi[i]);
             }//end phi loop
+            println!("\n Ending Theta loop in θ = {} ",theta_step.to_degrees());
         }//end theta loop
-
+        
         all_fluxes.append(& mut flux);
         all_cont.append(& mut cont);
         all_times.append(& mut time_vec);
         all_wavelengths.extend(wavelength.iter().copied());
+        
     }//end time loop
+    println!("finished computation for a star's pulsation");
     
     //Write parquet file
     let output_file_name= String::from("wavelengths.parquet");
@@ -149,6 +165,6 @@ fn main() {
          &all_fluxes, 
          &all_cont, 
          &all_times);
-
+    
     
 }

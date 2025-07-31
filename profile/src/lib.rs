@@ -3,7 +3,7 @@ use serde::Deserialize;
 use temp_name_lib::type_def::{CLIGHT,N_FLUX_POINTS};//Velocity of light in m/s
 
 use crate::{intensity::{get_flux_continuum, get_temp_logg_filenames}, interpolate::interpolate};
-use std::fs;
+use std::{fs, time};
 //use std::sync::Arc;
 
 /// The profile program reads a the quantities calculated over a Rasterized star on selecetd time points
@@ -188,7 +188,8 @@ pub fn return_flux_for_cell_thetaphi(
     relative_shift:f64,
     area:f64,
     wavelengths:&[f64],
-    grid_id_lf:LazyFrame
+    grid_id_lf:LazyFrame,
+    start_of_computation : &time::Instant
     )->(Vec<f64>,Vec<f64>){
     
 	//unwrapping the four relevant grid files creating  a vector that holds the temperatures, logg values and the file names.
@@ -206,6 +207,7 @@ pub fn return_flux_for_cell_thetaphi(
     let shifted_wavelengths= get_doppler_shifted_wavelengths(relative_shift, wavelengths);
 
     // For each of the relevant grid files, extract the intensity and continuum values.
+    let start_extraction= start_of_computation.elapsed();
     for name in grid_names.into_iter(){
         let fluxes_from_grid = get_flux_continuum(name, 
             &shifted_wavelengths, 
@@ -214,8 +216,12 @@ pub fn return_flux_for_cell_thetaphi(
         cont_collection.push(fluxes_from_grid.1);
         wavelength_collection.push(fluxes_from_grid.2);
     }
-	
+	let mut duration = start_of_computation.elapsed() - start_extraction;
+    println!("extraction of intensity and continuum values done");
+    println!("time elapsed is {:?} ",duration);
     //function that linearly interpolates the intensity flux Ic and the continuum flux I from the 4 grids
+    
+    let start_interpolation = start_of_computation.elapsed();
     let fluxcont_interpolated = interpolate(&grid_temperatures,
          &grid_loggs, 
          &shifted_wavelengths, 
@@ -224,7 +230,10 @@ pub fn return_flux_for_cell_thetaphi(
          &wavelength_collection, 
          temperature, 
          log_gravity);
-        
+    duration = start_of_computation.elapsed() - start_interpolation;
+    println!("Interpolation done");
+    println!("time elapsed is {:?} ",duration);
+    
     // Finally return the collected quantities of the surface.
     (multiply_vecf64_by_scalar(fluxcont_interpolated.0,area),//<-flux
         multiply_vecf64_by_scalar(fluxcont_interpolated.1, area))//<-continuum
