@@ -6,23 +6,14 @@ use polars:: prelude::*;
 /// this one currently stores all of the calculations into big arrays. 
 /// 
 /// ### Arguments: 
-/// 
-/// `output_file_name` - a borrowed string slice that indicates the name of the output file
-/// 
-/// `wavelength_vec` - a borrowed vector that contains all of the observed wavelengths, these are repeated for every time point
-/// 
-/// `all_flux` - a borrowed vector that contains all of the intensity fluxes computed for the observed wavelengths. These fluxes are normalized and dimensionless.
-/// 
-/// `all_cont` - a borrowed vector that contains all of the continuum fluxes computed for the observed wavelengths. These fluxes are normalized and dimensionless.
-/// 
-/// `all_time` - a borrowed vector that contains the time points repeated on a redundant way. This redundancy is handle by the parquet file.
-/// 
+/// * `output_file_name` - a borrowed string slice that indicates the name of the output file
+/// * `wavelength_vec` - a borrowed vector that contains all of the observed wavelengths, these are repeated for every time point
+/// * `all_flux` - a borrowed vector that contains all of the intensity fluxes computed for the observed wavelengths. These fluxes are normalized and dimensionless.
+/// * `all_cont` - a borrowed vector that contains all of the continuum fluxes computed for the observed wavelengths. These fluxes are normalized and dimensionless.
+/// * `all_time` - a borrowed vector that contains the time points repeated on a redundant way. This redundancy is handle by the parquet file.
 /// ### Returns: 
-/// 
 /// This function doesn't return a value however, it creates an output_file.parquet that has the information stored as columns with the headers 
-/// 
-/// `|time|wave length|flux|continuum|mean flux|`
-/// 
+/// * `|time|wave length|flux|continuum|mean flux|`
 /// where `mean flux` is `flux / continuum`.
 pub fn write_into_parquet(
     output_file_name: &str,

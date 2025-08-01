@@ -211,7 +211,7 @@ pub fn return_flux_for_cell_thetaphi(
     for name in grid_names.into_iter(){
         let fluxes_from_grid = get_flux_continuum(name, 
             &shifted_wavelengths, 
-            coschi).unwrap();
+            coschi,&start_of_computation).unwrap();
         flux_collection.push(fluxes_from_grid.0);
         cont_collection.push(fluxes_from_grid.1);
         wavelength_collection.push(fluxes_from_grid.2);
@@ -245,16 +245,11 @@ pub fn return_flux_for_cell_thetaphi(
 /// would be inserted. 
 /// 
 /// This is useful on this program because it gives the first and last values of the vector that are less than and greather than respectively.
-/// 
 /// ### Arguments: 
-/// 
-/// `vector` - a borrowed vector of `f64` 
-/// 
-/// `key` - a reference value.
-/// 
+/// * `vector` - a borrowed vector of `f64` 
+/// * `key` - a reference value.
 /// ### Returns:
-/// 
-/// `index` - a `usize` value witht the property that  `vector[index-1]<key<vector[index]`
+/// * `index` - a `usize` value witht the property that  `vector[index-1]<key<vector[index]`
 fn search_geq(vector:&[f64],key:f64)-> usize {
     //non empty vector
     let first_element =vector.get(0);

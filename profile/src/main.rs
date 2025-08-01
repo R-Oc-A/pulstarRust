@@ -93,11 +93,11 @@ fn main() {
         println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
 
         //theta loop
-        for theta_step in theta_steps.iter(){
+//        for theta_step in theta_steps.iter(){
 
             // create a lazy frame for a latitudinal strip of the rasterized star (constant theta over a sphere)
-            let expr: Expr = col("theta").eq(lit(*theta_step));
-            let phi_frame=theta_frame.clone().filter(expr);
+            //let expr: Expr = col("theta").eq(lit(*theta_step));
+            let phi_frame=theta_frame.clone();//.filter(expr);
             
             // Filter if surface cell is visible.
             let expr = col("coschi").gt(lit(0.0));
@@ -147,8 +147,8 @@ fn main() {
                 }
                 //println!("ended a phi_loop with {:1.4} coschi val",coschi[i]);
             }//end phi loop
-            println!("\n Ending Theta loop in θ = {} ",theta_step.to_degrees());
-        }//end theta loop
+            //println!("\n Ending Theta loop in θ = {} ",theta_step.to_degrees());
+//        }//end theta loop
         
         all_fluxes.append(& mut flux);
         all_cont.append(& mut cont);

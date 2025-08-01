@@ -34,12 +34,9 @@ impl ProfileConfig{
 
     /// This function unwrapps the collection of the "grid file identification data", 
     /// producing
-    /// 
-    /// an ordered vector with all of the temperatures,
-    /// 
-    /// an ordered vector with all of the log g,
-    /// 
-    /// an ordered vector with all of the file names.
+    /// * an ordered vector with all of the temperatures,
+    /// * an ordered vector with all of the log g,
+    /// * an ordered vector with all of the file names.
     fn unwrap_grids(&self)->UnwrappedGrids{
         let mut temperature_vector:Vec<f64>=Vec::new();
         let mut logg_vector:Vec<f64>=Vec::new();
@@ -126,22 +123,14 @@ impl UnwrappedGrids{
 /// on the parameter space whose coordinates have an associated intensity grid file
 /// 
 /// ### Arguments:
-/// 
-/// `grid_id_lf` - A polars LazyFrame that contains the information of the intensity grids.
-/// 
-/// `temperature`` - a `f64` value for the temperature on a surface cell
-/// 
-/// `log g`- a `f64` value for the logarithm of gravity on a surface cell
-/// 
+/// * `grid_id_lf` - A polars LazyFrame that contains the information of the intensity grids.
+/// * `temperature`` - a `f64` value for the temperature on a surface cell
+/// * `log g`- a `f64` value for the logarithm of gravity on a surface cell
 /// ### Returns:
-/// 
-/// `(temperature_vec, log_g_vec, Filenames_vec)` - This is a tuple that contains three vectors where
-/// 
-/// `temperature vec` - is a vector of `f64` that contains 4 ordered temperatures of the coordinates in the parameter space
-/// 
-/// `log_g_vec` - is a vector of `f64 that contains 4 ordered values of log_g of the coordinates in the parameter space
-/// 
-/// `Filenames_vec` - is a vector of `String` that contains the paths for the 4 intensity grid files.
+/// * `(temperature_vec, log_g_vec, Filenames_vec)` - This is a tuple that contains three vectors where
+/// * `temperature vec` - is a vector of `f64` that contains 4 ordered temperatures of the coordinates in the parameter space
+/// * `log_g_vec` - is a vector of `f64 that contains 4 ordered values of log_g of the coordinates in the parameter space
+/// * `Filenames_vec` - is a vector of `String` that contains the paths for the 4 intensity grid files.
 pub fn get_temp_logg_filenames(grid_id_lf:LazyFrame,
     temperature:f64,
     log_gravity:f64)->(Vec<f64>,Vec<f64>,Vec<String>){
@@ -159,32 +148,40 @@ pub fn get_temp_logg_filenames(grid_id_lf:LazyFrame,
 /// This function extracts the intensity
 /// 
 /// ### Arguments: 
-/// 
-///  `name` - file name of the intensity grid file 
-/// 
-///  `shifted_wavelengths` - collection of doppler shifted wavelenghts from where intensity shall be queried.
-/// 
-///  `coschi` - projection of the surface cell normal onto the observer's unit position vector;
-/// 
+/// * `name` - file name of the intensity grid file 
+/// * `shifted_wavelengths` - collection of doppler shifted wavelenghts from where intensity shall be queried.
+/// * `coschi` - projection of the surface cell normal onto the observer's unit position vector;
 /// ### Returns: 
-/// 
 /// `(Flux, Continuum, wavelength_vec)` - a tupple containing three vectors of type `f64` where
-/// 
 /// `Flux` - Is the intensity flux
-/// 
 /// `Continuum` - continuus intensity flux
-/// 
 /// `wavelength_vec` - is the wavelength values where the intensities are computed.
 pub fn get_flux_continuum(grid_filename:String,
     shifted_wavelengths:&[f64],
-    coschi:f64)->Option< (Vec<f64> , Vec<f64>, Vec<f64>)>{
+    coschi:f64,
+    start_computation:&std::time::Instant)->Option< (Vec<f64> , Vec<f64>, Vec<f64>)>{
     if let Ok(lf) = read_intensity_grid_file(&grid_filename){
 
         // if the number of flux points to be calculated is really small, it's useful to filter out some of the wavelengths from the data frame so that the queries are performed faster.
-        let lf_relevant = match filter_if_contains_wavelenghts(shifted_wavelengths){
+        let lf_in_range = match filter_if_contains_wavelenghts(shifted_wavelengths){
             Some(relevant_range) => {lf.filter(relevant_range)}
             None => {lf}
         };
+        let mut start = start_computation.elapsed();
+        let mut duration = start_computation.elapsed() - start;
+        println!("\n read intensity grid file and created lazyframe in {:?}", duration);
+        start =start_computation.elapsed();
+        let df_unfiltered = lf_in_range.collect().unwrap();
+        duration = start_computation.elapsed()-start;
+        println!(" created dataframe in {:?}", duration);
+        
+        start = start_computation.elapsed();
+        let df_filtered = extract_relevant_wavelengths(shifted_wavelengths, df_unfiltered);
+        duration = start_computation.elapsed()-start;
+        println!("filtered dataframe in {:?}", duration);
+
+        let lf_relevant = df_filtered.lazy();
+
         /*lf;match shifted_wavelengths.len() < (N_FLUX_POINTS/100) as usize{
             true => {
                 lf
@@ -194,11 +191,17 @@ pub fn get_flux_continuum(grid_filename:String,
         };*/
 
         // Here the lazy frame is transformed into a data frame that contains three columns: the intensity fluxes (specific, continuous) and the relevant wavelengths.
+        start = start_computation.elapsed();        
         let df_flux = create_lf_wavelength_flux_continuum(lf_relevant,coschi).collect().unwrap();
-        
+        duration = start_computation.elapsed()-start;
+        println!("final dataframe in {:?}", duration);
+
+        start = start_computation.elapsed();
         let lbd_from_df = extract_column_as_vectorf64("wavelength", &df_flux);
         let flux_from_df = extract_column_as_vectorf64("flux", &df_flux);
         let continuum_from_df = extract_column_as_vectorf64("continuum", &df_flux);
+        duration = start_computation.elapsed()-start;
+        println!("gotten some vectors {:?}\n", duration);
 
         Some(( flux_from_df,
             continuum_from_df,
@@ -210,23 +213,16 @@ pub fn get_flux_continuum(grid_filename:String,
 
 /// This function is used to create a polars LazyFrame out of the intensity grid file in order to perform 
 /// column wise operations faster. 
-/// 
 /// The Kurukz intensity files contain the coefficients $a_k$ useful to calculate the intensity via the limb darkening law
 /// given by 
-/// 
 /// $ I_{\lambda}(\mu) =a_0 \sum_{k=1}^{3} a_k \left( 1 - \mu^k  \right) $
-///
 /// where $\mu$ is the $cos(\xi)$
 ///  
 /// ### Arguments:
-/// 
-/// `path` - a reference to a string slice that contains the relative path to the intensity grid file
-/// 
+/// * `path` - a reference to a string slice that contains the relative path to the intensity grid file
 /// ### Returns:
-/// 
-/// `PolarsResult<LazyFrame>` - where the lazy frame has as headers
-/// 
-/// `|wavelength|a|b|c|d|ac|bc|cc|dc|`
+/// * `PolarsResult<LazyFrame>` - where the lazy frame has as headers
+/// * `|wavelength|a|b|c|d|ac|bc|cc|dc|`
 // This function returns a lazy frame with the apropiate column names of the intensity grid file
 // the column names are 
 // "wavelength","a","b","c","d","ac","bc","cc","dc"
@@ -257,25 +253,15 @@ pub fn get_flux_continuum(grid_filename:String,
 
 /// This function receives a lazy frame containing the coefficients of the limb
 /// darkening law
-/// 
-/// $$
-/// I_{\lambda}(\mu) =a_0 \sum_{k=1}^{3} a_k \left( 1 - \mu^k  \right) 
-/// $$
-/// 
+/// $I_{\lambda}(\mu) =a_0 \sum_{k=1}^{3} a_k \left( 1 - \mu^k  \right)$
 /// and returns another lazy frame with the wavelengths and their intensity fluxes.
 ///
-///
 /// ### Arguments:
-/// 
-/// `lf` - A lazy frame read from the intensity grid file
-/// 
-/// `coschi` - a `f64` value that is the projection of the unit surface normal onto the unit vector towards the observer.
-///  
+/// * `lf` - A lazy frame read from the intensity grid file
+/// * `coschi` - a `f64` value that is the projection of the unit surface normal onto the unit vector towards the observer.
 /// ### Returns:
-/// 
-/// `LazyFrame` - The column headers of this lazy frame are given by 
-/// 
-/// `|wavelength|flux|continuum|`
+/// * `LazyFrame` - The column headers of this lazy frame are given by 
+/// * `|wavelength|flux|continuum|`
  fn create_lf_wavelength_flux_continuum(lf:LazyFrame, coschi:f64)->LazyFrame{
     let mu = coschi.sqrt();
 
@@ -320,3 +306,98 @@ fn filter_if_contains_wavelenghts(shifted_wavelengths:&[f64])->Option<Expr>{
     Some(combined_filter_exp)
 }
 
+/// This is a function that extracts only the relevant wavelengths. 
+/// 
+/// ### Arguments: 
+/// * `shifted_wavelengts` - A reference to a [Vec<f64>] that contains the doppler shifted observed wavelengths.
+/// * `grid_dataframe` - A [DataFrame] that contains the wavelengths from the grid file. This DataFrame has exluded all the wavelengths outside of range. 
+/// ### Returns: 
+/// * `relevant_df` - A [DataFrame] that only contains the wavelengths that'll be used for the [interpolate] step.
+fn extract_relevant_wavelengths(
+    shifted_wavelengths:&[f64],
+    grid_dataframe:DataFrame)->DataFrame{
+    
+    let df = &grid_dataframe;
+    // Extract df's collumns into vectors; Wavelengths are ordered from lower to greater so we'll profit from that.
+        let df_wavelengths=extract_column_as_vectorf64("wavelength", &grid_dataframe);
+        let df_a = extract_column_as_vectorf64("a", &grid_dataframe);
+        let df_b = extract_column_as_vectorf64("b", &grid_dataframe);
+        let df_c = extract_column_as_vectorf64("c", &grid_dataframe);
+        let df_d = extract_column_as_vectorf64("d", &grid_dataframe);
+        let df_ac = extract_column_as_vectorf64("ac", &grid_dataframe);
+        let df_bc = extract_column_as_vectorf64("bc", &grid_dataframe);
+        let df_cc = extract_column_as_vectorf64("cc", &grid_dataframe);
+        let df_dc = extract_column_as_vectorf64("dc", &grid_dataframe);
+    // Get relevant indices of the df_wavelength vector into an index vector
+        let indices = extract_important_indices(shifted_wavelengths, &df_wavelengths);
+    // Construct new vectors using only the relevant indices
+        let wavelengths = construct_new_vec_using_indices(df_wavelengths, &indices);
+        let a = construct_new_vec_using_indices(df_a, &indices);
+        let b = construct_new_vec_using_indices(df_b, &indices);
+        let c = construct_new_vec_using_indices(df_c, &indices);
+        let d = construct_new_vec_using_indices(df_d, &indices);
+        let ac = construct_new_vec_using_indices(df_ac, &indices);
+        let bc = construct_new_vec_using_indices(df_bc, &indices);
+        let cc = construct_new_vec_using_indices(df_cc, &indices);
+        let dc = construct_new_vec_using_indices(df_dc, &indices);
+
+    // Construct a data frame using the relevant indices
+    let relevant_df= df![
+        "wavelength"=>wavelengths,
+        "a" => a,
+        "b" => b,
+        "c" => c,
+        "d" => d,
+        "ac" => ac,
+        "bc" => bc,
+        "cc" => cc,
+        "dc" => dc
+    ].unwrap();
+    relevant_df
+}
+
+/// This function is useful to get the relevant indices out of the wavelength vector. 
+///
+/// ### Arguments:
+/// * `shifted_wavelengts` - A reference to a [Vec<f64>] that contains the doppler shifted observed wavelengths.
+/// * `df_wavelengts` - A reference to a [Vec<f64>] that contains the grid's wavelengths extracted from the grid [DataFrame].
+/// ### Returns:
+/// * `indices` - A [Vec<usize>] that contains the indices of the df_wavelengths that'll be used for the [interpolate] step.
+fn extract_important_indices(
+    shifted_wavelengths:&[f64],
+    df_wavelengths: &[f64]
+)->Vec<usize>{
+    let mut indices:Vec<usize> = Vec::new();
+    for wavelength in shifted_wavelengths.iter(){
+        let index = search_geq(df_wavelengths, *wavelength);
+        //extract last index
+        /*if let Some(last_index)= indices.last(){
+            if df_wavelengths[*last_index]!=df_wavelengths[index-1]{
+                indices.push(index-1)
+            }
+        }else{
+            indices.push(index-1);
+        }*/
+        indices.push(index-1);
+        indices.push(index);
+    }
+    indices
+}
+
+/// This function filters a vector using a collection of indices
+/// 
+/// ### Arguments: 
+/// * `original_vector` - A [Vec<f64>] that contains the unfiltered data from the grid files
+/// * `index_collection` - A [ &[usize] ] that contains the relevant indices.
+/// ### Returns:
+/// * `filtered_vector` - A [Vec<f64>] that contains the filtered data from the grid files. 
+fn construct_new_vec_using_indices(
+    original_vector:Vec<f64>,
+    index_collection:&[usize]
+)->Vec<f64>{
+    let mut filtered_vector:Vec<f64>= Vec::new();
+    for index in index_collection.iter(){
+        filtered_vector.push(original_vector[*index]);
+    }
+    filtered_vector
+}
