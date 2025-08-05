@@ -1,5 +1,7 @@
 
 use polars::{error::ErrString, prelude::*};
+use crate::intensity::parse_intensity_grids::IntensityDataFrames;
+
 use super::*;
 mod define_parameter_space;
 use std::fs::File;
@@ -59,8 +61,33 @@ impl ProfileConfig{
     /// The columns have the following headers
     /// 
     /// `temperature`| `log_gravity`| `file name`
-    pub fn get_intensity_grids_dataframe(&self)->DataFrame{
+    fn get_intensity_grids_dataframe(&self)->DataFrame{
         self.unwrap_grids().create_dataframe_sorted()
+    }
+
+    /// This function returns an instance of [IntensityDataframes] that will hold all of the relevant information parsed from the intensity grid files. 
+    /// 
+    /// ### Arguments:
+    /// * `wavelengths` - a &[[f64]] slice that holds the requested wavelengths
+    /// * `maxval_rel_dopplershift` - the maximum value of the relative Doppler shift
+    /// * `minval_rel_dopplershift` - the minimum value of the relative Doppler shift
+    /// ### Returns:
+    /// This function returns an instance of [IntensityDataFrames] that has 
+    /// * a [Vec] with the temperatures associated to each dataframe
+    /// * a [Vec] with the log g values associated to each dataframe
+    /// * a [Vec] with the DataFrames produced with of each relevant intensity grid file
+    pub fn get_filtered_intensity_dataframes(
+        &self,
+        wavelengths: &[f64],
+        maxval_rel_dopplershift:f64,
+        minval_rel_dopplershift:f64,
+    )->IntensityDataFrames{
+        parse_intensity_grids::parse_relevant_intensity_grids(
+            self.get_intensity_grids_dataframe(),
+            wavelengths,
+            maxval_rel_dopplershift,
+            minval_rel_dopplershift
+        )
     }
 
 }

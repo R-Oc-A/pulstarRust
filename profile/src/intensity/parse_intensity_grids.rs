@@ -1,4 +1,17 @@
 use super::*;
+
+/// This structure has a collection of the [DataFrame]s extracted from the intensity grid file. This [DataFrame]s have been filtered
+/// to include only the usefull wavelengths
+/// 
+pub struct IntensityDataFrames{
+    /// Collection of the associated temperature values for the intensity dataframe
+    temperature_vector: Vec<f64>,
+    /// Collection of the associated log gravity values for the intensity dataframe
+    log_g_vector: Vec<f64>,
+    /// Collection of the dataframes extracted from the grid files.
+    intensity_dfs: Vec<DataFrame>,
+}
+
 /// This function is used to create a polars LazyFrame out of the intensity grid file in order to perform 
 /// column wise operations faster. 
 /// The Kurukz intensity files contain the coefficients $a_k$ useful to calculate the intensity via the limb darkening law
@@ -48,10 +61,26 @@ use super::*;
 /// ### Returns:
 /// *`Option<Expr>` -  where `Expr` is polars expression  that filters out unrelevant wavelengths from the lazyframe of an intensity grid file.
 /// 
-pub fn filter1_if_contains_wavelenghts(shifted_wavelengths:&[f64])->Option<Expr>{
+pub fn filter1_if_contains_wavelenghts(
+    wavelengths:&[f64],
+    maxval_rel_dopplershift:f64,
+    minval_rel_dopplershift:f64)->Option<Expr>{
 
-    let max_wavelength = shifted_wavelengths.last().unwrap().clone();
-    let min_wavelength = shifted_wavelengths.get(0).unwrap().clone();
+    
+    let epsilon = 0.01;
+
+    let min_wavelength = minval_rel_dopplershift 
+        * wavelengths.iter()
+        .fold(wavelengths[0],
+            |accumulator,wavelength_val| 
+            if*wavelength_val < accumulator {*wavelength_val} else {accumulator}
+        )-epsilon;
+    let max_wavelength = maxval_rel_dopplershift 
+        * wavelengths.iter()
+        .fold(wavelengths[0],
+            |accumulator,wavelength_val| 
+            if*wavelength_val > accumulator {*wavelength_val} else {accumulator}
+        )+epsilon;    
 
     let filter_lower_expr = col("wavelength").gt(lit(min_wavelength));
     let filter_greater_expr = col("wavelength").lt(lit(max_wavelength));
@@ -60,101 +89,65 @@ pub fn filter1_if_contains_wavelenghts(shifted_wavelengths:&[f64])->Option<Expr>
     Some(combined_filter_exp)
 }
 
+// There might be necessary to apply another filter of the kind 
+// Include wavelength only if observed_wavelength*min_rel_dopplershift - epsilon < wavelength <observed_wavelength * max_rel_dopplershift + epsilon
+pub fn filter2_sift_wavelengths(
+    wavelengths:&[f64],
+    maxval_rel_dopplershift:f64,
+    minval_rel_dopplershift:f64)->Option<Expr> {
 
-
-/// This is a function that extracts only the relevant wavelengths as [Vec<f64>]. 
-/// 
-/// ### Arguments: 
-/// * `shifted_wavelengts` - A reference to a [Vec<f64>] that contains the doppler shifted observed wavelengths.
-/// * `grid_dataframe` - A [DataFrame] that contains the wavelengths from the grid file. This DataFrame has exluded all the wavelengths outside of range. 
-/// ### Returns: 
-/// * `relevant_df` - A [DataFrame] that only contains the wavelengths that'll be used for the [interpolate] step.
-pub fn extract_relevant_wavelengths(
-    shifted_wavelengths:&[f64],
-    grid_dataframe:DataFrame)->DataFrame{
+    let epsilon = 0.01;    
+    let mut combined_expresion: Option<Expr> = None;
     
-    let df = &grid_dataframe;
-    // Extract df's collumns into vectors; Wavelengths are ordered from lower to greater so we'll profit from that.
-        let df_wavelengths=extract_column_as_vectorf64("wavelength", &grid_dataframe);
-        let df_a = extract_column_as_vectorf64("a", &grid_dataframe);
-        let df_b = extract_column_as_vectorf64("b", &grid_dataframe);
-        let df_c = extract_column_as_vectorf64("c", &grid_dataframe);
-        let df_d = extract_column_as_vectorf64("d", &grid_dataframe);
-        let df_ac = extract_column_as_vectorf64("ac", &grid_dataframe);
-        let df_bc = extract_column_as_vectorf64("bc", &grid_dataframe);
-        let df_cc = extract_column_as_vectorf64("cc", &grid_dataframe);
-        let df_dc = extract_column_as_vectorf64("dc", &grid_dataframe);
-    // Get relevant indices of the df_wavelength vector into an index vector
-        let indices = extract_important_indices(shifted_wavelengths, &df_wavelengths);
-    // Construct new vectors using only the relevant indices
-        let wavelengths = construct_new_vec_using_indices(df_wavelengths, &indices);
-        let a = construct_new_vec_using_indices(df_a, &indices);
-        let b = construct_new_vec_using_indices(df_b, &indices);
-        let c = construct_new_vec_using_indices(df_c, &indices);
-        let d = construct_new_vec_using_indices(df_d, &indices);
-        let ac = construct_new_vec_using_indices(df_ac, &indices);
-        let bc = construct_new_vec_using_indices(df_bc, &indices);
-        let cc = construct_new_vec_using_indices(df_cc, &indices);
-        let dc = construct_new_vec_using_indices(df_dc, &indices);
-
-    // Construct a data frame using the relevant indices
-    let relevant_df= df![
-        "wavelength"=>wavelengths,
-        "a" => a,
-        "b" => b,
-        "c" => c,
-        "d" => d,
-        "ac" => ac,
-        "bc" => bc,
-        "cc" => cc,
-        "dc" => dc
-    ].unwrap();
-    relevant_df
+    for wavelength in wavelengths.iter(){
+        let lb_wavelength = col("wavelength").gt(lit(wavelength*minval_rel_dopplershift - epsilon));
+        let ub_wavelength = col("wavelength").lt(lit(wavelength*maxval_rel_dopplershift + epsilon));
+        
+        let current_mask = lb_wavelength.and(ub_wavelength);
+        combined_expresion = match combined_expresion{
+            Some(expression) => {Some(expression.or(current_mask))}
+            None => {Some(current_mask)}
+        }
+    }    
+    combined_expresion
 }
 
-/// This function is useful to get the relevant indices out of the wavelength vector. 
-///
-/// ### Arguments:
-/// * `shifted_wavelengts` - A reference to a [Vec<f64>] that contains the doppler shifted observed wavelengths.
-/// * `df_wavelengts` - A reference to a [Vec<f64>] that contains the grid's wavelengths extracted from the grid [DataFrame].
-/// ### Returns:
-/// * `indices` - A [Vec<usize>] that contains the indices of the df_wavelengths that'll be used for the [interpolate] step.
-fn extract_important_indices(
-    shifted_wavelengths:&[f64],
-    df_wavelengths: &[f64]
-)->Vec<usize>{
-    let mut indices:Vec<usize> = Vec::new();
-    for wavelength in shifted_wavelengths.iter(){
-        let index = search_geq(df_wavelengths, *wavelength);
-        //extract last index
-        /*if let Some(last_index)= indices.last(){
-            if df_wavelengths[*last_index]!=df_wavelengths[index-1]{
-                indices.push(index-1)
-            }
-        }else{
-            indices.push(index-1);
-        }*/
-        indices.push(index-1);
-        indices.push(index);
-    }
-    indices
-}
 
-/// This function filters a vector using a collection of indices
+
+///  This function materializes all of the filtered intensity data frames that will be used throughout the full program. It 
+///  also fills an instance of the [IntensityDataFrames] 
 /// 
-/// ### Arguments: 
-/// * `original_vector` - A [Vec<f64>] that contains the unfiltered data from the grid files
-/// * `index_collection` - A [ &[usize] ] that contains the relevant indices.
+/// ### Arguments:
+/// * `grids_db` - a [DataFrame] that contains the name of the relevant gridfiles and their associated temperature and log_g values.
+/// * `wavelengths` - a &[f64] vector (slice) that contains the observed wavelengths
+/// * `max_rel_dopplershift` - a [f64] value that contains the maximum relative dopplershift
+/// * `min_rel_dopplershift` - a [f64] value that contians the minimum relative dopplershift
+/// 
 /// ### Returns:
-/// * `filtered_vector` - A [Vec<f64>] that contains the filtered data from the grid files. 
-fn construct_new_vec_using_indices(
-    original_vector:Vec<f64>,
-    index_collection:&[usize]
-)->Vec<f64>{
-    let mut filtered_vector:Vec<f64>= Vec::new();
-    for index in index_collection.iter(){
-        filtered_vector.push(original_vector[*index]);
-    }
-    filtered_vector
-}
+/// * an Instance of [IntensityDataFrames] where the temperature, log_g are ordered and it contains the [DataFrame]s of the intensity grid files
+/// 
+pub fn parse_relevant_intensity_grids(
+    grids_db: DataFrame,
+    wavelengths:&[f64],
+    maxval_rel_dopplershift:f64,
+    minval_rel_dopplershift:f64,
+)->IntensityDataFrames{
+    
+    let temperature_vector = extract_column_as_vectorf64("temperature", &grids_db);
+    let log_g_vector = extract_column_as_vectorf64("log_gravity", &grids_db);
+    let filenames = extract_column_as_vector_string("file names", &grids_db);
 
+    let mut intensity_dfs:Vec<DataFrame> = Vec::new();
+    for name in filenames{
+        let lf = read_intensity_grid_file(&name).expect("Unable to read intensity grid file");
+        intensity_dfs.push(lf.filter(
+            filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).unwrap().and(
+            filter2_sift_wavelengths(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).unwrap()
+            )).collect().expect("unable to produce dataframe using the intensity grid files"));
+    }
+    IntensityDataFrames{
+        temperature_vector:temperature_vector,
+        log_g_vector: log_g_vector,
+        intensity_dfs:intensity_dfs,
+    }
+}
