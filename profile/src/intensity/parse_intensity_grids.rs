@@ -208,11 +208,15 @@ pub fn parse_relevant_intensity_grids(
     
     let temperature_vector = extract_column_as_vectorf64("temperature", &grids_db);
     let log_g_vector = extract_column_as_vectorf64("log_gravity", &grids_db);
-    let filenames = extract_column_as_vector_string("file names", &grids_db);
+    let filenames = extract_column_as_vector_string("file name", &grids_db);
 
     let mut intensity_dfs:Vec<DataFrame> = Vec::new();
     for name in filenames{
         let lf = read_intensity_grid_file(&name).expect("Unable to read intensity grid file");
+        println!("loading {} grid file",name);
+//        intensity_dfs.push(lf.filter(
+//            filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).unwrap()
+//            ).collect().expect("unable to produce dataframe using the intensity grid files"));
         intensity_dfs.push(lf.filter(
             filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).unwrap().and(
             filter2_sift_wavelengths(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).unwrap()

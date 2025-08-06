@@ -78,14 +78,16 @@ fn main() {
         "velocity",
          lf.clone(),
           false).unwrap();
-    let maxval_rel_dopplershift =  (1.0+max_vel)/CLIGHT*1.0e3;
-    let minval_rel_dopplershift = (1.0+min_vel)/CLIGHT*1.0e3;
     
+    let maxval_rel_dopplershift =  1.0+max_vel/CLIGHT*1.0e3;
+    let minval_rel_dopplershift = 1.0+min_vel/CLIGHT*1.0e3;
+    println!("min relative dopplershift is {}",minval_rel_dopplershift);
+    println!("max relative dopplershift is {}", maxval_rel_dopplershift);
     let intensity_dfs = profile_config.get_filtered_intensity_dataframes(
         &wavelength,
         maxval_rel_dopplershift, 
         minval_rel_dopplershift);
- 
+    println!("Intensity DataFrames created!");
     //----------------------------------------------------------------
     //-------------- Collect fluxes for each time point  -------------
     //----------------------------------------------------------------
