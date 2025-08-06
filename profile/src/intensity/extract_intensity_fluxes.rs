@@ -1,5 +1,4 @@
 use super::*;
-use parse_intensity_grids::read_intensity_grid_file;
 
 /// This is a function that extracts only the relevant wavelengths as [Vec<f64>]. 
 /// 
@@ -161,36 +160,4 @@ pub fn get_flux_continuum(
         continuum_from_df,
         lbd_from_df))
 }
-
-
-/// This function selects the four points closer to
-/// (temperature,Log_g)
-/// on the parameter space whose coordinates have an associated intensity grid file
-/// 
-/// ### Arguments:
-/// * `grid_id_lf` - A polars LazyFrame that contains the information of the intensity grids.
-/// * `temperature`` - a `f64` value for the temperature on a surface cell
-/// * `log g`- a `f64` value for the logarithm of gravity on a surface cell
-/// ### Returns:
-/// * `(temperature_vec, log_g_vec, Filenames_vec)` - This is a tuple that contains three vectors where
-/// * `temperature vec` - is a vector of `f64` that contains 4 ordered temperatures of the coordinates in the parameter space
-/// * `log_g_vec` - is a vector of `f64 that contains 4 ordered values of log_g of the coordinates in the parameter space
-/// * `Filenames_vec` - is a vector of `String` that contains the paths for the 4 intensity grid files.
-pub fn get_temp_logg_filenames(grid_id_lf:LazyFrame,
-    temperature:f64,
-    log_gravity:f64)->(Vec<f64>,Vec<f64>,Vec<String>){
-    let lf_relevant = define_parameter_space::get_rectangles_in_parameter_space(grid_id_lf, temperature, log_gravity);
-    let df_relevant = lf_relevant.collect().unwrap();
-
-    let temperature_vec = extract_column_as_vectorf64("temperature", &df_relevant);
-    let log_g_vec = extract_column_as_vectorf64("log_gravity", &df_relevant);
-    let name_of_files = extract_column_as_vector_string("file name", &df_relevant);
-
-    (temperature_vec,log_g_vec , name_of_files)
-}
-// 1) Get the maximum doppler shift value, temperature, and log_g
-// 2) Open and filter all of the relevant grid files
-// 3) rewrite the methods herebelow so that queries and column operations are carried on lazyframes related to this df
-// 4) do some benchmark
-// 5) If nothing works, have a meeting with Joris about How to improve speed. Might be necessary to look into parallelization. 
 

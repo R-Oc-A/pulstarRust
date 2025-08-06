@@ -3,54 +3,39 @@ use super::*;
 /// Computes by linear interpolation (see [trilinear interpolation](https://paulbourke.net/miscellaneous/interpolation/) ) the specific and continuum intensity for a surface cell.
 /// 
 /// ### Arguments:
-/// 
-/// `temperature_vec` - a vector that contains the associated temperatures of the four intensity grid files relevant for this interpolation. 
-///  
+/// * `intensity_dfs` - a reference to an instance of [IntensityDataFrames] that contains all of the relevant information parsed from the intensity grid files. 
+/// * `relevant_indices` - a [Vec] collection of [usize] that serves as keys to use only the relevant information of the DataFrames.
+/// * `shifted_wavelengths` - a vector that contains the doppler shifted observed wavelengths
 ///  The way the values are ordered is so that  
-/// `temperature_vec[0]==temperature_vec[1]< temperature_vec[2]==temperature_vec[3]`
-/// 
-/// `log_gravity_vec`  - a vector that contains the associated log gravity values of the four intensity grid files relevant for this interpolation
-/// 
-///  The way the values are ordered is so that  
-/// `log_gravity_vec[0]==log_gravity_vec[2]< log_gravity_vec[1]==log_gravity_vec[3]`
-/// 
-/// `shifted_wavelengths` - a vector that contains the doppler shifted observed wavelengths
-/// 
-///  The way the values are ordered is so that  
-/// `shifetd_wavelengths[i]<shifetd_wavelengths[i+1]`
-/// 
+/// * `shifetd_wavelengths[i]<shifetd_wavelengths[i+1]`
 /// 'flux_vec' - a vector of vectors, it contains four intensity flux vectors that were calculated from the relevant intensity grid files
-/// 
 /// 'cont_vec' - a vector of vectors, it contains four continuum flux vectors that were calculated from the relevant intensity grid files
-/// 
-/// `wavelengths_vec` - a vector of vectors, it contains the four wavelength vectors associated with the intensity fluxes
-/// 
-/// `temperature` - the temperature over a surface cell of the rasterized star.
-/// 
-/// `log g` - the log g value over a surface cell of the rasterized star.
-/// 
+/// * `wavelengths_vec` - a vector of vectors, it contains the four wavelength vectors associated with the intensity fluxes
+/// * `temperature` - the temperature over a surface cell of the rasterized star.
+/// * `log g` - the log g value over a surface cell of the rasterized star.
 ///  ### Returns:
-/// 
-/// `(intens_result,cont_result)` - a tuple that contains two `f64` vectors where intens is the total intensity; cont is the continuum intensity
-/// 
-/// `intens_result` - is the collection of specific intensity fluxes that correspond to the observed wavelengths
-/// 
-/// `cont_result` - is the collection of the continuum intensity fluxes that correspond to the observed wavelengths
-/// 
+/// * `(intens_result,cont_result)` - a tuple that contains two `f64` vectors where intens is the total intensity; cont is the continuum intensity
+/// * `intens_result` - is the collection of specific intensity fluxes that correspond to the observed wavelengths
+/// * `cont_result` - is the collection of the continuum intensity fluxes that correspond to the observed wavelengths
 pub fn interpolate(
-    temperature_vec:&[f64],
-    log_gravity_vec:&[f64],
+    intensity_dfs:&IntensityDataFrames,
+    relevant_indices:Vec<usize>,
     shifted_wavelengths:&[f64],
     flux_vec:&Vec<Vec<f64>>,
     cont_vec:&Vec<Vec<f64>>,
     wavelengths_vec:&Vec<Vec<f64>>,  
     temperature:f64,
     log_g:f64)->(Vec<f64>,Vec<f64>){
-
     
+    let mut temperature_vec:Vec<f64>=Vec::new();
+    let mut log_gravity_vec:Vec<f64>=Vec::new();
+    for index in relevant_indices.iter(){
+        temperature_vec.push(intensity_dfs.temperature_vector[*index]);
+        log_gravity_vec.push(intensity_dfs.log_g_vector[*index]);
+    }
     // Counter orders the intensities 
     let mut counter:usize = 0;
-        
+    
     let t0 = (temperature-temperature_vec[0])/(temperature_vec[2]-temperature_vec[0]);
     let t1 = (log_g-log_gravity_vec[0])/(log_gravity_vec[1]-log_gravity_vec[0]);
     
@@ -105,20 +90,13 @@ pub fn interpolate(
 
 /// The trilinear interpolation estimates a quantity that depends on position on a point inside of a cube where the
 /// values are known on each of the vertices. This function returns the contribution given by the value on a particular vertex.
-/// 
 /// ### Arguments:
-/// 
-/// `delta_temp` - This is the distance from the observed temperature value to the temperature value of a specific grid.
-/// 
-/// `delta_logg` - This is the distance from the observed log gravity value to the log gravity value of a specific grid.
-/// 
-/// `delta_lamb` - This is the distance from the observed wavelength value to the wavelength value inside a specific grid.
-/// 
-/// `value` - This is the value on a specific vertex of the cube defined on the parameter space (temperature,log g, wavelength).
-/// 
+/// * `delta_temp` - This is the distance from the observed temperature value to the temperature value of a specific grid.
+/// * `delta_logg` - This is the distance from the observed log gravity value to the log gravity value of a specific grid.
+/// * `delta_lamb` - This is the distance from the observed wavelength value to the wavelength value inside a specific grid.
+/// * `value` - This is the value on a specific vertex of the cube defined on the parameter space (temperature,log g, wavelength).
 /// ### Returns:
-/// 
-/// `f64` - This will hold the contribution given by a vertex. 
+/// * `f64` - This will hold the contribution given by a vertex. 
 fn get_contribution_from_vertex(delta_temp:f64,
 delta_logg:f64,
 delta_lamb:f64,

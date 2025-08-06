@@ -1,9 +1,11 @@
-use polars::prelude::*;
+use polars::{error::ErrString, prelude::*};
 use serde::Deserialize;
 use temp_name_lib::type_def::{CLIGHT,N_FLUX_POINTS};//Velocity of light in m/s
 
-use crate::{intensity::{get_flux_continuum, get_temp_logg_filenames}, interpolate::interpolate};
-use std::{fs, time};
+//use crate::intensity:: interpolate::interpolate};
+use std::fs;
+
+use crate::intensity::{extract_intensity_fluxes, parse_intensity_grids::IntensityDataFrames};
 //use std::sync::Arc;
 
 /// The profile program reads a the quantities calculated over a Rasterized star on selecetd time points
@@ -13,8 +15,8 @@ use std::{fs, time};
 
 
 
- mod intensity;
- mod interpolate;
+mod intensity;
+mod interpolate;
 pub mod utils;
 
 // This are the necessary parameters to run the profile program.
@@ -24,9 +26,11 @@ pub mod utils;
 /// a collection of the intensity grid files that will be used for the interpolation. And the path to the intensity grids which are meant to be collected on the same folder. 
 #[derive(Deserialize,Debug,PartialEq)]
 pub struct ProfileConfig{
+    /// This is the requested range of wavelengths.
     pub wavelength_range:WavelengthRange,
-    pub max_velocity:f64,
+    /// This is the path to the directory containing the intensity grids
     pub path_to_grids: String,
+    /// This is a [Vec] collection of [IntensityGrid]s. 
     pub intensity_grids:Vec<IntensityGrid>,
 }
 /// The wave length range is defined in nanometers.
@@ -53,9 +57,9 @@ pub filename: String,
 impl ProfileConfig {
     /// This function is used to fill the parameters required for the profile program to run out of the toml configuration file.
     /// #### Arguments:
-    ///     `path_to_file` - this is a string that indicates the path to the `profile_input.toml` file
+    /// * `path_to_file` - this is a string that indicates the path to the `profile_input.toml` file
     /// #### Returns:
-    ///      new instance of the profile config structure.
+    /// * new instance of the profile config structure.
     pub fn read_from_toml(path_to_file:&str)->Self{
         let contents = match fs::read_to_string(path_to_file){
             Ok(c)=>c,
@@ -103,13 +107,9 @@ impl WavelengthRange{
 /// this last factor is inserted into the data frame so that it reduces the frequency of times it needs to be calculated
 /// 
 /// ### Arguments: 
-/// 
-/// `lf` - a LazyFrame created out of the rasterized_star.parquet file.
-/// 
+/// * `lf` - a [LazyFrame] created out of the rasterized_star.parquet file.
 /// ### Returns:
-/// 
-/// a `Lazyframe` with the same headers as the `rasterized_star.parquet` with an extra column |relative shift| that holds the value
-/// 
+/// * a [LazyFrame] with the same headers as the `rasterized_star.parquet` with an extra column |relative shift| that holds the value
 /// (1 - v/c)
 pub fn insert_col_relative_dlambda(lf:LazyFrame)// I take ownership of the data frame since I will produce a new one and want the old one to be dropped after appending
 ->LazyFrame{
@@ -119,32 +119,22 @@ pub fn insert_col_relative_dlambda(lf:LazyFrame)// I take ownership of the data 
 }
 
 /// This function takes a polars data frame and returns all of the values from a given column that holds f64 values. 
-/// 
 /// ### Arguments: 
-/// 
-/// `column_name` - a string slice that holds the name of a column. The column should hold f64 values.
-/// 
-/// `df`- a polars DataFrame
-/// 
+/// * `column_name` - a string slice that holds the name of a column. The column should hold f64 values.
+/// * `df`- a polars DataFrame
 /// ### Returns:
-/// 
-/// `Vec<f64>` - a vector that contains all of the values on the column.
+/// * `Vec<f64>` - a vector that contains all of the values on the column.
 fn extract_column_as_vectorf64(column_name: &str,df:&DataFrame)->Vec<f64>{
     let column = df.column(column_name).unwrap();
     column.f64().unwrap().into_iter().flatten().collect()
 }
 
 /// This function takes a polars data frame and returns all of the values from a given column that holds string values. 
-/// 
 /// ### Arguments: 
-/// 
-/// `column_name` - a string slice that holds the name of a column. The column should hold String values.
-/// 
-/// `df`- a polars DataFrame
-/// 
+/// * `column_name` - a string slice that holds the name of a column. The column should hold String values.
+/// * `df`- a polars DataFrame
 /// ### Returns:
-/// 
-/// `Vec<String>` - a vector that contains all of the values on the column.
+/// * `Vec<String>` - a vector that contains all of the values on the column.
 fn extract_column_as_vector_string (column_name: &str, df:&DataFrame)->Vec<String>{
     let column = df.column(column_name).unwrap();
     let vec_str:Vec<&str> = column.str().unwrap().into_iter().flatten().collect();
@@ -157,29 +147,17 @@ fn extract_column_as_vector_string (column_name: &str, df:&DataFrame)->Vec<Strin
 
 /// This function that returns the intensity flux and the continuum flux interpolated from the intensity grids
 /// for each surface cell of the rasterized sphere.
-/// 
 /// ### Arguments:
-/// 
-/// `coschi` -  Projection of the normal vector of the surface cell with the unit vector towards the observer.
-/// 
-/// `temperature` - temperature value over the surface cell of the rasterized star (in kelvin).
-/// 
-/// `log_gravity` - log g value over the surface cell of the rasterized star.
-/// 
-/// `relative shift` - relative doppler wavelength shift, this is of course related to the velocity.
-/// 
+/// * `coschi` -  Projection of the normal vector of the surface cell with the unit vector towards the observer.
+/// * `temperature` - temperature value over the surface cell of the rasterized star (in kelvin).
+/// * `log_gravity` - log g value over the surface cell of the rasterized star.
+/// * `relative shift` - relative doppler wavelength shift, this is of course related to the velocity.
 /// 'area' - area of the surface cell of the rasterized star.
-/// 
 /// 'wavelengths` - a borrowed vector containing the observed wavelengths.
-/// 
-/// `grid_id_lf` - a polars LazyFrame that contains the Database of the intensity grid files. 
-/// 
+/// * `grid_id_lf` - a polars LazyFrame that contains the Database of the intensity grid files. 
 /// ### Returns:
-/// 
-/// `(Flux,Cont)` - a tupple of two vectors computed for the surface cell, where
-/// 
+/// * `(Flux,Cont)` - a tupple of two vectors computed for the surface cell, where
 /// 'Flux' - is the Intensity flux vector
-/// 
 /// 'Cont' - is the Continuum flux vector
 pub fn return_flux_for_cell_thetaphi(
     coschi:f64,
@@ -188,16 +166,12 @@ pub fn return_flux_for_cell_thetaphi(
     relative_shift:f64,
     area:f64,
     wavelengths:&[f64],
-    grid_id_lf:LazyFrame,
-    start_of_computation : &time::Instant
+    intensity_dfs:&IntensityDataFrames,
     )->(Vec<f64>,Vec<f64>){
     
 	//unwrapping the four relevant grid files creating  a vector that holds the temperatures, logg values and the file names.
-    let grids_info = get_temp_logg_filenames(grid_id_lf, temperature, log_gravity);
-    let grid_temperatures = grids_info.0;
-    let grid_loggs = grids_info.1;
-    let grid_names = grids_info.2;
-
+    let relevant_indices = intensity_dfs.get_rectangle_in_parameter_space(temperature, log_gravity).unwrap();
+    
     // Initializing the vectors that will hold the flux and continuum quantities.
     let mut flux_collection:Vec<Vec<f64>>=Vec::new();
     let mut cont_collection:Vec<Vec<f64>> = Vec::new();
@@ -205,34 +179,28 @@ pub fn return_flux_for_cell_thetaphi(
 
     // Doppler shift the wavelengths.
     let shifted_wavelengths= get_doppler_shifted_wavelengths(relative_shift, wavelengths);
-
+    
     // For each of the relevant grid files, extract the intensity and continuum values.
-    let start_extraction= start_of_computation.elapsed();
-    for name in grid_names.into_iter(){
-        let fluxes_from_grid = get_flux_continuum(name, 
-            &shifted_wavelengths, 
-            coschi,&start_of_computation).unwrap();
+    for index in relevant_indices.iter(){
+        let fluxes_from_grid = extract_intensity_fluxes::get_flux_continuum(
+            &intensity_dfs.intensity_dfs[*index],
+            &shifted_wavelengths,
+            coschi).unwrap();
         flux_collection.push(fluxes_from_grid.0);
         cont_collection.push(fluxes_from_grid.1);
         wavelength_collection.push(fluxes_from_grid.2);
     }
-	let mut duration = start_of_computation.elapsed() - start_extraction;
-    println!("extraction of intensity and continuum values done");
-    println!("time elapsed is {:?} ",duration);
+
     //function that linearly interpolates the intensity flux Ic and the continuum flux I from the 4 grids
-    
-    let start_interpolation = start_of_computation.elapsed();
-    let fluxcont_interpolated = interpolate(&grid_temperatures,
-         &grid_loggs, 
-         &shifted_wavelengths, 
-         &flux_collection, 
-         &cont_collection, 
-         &wavelength_collection, 
-         temperature, 
-         log_gravity);
-    duration = start_of_computation.elapsed() - start_interpolation;
-    println!("Interpolation done");
-    println!("time elapsed is {:?} ",duration);
+    let fluxcont_interpolated = interpolate::interpolate(
+        intensity_dfs,
+        relevant_indices,
+        &shifted_wavelengths, 
+        &flux_collection, 
+        &cont_collection, 
+        &wavelength_collection, 
+        temperature, 
+        log_gravity);
     
     // Finally return the collected quantities of the surface.
     (multiply_vecf64_by_scalar(fluxcont_interpolated.0,area),//<-flux
@@ -277,16 +245,11 @@ fn search_geq(vector:&[f64],key:f64)-> usize {
 }
 
 /// This function multiplies a vector of `f64` by a scalar
-/// 
 /// ### Arguments:
-/// 
-/// `vecf64` - a vector containing `f64` values
-/// 
-/// `scalar` - an `f64` value
-/// 
+/// * `vecf64` - a vector containing `f64` values
+/// * `scalar` - an `f64` value
 /// ### Returns:
-/// 
-/// `vec_result` - The multiplied vector.
+/// * `vec_result` - The multiplied vector.
 fn multiply_vecf64_by_scalar(vecf64:Vec<f64>,scalar:f64)->Vec<f64>{
     //let mut vec_result:Vec<f64> = Vec::new();
     let vec_result = vecf64.into_iter().map(|s| s * scalar).collect();
@@ -295,22 +258,48 @@ fn multiply_vecf64_by_scalar(vecf64:Vec<f64>,scalar:f64)->Vec<f64>{
 
 
 /// This function multiplies all of the wavelengths by the relative doppler wavelength shift
-/// 
 /// ### Arguments:
-/// 
-/// `wavelengths` - a vector containing the observed wavelengths (in nm)
-/// 
-/// `relative shift` - an `f64` value that holds the relative doppler shift
-/// 
+/// * `wavelengths` - a vector containing the observed wavelengths (in nm)
+/// * `relative shift` - an `f64` value that holds the relative doppler shift
 /// ### Returns:
-/// 
-/// `Vec<f64>` - The doppler shifted wavelenghts.
+/// * `Vec<f64>` - The doppler shifted wavelenghts.
 /// This function applies a doppler shift to the observed wavelengths. It is a multiplication by a scalar
 fn get_doppler_shifted_wavelengths(relative_shift:f64,
-        wavelengths:&[f64])->Vec<f64>{
-            let mut shifted:Vec<f64>=Vec::new();
-            for lambda in wavelengths.iter(){
-                shifted.push(*lambda * relative_shift);
-            }
-            shifted
-}
+        wavelengths:&[f64])->Vec<f64>
+    {
+        let mut shifted:Vec<f64>=Vec::new();
+        for lambda in wavelengths.iter(){
+            shifted.push(*lambda * relative_shift);
+        }
+        shifted
+    }
+
+/// This function returns the maximum or minimum value of a column of [f64] from a [DataFrame]. This function is adviced to be used seldomly (as in outside of loops).
+/// 
+/// ### Arguments:
+/// * `column_name` -  The name of the column of [f64] values from which an extreme value should be extracted.
+/// * `lf` - a [LazyFrame] from which the value will be extracted
+/// * `is max` - a [bool] that indicates wheter to return `max`(true) or `min`(false).
+/// ### Returns:
+/// This function returns a [PolarsResult] with the following variants:
+/// * `Ok([f64])` - where the binded value is the extremal requested one.
+/// * Err(E) - returns an error to the calling function.
+pub fn extremal_val_from_col(
+    column_name: &str,
+    lf: LazyFrame,
+    is_max: bool )->PolarsResult<f64>
+    {
+        let df_maxval = match is_max{
+            true => {lf.select([col(column_name)]).max().collect()?}
+            false => {lf.select([col(column_name)]).min().collect()?}
+        };
+        let max_val = extract_column_as_vectorf64(column_name, &df_maxval);
+        match max_val.get(0){
+            Some(value) => { Ok(*value)}
+            None => {Err(PolarsError::InvalidOperation
+                (ErrString::new_static("Couldn't extract extreme value. The dataframe might be corrupted")
+            ))}
+        }
+    }
+
+
