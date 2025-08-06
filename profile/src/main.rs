@@ -2,6 +2,7 @@ use std::env;
 use polars::prelude::*;
 //use profile::intensity::IntensityGrids;
 use profile::*;
+use temp_name_lib::type_def::CLIGHT;
 use std::time::Instant;
 
 fn main() {
@@ -38,10 +39,10 @@ fn main() {
    //|-->Initialize the wavelength array that tracks the intensity flux profile.
     let wavelength = profile_config.wavelength_range.get_wavelength_vector();
 
-    // |-->Create a data frame with all of the intensity grids information
-    let grid_id_df = profile_config.get_intensity_grids_dataframe();
+    // // |-->Create a data frame with all of the intensity grids information
+    //let grid_id_df = profile_config.get_intensity_grids_dataframe();
     // |--> Create a lazy frame that will be cloned inside the loop so that querys can be chained from here.
-    let grid_id_lf_original = grid_id_df.lazy();
+    //let grid_id_lf_original = grid_id_df.lazy();
 
 
    //---------------------------------------- 
@@ -51,7 +52,6 @@ fn main() {
     let rasterized_star_path = env_args[2].clone();
     let lf = LazyFrame::scan_parquet(rasterized_star_path, Default::default()).unwrap();
     //get vector of time_points
-
     
     let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
     let extract_time_series = tf.column("time").unwrap();
@@ -66,7 +66,26 @@ fn main() {
     let mut all_times: Vec<f64> = Vec::new(); // time point where the intensity and continuum are calculated.
     let mut all_wavelengths: Vec<f64> = Vec::new(); // Wavelengths whose fluxes are computed.
 
+    //--------------------------------------- 
+    //----Loading intensity flux grids-------
+    //---------------------------------------
 
+    let max_vel = extremal_val_from_col(
+        "velocity",
+         lf.clone(),
+          true).unwrap();
+    let min_vel = extremal_val_from_col(
+        "velocity",
+         lf.clone(),
+          false).unwrap();
+    let maxval_rel_dopplershift =  (1.0+max_vel)/CLIGHT*1.0e3;
+    let minval_rel_dopplershift = (1.0+min_vel)/CLIGHT*1.0e3;
+    
+    let intensity_dfs = profile_config.get_filtered_intensity_dataframes(
+        &wavelength,
+        maxval_rel_dopplershift, 
+        minval_rel_dopplershift);
+ 
     //----------------------------------------------------------------
     //-------------- Collect fluxes for each time point  -------------
     //----------------------------------------------------------------
@@ -74,7 +93,7 @@ fn main() {
     for phase in time_points.iter() {
         
         let expr = col("time").eq(lit(*phase));
-        let theta_frame = lf.clone().filter(expr);
+        let sphere_frame = lf.clone().filter(expr);
         //--------------------------------------------------
         //----Collect fluxes over the whole star------------
         //--------------------------------------------------
@@ -85,58 +104,45 @@ fn main() {
         let mut cont = vec![0.0;capacity];
         let mut time_vec = vec![*phase;capacity];
 
-        //get vector of theta_points
-        let theta_df = theta_frame.clone().select([col("theta").unique()]).collect().unwrap();
-        let theta_steps_serie = theta_df.column("theta").unwrap();
-        let theta_steps:Vec<f64> = theta_steps_serie.f64().unwrap().into_iter().flatten().collect();
         println!("finished collecting a the star pulsation profile for the timestep {}",phase);
         println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
 
-        //theta loop
-//        for theta_step in theta_steps.iter(){
-
-            // create a lazy frame for a latitudinal strip of the rasterized star (constant theta over a sphere)
-            //let expr: Expr = col("theta").eq(lit(*theta_step));
-            let phi_frame=theta_frame.clone();//.filter(expr);
+        // Filter if surface cell is visible.
+        let expr = col("coschi").gt(lit(0.0));
+        let visible_lf =sphere_frame.filter(expr);
             
-            // Filter if surface cell is visible.
-            let expr = col("coschi").gt(lit(0.0));
-            let pf_visible =phi_frame.filter(expr);
-            
-            // Append relative doppler wavelength shift 
-            let pf = insert_col_relative_dlambda(pf_visible).collect().unwrap();
+        // Append relative doppler wavelength shift 
+        let observed_sphere_df = insert_col_relative_dlambda(visible_lf).collect().unwrap();
 
-            // Obtain the relevant quantities to compute the flux on each cell of the surface of the rasterized star
-            // |--> relative doppler wavelength shift
-            // |--> normalized area of each cell projected onto the unit vector of directed towards the observer
-            // |--> coschi is projection of the unit vector normal to the cell surface towards the observer.
-            // |--> temperature over the surface cell
-            // |--> log gravity value over the surface cell
+        // Obtain the relevant quantities to compute the flux on each cell of the surface of the rasterized star
+        // |--> relative doppler wavelength shift
+        // |--> normalized area of each cell projected onto the unit vector of directed towards the observer
+        // |--> coschi is projection of the unit vector normal to the cell surface towards the observer.
+        // |--> temperature over the surface cell
+        // |--> log gravity value over the surface cell
 
-            let doppler_shift_series = pf.column("relative shift").unwrap();
-            let area_series = pf.column("area").unwrap();
-            let coschi_series = pf.column("coschi").unwrap();
-            let temperature_series = pf.column("temperature").unwrap();
-            let log_gravity_series = pf.column("log gravity").unwrap();
-            let doppler_shift:Vec<f64> = doppler_shift_series.f64().unwrap().into_iter().flatten().collect();
-            let area:Vec<f64> = area_series.f64().unwrap().into_iter().flatten().collect();
-            let coschi:Vec<f64> = coschi_series.f64().unwrap().into_iter().flatten().collect();
-            let temperature:Vec<f64> = temperature_series.f64().unwrap().into_iter().flatten().collect();
-            let log_gravity:Vec<f64> = log_gravity_series.f64().unwrap().into_iter().flatten().collect();
-            // phi loop
-            for i in 0..coschi.len(){
-                // Clone the lazy frame as the program will search on the Intensity grids data base
-                let grid_id_lf = grid_id_lf_original.clone();
-                // Calculate the fluxes over the surface cell
-                let fluxcont =return_flux_for_cell_thetaphi(
-                    coschi[i],
-                    temperature[i],
-                    log_gravity[i],
-                    doppler_shift[i],
-                    area[i],
-                    &wavelength,
-                    grid_id_lf,
-                &start_computing_time);
+        let doppler_shift_series = observed_sphere_df.column("relative shift").unwrap();
+        let area_series = observed_sphere_df.column("area").unwrap();
+        let coschi_series = observed_sphere_df.column("coschi").unwrap();
+        let temperature_series = observed_sphere_df.column("temperature").unwrap();
+        let log_gravity_series = observed_sphere_df.column("log gravity").unwrap();
+        let doppler_shift:Vec<f64> = doppler_shift_series.f64().unwrap().into_iter().flatten().collect();
+        let area:Vec<f64> = area_series.f64().unwrap().into_iter().flatten().collect();
+        let coschi:Vec<f64> = coschi_series.f64().unwrap().into_iter().flatten().collect();
+        let temperature:Vec<f64> = temperature_series.f64().unwrap().into_iter().flatten().collect();
+        let log_gravity:Vec<f64> = log_gravity_series.f64().unwrap().into_iter().flatten().collect();
+        // phi loop
+        for i in 0..coschi.len(){
+            // Calculate the fluxes over the surface cell
+            let fluxcont =return_flux_for_cell_thetaphi(
+                coschi[i],
+                temperature[i],
+                log_gravity[i],
+                doppler_shift[i],
+                area[i],
+                &wavelength,
+                &intensity_dfs,
+                );
                 // Store the fluxes over the cell on vectors
                 let flux_thetaphi = fluxcont.0;
                 let cont_thetaphi = fluxcont.1;
@@ -145,10 +151,8 @@ fn main() {
                     flux[index] += flux_item;
                     cont[index] += cont_thetaphi[index]; 
                 }
-                //println!("ended a phi_loop with {:1.4} coschi val",coschi[i]);
-            }//end phi loop
-            //println!("\n Ending Theta loop in θ = {} ",theta_step.to_degrees());
-//        }//end theta loop
+                
+            }
         
         all_fluxes.append(& mut flux);
         all_cont.append(& mut cont);
