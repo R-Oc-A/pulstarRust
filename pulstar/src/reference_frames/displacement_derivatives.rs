@@ -1,4 +1,4 @@
-use crate::{PPulstarConfig, PulsationMode};
+use crate::PulsationMode;
 use super::{MathErrors,MACHINE_PRECISION};
 use super::spherical_harmonics::{
     d_plmcos_dtheta::{
@@ -15,7 +15,7 @@ use super::spherical_harmonics::{
 ///Computes the derivatives of Δr/r0 with respect to θ in the point with spherical
 ///coordinates θ,ϕ
 /// ### Arguments: 
-/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PPulstarConfig]
+/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
 /// * `sintheta` - sine of the colatitude angle (theta in rads)
 /// * `costheta` - cosine of the colatitude angle (theta in rads)
 /// * `phi` - azimuthal coordinate in rads
@@ -40,7 +40,7 @@ pub fn d_dr_rdtheta(
 ///Computes the derivatives of Δθ with respect to θ in the point with spherical
 ///coordinates θ,ϕ
 /// ### Arguments: 
-/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PPulstarConfig]
+/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
 /// * `sintheta` - sine of the colatitude angle (theta in rads)
 /// * `costheta` - cosine of the colatitude angle (theta in rads)
 /// * `phi` - azimuthal coordinate in rads
@@ -66,7 +66,7 @@ pub fn d_dtheta_dtheta(
 ///Computes the derivatives of Δr/r0 with respect to φ in the point with spherical
 ///coordinates θ,φ
 /// ### Arguments: 
-/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PPulstarConfig]
+/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
 /// * `sintheta` - sine of the colatitude angle (theta in rads)
 /// * `costheta` - cosine of the colatitude angle (theta in rads)
 /// * `phi` - azimuthal coordinate in rads
@@ -91,7 +91,7 @@ pub fn d_dr_rdphi(
 ///Computes the derivatives of Δϕ with respect to ϕ in the point with spherical
 ///coordinates θ,ϕ
 /// ### Arguments: 
-/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PPulstarConfig]
+/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
 /// * `sintheta` - sine of the colatitude angle (theta in rads)
 /// * `costheta` - cosine of the colatitude angle (theta in rads)
 /// * `phi` - azimuthal coordinate in rads

@@ -1,11 +1,10 @@
 use std::time::{Instant};
-use crate::{utils::PulstarConfig, PPulstarConfig, StarData, };
+use crate::PulstarConfig;
 use temp_name_lib::{
-    joris_math::spherical_harmonics::norm_factor::ylmnorm,
-    type_def::{THETA_STEP,PHI_STEP}
+    math_module::spherical_harmonics::norm_factor::ylmnorm,
     };
 pub fn print_report(now:&Instant,
-    parameters: &PPulstarConfig,
+    parameters: &PulstarConfig,
     k_theory:&[f64],
     min_vel:&[f64],
     max_vel:&[f64],
@@ -15,9 +14,10 @@ pub fn print_report(now:&Instant,
     max_logg:&[f64],
     freqrad:&[f64],
     period:&[f64],
-    maxvellength:f64,
-    maxrellength:f64,
     log_g0:f64){
+    let mesh = parameters.get_mesh_structure();
+    let theta_step = mesh.0;
+    let phi_step = mesh.1;
     let vampl = parameters.get_velocity_amplitudes();
     println!("+---------------------------------------------+");
     println!("PULSTARRust: REPORT - TIME: {} s", now.elapsed().as_secs());
@@ -109,7 +109,7 @@ pub fn print_report(now:&Instant,
     println!(" - Log(g_0): {:8.4}\n",log_g0);
 
     println!("RESOLUTION");
-    println!(" - Delta theta: {}",THETA_STEP);
-    println!(" - Delta phi: {}\n",PHI_STEP);
+    println!(" - Delta theta: {}",theta_step);
+    println!(" - Delta phi: {}\n",phi_step);
 
 }

@@ -1,15 +1,15 @@
-use super::PPulstarConfig;
+use super::PulstarConfig;
 use super::reference_frames::Coordinates;
 use super::na;
 use temp_name_lib::type_def::{CYCLI2RAD, RADIUSSUN};
 use temp_name_lib::utils::{MACHINE_PRECISION,MathErrors};
-use temp_name_lib::joris_math::spherical_harmonics::plmcos::plmcos;
-use temp_name_lib::joris_math::spherical_harmonics::d_plmcos_dtheta::deriv1_plmcos_dtheta;
-use temp_name_lib::joris_math::spherical_harmonics::norm_factor::ylmnorm;
+use temp_name_lib::math_module::spherical_harmonics::plmcos::plmcos;
+use temp_name_lib::math_module::spherical_harmonics::d_plmcos_dtheta::deriv1_plmcos_dtheta;
+use temp_name_lib::math_module::spherical_harmonics::norm_factor::ylmnorm;
 
 use super::*;
 
-impl PPulstarConfig {
+impl PulstarConfig {
     /// This method calculates the amplitudes of the pulsation velocities per mode in km/s
     /// 
     /// ### Arguments: 
@@ -36,16 +36,16 @@ impl PPulstarConfig {
 /// This function computes the components v_r,v_θ,v_φ of the pulsation velocity on a given surface cell of the star.
 /// 
 /// ### Arguments:
-/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PPulstarConfig]
+/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
 /// * `sintheta` - sine of the colatitude coordinate (theta in rads)
 /// * 'costheta' - cosine of the colatitude coordinate (theta in rads)
 /// * `phi_rad`   - azimuthal coordinate  in rads
-/// * `velocity_amplitude`     - Amplitude in the radial direction times the normalization factor `Y_l^m`(see [temp_name_lib::joris_math::spherical_harmonics::norm_factors]) in km/s
+/// * `velocity_amplitude`     - Amplitude in the radial direction times the normalization factor `Y_l^m`(see [temp_name_lib::math_module::spherical_harmonics::norm_factors]) in km/s
 /// 
 /// ### Returns:
 /// This function returns [Ok] or [Err] variants of [Result]
 /// * Ok(`Coordinates::Spherical(pulsation_velocity)`) - Where pulsation_velocity  is a [na::Vector3]
-/// * Err(DivisionByZero) - Where the error is passed to the calling function if the colatitude angle θ is too small. 
+/// * Err(DivisionByZero) - Where the error is pased to the calling function if the colatitude angle θ is too small. 
 pub fn v_pulse_single_mode(
     mode: &PulsationMode,
     sintheta:f64,
@@ -83,7 +83,7 @@ pub fn v_pulse_single_mode(
 /// the result will have the same units as the velocity amplitudes.
 /// 
 /// ### Arguments:
-/// * `parameters` - The data contained in [PPulstarConfig], here you find the parameters that describe the pulsation modes and the star.
+/// * `parameters` - The data contained in [PulstarConfig], here you find the parameters that describe the pulsation modes and the star.
 /// * `theta_rad` - The colatitude angle in rads, must not be too small in order to avoid the poles.
 /// * `phi_rad` - The azimuthal angle in rads
 /// * `k` - Unit vector in directed towards the observer it is prefered to be in spherical coordinates.
@@ -91,9 +91,9 @@ pub fn v_pulse_single_mode(
 /// ### Returns:
 /// This function returns a [Result] with the following variants:
 /// * `Ok(projected_amplitude)` - Where `projected_amplitude` is a `f64` value that contains the sum of all the pulsation velocities on a specific surface cell projected to the line of sight;
-/// * 'Err(DivisionByZero)` - Where the error is passed to the calling function in case that the colatitude angle θ is too small;
+/// * 'Err(DivisionByZero)` - Where the error is pased to the calling function in case that the colatitude angle θ is too small;
 pub fn observed_pulsation_velocity(
-    parameters:&PPulstarConfig,
+    parameters:&PulstarConfig,
     theta_rad:f64,
     phi_rad:f64,
     k:&Coordinates,
@@ -131,18 +131,18 @@ pub fn observed_pulsation_velocity(
 }
 
 /// Computes the projected (on the line of sight) rotational velocity. 
-/// The result will have the same dimensions as the equatorial rotation velocity. There is an assumption 
+/// The result will have the same dimensions as the equatorial rotation velocity. There is an asumption 
 /// of a uniform rotation with the positive z axis oriented as the rotation axis.
 /// 
 /// ### Arguments:
-/// * `parameters` - The data contained in [PPulstarConfig], here you find the parameters that describe the pulsation modes and the star.
+/// * `parameters` - The data contained in [PulstarConfig], here you find the parameters that describe the pulsation modes and the star.
 /// * `theta_rad` - The colatitude angle in rads, must not be too small in order to avoid the poles.
 /// * `phi_rad` - The azimuthal angle in rads
 /// * `k` - Unit vector in directed towards the observer it is prefered to be in spherical coordinates.
 /// ### Returns:
 /// `projected_velocity` - Where the projected_velocity is a f64 value and which has the same units as v_sini
 pub fn project_vrot(
-    parameters:&PPulstarConfig,
+    parameters:&PulstarConfig,
     theta_rad:f64,
     phi_rad:f64,
     k:&Coordinates

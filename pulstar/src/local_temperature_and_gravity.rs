@@ -1,10 +1,10 @@
-use crate::{PPulstarConfig, PulsationMode};
-use crate::reference_frames::{Coordinates,ddisplacement,ampl_r,ampl_t};
+use crate::{PulstarConfig, PulsationMode};
+use crate::reference_frames::{Coordinates,displacement,ampl_r,ampl_t};
 
 /// This function calculates the local temperature and log_g ver a surface cell
 /// 
 /// ### Arguments:
-/// * `parameters` - The data contained in [PPulstarConfig], here you find the parameters that describe the pulsation modes and the star.
+/// * `parameters` - The data contained in [PulstarConfig], here you find the parameters that describe the pulsation modes and the star.
 /// * `theta_rad` -  The colatitude angle in radians
 /// * `phi_rad` - The azimuthal angle in radians
 /// * `g0` - The base value of local gravity calculated as 10^(log_g0) on the surface of the star.
@@ -13,7 +13,7 @@ use crate::reference_frames::{Coordinates,ddisplacement,ampl_r,ampl_t};
 /// ### Returns:
 /// * `(local_temperature,local_logg)` - a tupple containing the local effective temperature and the local value of log_g
 pub fn local_surface_temperature_logg(
-    parameters:&PPulstarConfig,
+    parameters:&PulstarConfig,
     theta_rad:f64,
     phi_rad:f64,
     g0:f64,
@@ -74,7 +74,7 @@ pub fn local_surface_temperature_logg(
 /// This function calculates variations on the pulsation displacement due to diferent phase of some either temperature or log_g
 /// 
 /// ### Arguments:
-/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PPulstarConfig]
+/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
 /// * `sintheta` - sine of the colatitude coordinate (theta in rads)
 /// * 'costheta' - cosine of the colatitude coordinate (theta in rads)
 /// * `phi_rad`   - azimuthal coordinate  in rads
@@ -104,13 +104,13 @@ fn local_variable_pulsation_displacement(
         rel_dr: mode.rel_dr,
         k: mode.k,
         frequency: mode.frequency,
-        phase_offset: mode.phase_offset + dif_phase,//<-- Here is where we add the phase difference
+        phase_offset: mode.phase_offset + dif_phase,//<-- Here is where we ad the phase difference
         rel_dtemp:mode.rel_dtemp,
         phase_rel_dtemp: mode.phase_rel_dtemp,
         rel_dg: mode.rel_dg,
         phase_rel_dg: mode.phase_rel_dg};
 
-    ddisplacement(
+    displacement(
         &mode_with_dif_phase,
         sintheta,
         costheta, 

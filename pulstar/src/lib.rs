@@ -2,7 +2,7 @@
 //! the (linear) variations on surface temperature, log g, and also the pulsation velocity components.
 //! for each of the surface cells. 
 use serde::Deserialize;
-use temp_name_lib::joris_math::spherical_harmonics;
+use temp_name_lib::math_module::spherical_harmonics;
 use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
 use std::fs;
 use nalgebra as na;
@@ -35,7 +35,7 @@ use nalgebra as na;
 /// It could be provided as an `Explicit` collection where the individual terms are posted explicitly 
 /// or as a `Uniform` collection where the array is characterized by a beggining, an end, and the number of time points. 
 #[derive(Deserialize,Debug,PartialEq)]
-pub struct PPulstarConfig{
+pub struct PulstarConfig{
     /// A vector collection of all of the modes that will be analyzed
     pub mode_data:Vec<PulsationMode>,
 
@@ -119,7 +119,7 @@ pub enum MeshConfig{
 //----Parsing the pulstar_input.toml------
 //----------------------------------------
 
-impl PPulstarConfig {
+impl PulstarConfig {
     /// This function is used to fill the parameters required for the pulstar program to run out of the toml configuration file.
     /// #### Arguments:
     /// * `path_to_file` - this is a string that indicates the path to the `profile_input.toml` file
@@ -130,7 +130,7 @@ impl PPulstarConfig {
             Ok(c)=>c,
              Err(_) => { panic!("Could not read file {}",path_to_file)}
             };
-        let params: PPulstarConfig = match toml::from_str(&contents){
+        let params: PulstarConfig = match toml::from_str(&contents){
             Ok(d) => d,
             Err(e) => {println!("Unable to load data from {}",path_to_file);
                 panic!("error {}",e)}

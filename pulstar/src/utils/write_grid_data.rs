@@ -1,9 +1,5 @@
 use polars::prelude::*;
-use core::time;
-use std::{fs::File, path};
 use polars::prelude::LazyFrame;
-
-use crate::PPulstarConfig;
 
 /// This structure is an abstraction of the star. It effectively creates a columnar data base with all of the surface cells and the associated quantities.
 /// 

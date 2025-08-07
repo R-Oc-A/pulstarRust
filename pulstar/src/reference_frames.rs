@@ -1,7 +1,7 @@
 
 use super::{*,na};
 use spherical_harmonics::{self,plmcos::plmcos};
-use temp_name_lib::joris_math::{spherical_harmonics::norm_factor::ylmnorm};
+use temp_name_lib::math_module::{spherical_harmonics::norm_factor::ylmnorm};
 
 
 
@@ -19,7 +19,7 @@ pub enum Coordinates{
 }
 
 /// In this module there's a collection of methods and implementations useful to handle the coordinate type of coordinates. 
-/// So far we can add vectors, multiply by a scalar from the left, transform from one basis to the other.
+/// So far we can ad vectors, multiply by a scalar from the left, transform from one basis to the other.
 /// get the unit vector pointing along the observer
 /// project from one vector onto the other 
 /// get the spherical r component of a vector
@@ -28,18 +28,18 @@ mod implementations_for_coordinates;
 /// Compute the Lagrangian displacement vector in spherical coordinates
 /// 
 /// ### Arguments:
-/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PPulstarConfig]
+/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
 /// * `sintheta` - sine of the colatitude coordinate (theta in rads)
 /// * 'costheta' - cosine of the colatitude coordinate (theta in rads)
 /// * `phi`   - azimuthal coordinate  in rads
-/// * `radial_amplitude`     - amplitude in the radial direction times the normalization factor `Y_l^m`(see [temp_name_lib::joris_math::spherical_harmonics::norm_factors])
-/// * `tangential_amplitude` - amplitude in the tangential direction times the normalization factor  'Y_l^m' (see [temp_name_lib::joris_math::spherical_harmonics::norm_factors])
+/// * `radial_amplitude`     - amplitude in the radial direction times the normalization factor `Y_l^m`(see [temp_name_lib::math_module::spherical_harmonics::norm_factors])
+/// * `tangential_amplitude` - amplitude in the tangential direction times the normalization factor  'Y_l^m' (see [temp_name_lib::math_module::spherical_harmonics::norm_factors])
 /// 
 /// ### Returns:
 /// This function can return an [Ok] or [Err] variants of [Result] that will have the following values binded to them:
 /// * `Ok(Coordinates::Spherical)` - an Ok  variant that has binded the spherical components of the displacement vector in the`r,θ,φ` order.
 /// * `Err(DivisionByZero)` - an Err variant that has binded the error produced if the colatitude  coordinate (theta) is too small.
-pub fn ddisplacement(
+pub fn displacement(
     mode: &PulsationMode,
     sintheta:f64,
     costheta:f64,
@@ -85,11 +85,11 @@ mod displacement_derivatives;
 /// R_0^2 dθdφ. Users must do this themselves. 
 /// 
 /// ### Arguments:
-/// * `parameters` - The data contained in [PPulstarConfig], here you find the parameters that describe the pulsation modes and the star.
+/// * `parameters` - The data contained in [PulstarConfig], here you find the parameters that describe the pulsation modes and the star.
 /// * `theta_rad` - The colatitude angle in rads, must not be too small in order to avoid the poles.
 /// * `phi_rad` - The azimuthal angle in rads
-pub fn ssurface_normal(
-parameters: &PPulstarConfig,
+pub fn surface_normal(
+parameters: &PulstarConfig,
 theta_rad: f64,
 phi_rad: f64
 )->Result<Coordinates,MathErrors>{
@@ -106,7 +106,7 @@ phi_rad: f64
         let radial_amplitude = ampl_r(mode);
         let tangential_amplitude = ampl_t(mode);
         
-        let pulsation_displacement = ddisplacement(
+        let pulsation_displacement = displacement(
             mode,
             sintheta,
             costheta, 
@@ -136,7 +136,7 @@ phi_rad: f64
             mode,
             sintheta,
             costheta,
-            phi_rad)?;//<- the ? is necessary to pass to the calling function if the colatitude angle theta is too close to the poles.
+            phi_rad)?;//<- the ? is necesary to pas to the calling function if the colatitude angle theta is too close to the poles.
         
         
         total_p_ds += pulsation_displacement;
@@ -172,7 +172,7 @@ phi_rad: f64
 /// The z-axis coincides with the rotation axis.
 /// 
 /// ### Arguments:
-/// * `surface_normal` - a spherical [Coordinates] vector normal to a surface cell that has as length the (normalized) area of the cell. See [ssurface_normal]
+/// * `surface_normal` - a spherical [Coordinates] vector normal to a surface cell that has as length the (normalized) area of the cell. See [surface_normal]
 /// * `k` - a unit vector pointing towards the observer on a frame of reference where the z-axis coincides with the rotation axis.
 /// * `theta_rad` - the colatitude angle on the star in radians. This angle should not be too small. 
 /// * `phi_rad` - the azimuthal angle on the star in radians.
@@ -198,7 +198,7 @@ pub fn cos_chi(surface_normal:&Coordinates,
 /// This function calculates the amplitude of the relative radial displacement multiplied by the normalization factor `Y_l^m`
 /// 
 /// ### Arguments:
-/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PPulstarConfig]
+/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
 /// 
 /// ### Returns:
 /// * `radial_amplitude` - A `f64` value that contains the amplitude of relative radial displacement (thus without units) caused by the pulsations of a given mode. 
@@ -209,7 +209,7 @@ pub fn ampl_r(mode:&PulsationMode)->f64{
 /// This function calculates the amplitude of the relative tangential displacement multiplied by the normalization factor `Y_l^m`
 /// 
 /// ### Arguments:
-/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PPulstarConfig]
+/// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
 /// 
 /// ### Returns:
 /// * `tangential_amplitude` - A `f64` value that contains the amplitude of relative tangential displacement (thus without units) caused by the pulsations of a given mode. 

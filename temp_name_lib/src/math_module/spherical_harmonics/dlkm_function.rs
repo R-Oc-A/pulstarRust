@@ -1,5 +1,5 @@
-use crate::joris_math::lnfac::lnfac;
-use crate::joris_math::binomial::binomial;
+use crate::math_module::lnfac::lnfac;
+use crate::math_module::binomial::binomial;
 use is_odd::IsOdd;
 /// Computes the quantity d^{(l)}_{km}(angle) as defined by Condon & Odabasi 
 /// (1980, "Atomic Structure" ISBN 0 521 21859 4). 
