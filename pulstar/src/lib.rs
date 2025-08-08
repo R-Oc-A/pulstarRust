@@ -4,6 +4,7 @@
 use serde::Deserialize;
 use temp_name_lib::math_module::spherical_harmonics;
 use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
+use temp_name_lib::type_def::PI;
 use std::fs;
 use nalgebra as na;
 
@@ -81,7 +82,16 @@ pub struct PulsationMode{
 
     /// The phase offset of gravity
     pub phase_rel_dg: f64,
-}
+
+    /// Current phase of the displacement pulsation
+    pub phase: f64,
+
+    /// Current phase of the Temperature variation
+    pub phase_temp:f64,
+
+    ///Current phase of the log g variation
+    pub phase_logg:f64,
+}   
 
 /// This structure parameterizes the star
 #[derive(Deserialize,Debug,PartialEq)]
@@ -178,3 +188,52 @@ pub mod local_pulsation_velocity;
 /// This module contains the functions and methods used to compute the variation of temperature and gravity 
 /// over  a specific surface cell (e.g. coordinates (θ,φ) and size Δθ×Δφ).
 pub mod local_temperature_and_gravity;
+
+pub trait ConvertToRad {
+    fn convert_to_radians(&mut self);
+}
+
+impl ConvertToRad for PulsationMode{
+    fn convert_to_radians(&mut self) {
+        self.phase_rel_dg= self.phase_rel_dg.to_radians();
+        self.phase_rel_dtemp = self.phase_rel_dtemp.to_radians();
+    }
+}
+
+impl ConvertToRad for PulstarConfig{
+    fn convert_to_radians(&mut self) {
+        for mode in self.mode_data.iter_mut(){
+            mode.convert_to_radians();
+        }
+    }
+}
+
+
+pub trait AdvanceInTime {
+    fn advance_in_time(&mut self,time_point:f64);
+}
+
+impl AdvanceInTime for PulsationMode{
+    fn advance_in_time(&mut self,time_point:f64) {
+        self.phase = 2.0 * PI *(self.frequency * time_point 
+            + self.phase_offset);
+
+        self.phase_temp = self.phase + self.phase_rel_dtemp;
+        
+        self.phase_logg = self.phase + self.phase_rel_dg;
+
+    }
+}
+impl AdvanceInTime for PulstarConfig{
+    /// For each of the pulsation modes this method computes the current phase of pulsation
+    /// 
+    /// ### Arguments: 
+    /// * `time_point` - a [f64] value that will be used to compute the phase of the pulsation
+    /// ### Returns:
+    /// * This function updates the phase parameter of the [PulsationMode]s.
+    fn advance_in_time(&mut self,time_point:f64) {
+        for mode in self.mode_data.iter_mut(){
+            mode.advance_in_time(time_point);
+        }
+    }
+}

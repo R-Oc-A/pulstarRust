@@ -49,7 +49,7 @@ pub fn displacement(
         match sintheta.abs() <= f64::EPSILON.sqrt(){
             true => {Err(MathErrors::DivisionByZero)}
             false => {
-                let phase = mode.phase_offset.to_radians();
+                let phase = mode.phase;
                 let l = mode.l;
                 let m =  mode.m;
                 

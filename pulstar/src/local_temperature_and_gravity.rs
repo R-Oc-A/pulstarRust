@@ -1,4 +1,4 @@
-use crate::{PulstarConfig, PulsationMode};
+use crate::{AdvanceInTime, PulsationMode, PulstarConfig};
 use crate::reference_frames::{Coordinates,displacement,ampl_r,ampl_t};
 
 /// This function calculates the local temperature and log_g ver a surface cell
@@ -39,7 +39,7 @@ pub fn local_surface_temperature_logg(
             phi_rad, 
             radial_amplitude, 
             tangential_amplitude, 
-            mode.phase_rel_dtemp);
+            mode.phase_temp);
             if let Some(ds_r) = ds.r_component(){
             local_temperature += mode.rel_dtemp * ds_r;
             };
@@ -53,7 +53,7 @@ pub fn local_surface_temperature_logg(
             phi_rad, 
             radial_amplitude, 
             tangential_amplitude, 
-            mode.phase_rel_dg);
+            mode.phase_logg);
             if let Some(ds_r) = ds.r_component(){
             local_g += mode.rel_dg * ds_r; 
             };
@@ -90,25 +90,29 @@ fn local_variable_pulsation_displacement(
     phi_rad:f64,
     radial_amplitude:f64,
     tangential_amplitude:f64,
-    dif_phase:f64)->Coordinates{
+    dif_phase:f64,
+    )->Coordinates{
     
     //[Ricardo:] There's a shorter version of this, namely 
-    //
     // let mut mode_with_dif_phase = *mode.clone();
     // mode_with_dif_phase.phase_offset += dif_phase;
-    //
     // However I'm not quite sure I want to implement the Clone and Copy traits on the PulsationMode structure. 
+    //
     let mode_with_dif_phase = PulsationMode { 
         l: mode.l,
         m: mode.m,
         rel_dr: mode.rel_dr,
         k: mode.k,
         frequency: mode.frequency,
-        phase_offset: mode.phase_offset + dif_phase,//<-- Here is where we ad the phase difference
+        phase_offset: mode.phase_offset,//<-- Here is where we ad the phase difference
         rel_dtemp:mode.rel_dtemp,
         phase_rel_dtemp: mode.phase_rel_dtemp,
         rel_dg: mode.rel_dg,
-        phase_rel_dg: mode.phase_rel_dg};
+        phase_rel_dg: mode.phase_rel_dg,
+        phase: dif_phase,
+        phase_temp:mode.phase_temp,
+        phase_logg:mode.phase_logg
+    };
 
     displacement(
         &mode_with_dif_phase,

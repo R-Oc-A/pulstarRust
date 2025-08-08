@@ -1,4 +1,4 @@
-use std::f64::consts::PI as PI;
+pub use std::f64::consts::PI as PI;
 
 pub const GRAVCONSTANT:f64 = 6.67259e-11;       // SI-units (m^3/s^2/kg) */
 pub const MASSSUN:f64 = 1.9891e30;              // SI-units (kg)         */

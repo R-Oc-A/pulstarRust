@@ -28,7 +28,7 @@ pub fn d_dr_rdtheta(
 	phi: f64) -> f64{
 
     let r_dr = mode.rel_dr;
-    let phase= mode.phase_offset;
+    let phase= mode.phase;
     let l = mode.l;
     let m= mode.m;
                             
@@ -53,7 +53,7 @@ pub fn d_dtheta_dtheta(
 	phi: f64) -> f64{
 
     let r_dr = mode.rel_dr;
-    let phase= mode.phase_offset;
+    let phase= mode.phase;
     let k = mode.k;
     let l = mode.l;
     let m= mode.m;
@@ -79,7 +79,7 @@ pub fn d_dr_rdphi(
 	phi: f64) -> f64{
 
     let r_dr = mode.rel_dr;
-    let phase= mode.phase_offset;
+    let phase= mode.phase;
     let l = mode.l;
     let m= mode.m;
     
@@ -108,7 +108,7 @@ pub fn d_dphi_dphi(
     match sintheta < MACHINE_PRECISION{  
         false => {
         let r_dr = mode.rel_dr;
-        let phase= mode.phase_offset;
+        let phase= mode.phase;
         let k= mode.k;
         let l = mode.l;
         let m= mode.m;

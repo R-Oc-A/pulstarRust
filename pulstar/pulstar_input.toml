@@ -11,12 +11,12 @@ step = 0.01
 #[time_points.Explicit]
 #collection = [0.01,0.3,0.32]
 [[mode_data]]
-l = 4
-m = 1
-rel_dr = 0.024
-k = 0.05 #this should be model defined rather than user defined
+l = 4 # degree of the mode
+m = 1 # azimuthal order
+rel_dr = 0.024 #relative lagrangian displacement amplitude 
+k = 0.05 #this should be model defined rather than user defined, This is related the ratio of horizontal displacement/vertical displacement
 frequency = 6.74 # in an inertial frame cycles/day
-phase_offset = 0.00 
+phase_offset = 0.00 #values in the [0,1] domain
 rel_dtemp = 2.62 
 phase_rel_dtemp = 180.0
 rel_dg = 10.0
@@ -26,7 +26,7 @@ phase_rel_dg = 34.0
 mass = 10.0
 radius = 6.93
 effective_temperature = 22642.0
-v_omega = 20.0
+v_omega = 20.0 #Rotation velocity
 inclination_angle = 45.0
 
 [mesh.Sphere]
