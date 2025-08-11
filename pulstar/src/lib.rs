@@ -130,23 +130,6 @@ pub enum MeshConfig{
 //----------------------------------------
 
 impl PulstarConfig {
-    /// This function is used to fill the parameters required for the pulstar program to run out of the toml configuration file.
-    /// #### Arguments:
-    /// * `path_to_file` - this is a string that indicates the path to the `profile_input.toml` file
-    /// #### Returns:
-    /// * new instance of the profile config structure.
-    pub fn read_from_toml(path_to_file:&str)->Self{
-        let contents = match fs::read_to_string(path_to_file){
-            Ok(c)=>c,
-             Err(_) => { panic!("Could not read file {}",path_to_file)}
-            };
-        let params: PulstarConfig = match toml::from_str(&contents){
-            Ok(d) => d,
-            Err(e) => {println!("Unable to load data from {}",path_to_file);
-                panic!("error {}",e)}
-        }; 
-        params
-    }
 
     /// This function extracts the time points from the configuration file of the pulstar code as a vector with elements of `f64` type
     pub fn get_time_points(&self)->Vec<f64>{
@@ -236,4 +219,9 @@ impl AdvanceInTime for PulstarConfig{
             mode.advance_in_time(time_point);
         }
     }
+}
+
+
+pub trait ParsingFromToml {
+    fn read_from_toml(path_to_file:&str)->Self;
 }

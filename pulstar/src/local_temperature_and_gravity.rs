@@ -1,4 +1,4 @@
-use crate::{AdvanceInTime, PulsationMode, PulstarConfig};
+use crate::{PulsationMode, PulstarConfig};
 use crate::reference_frames::{Coordinates,displacement,ampl_r,ampl_t};
 
 /// This function calculates the local temperature and log_g ver a surface cell

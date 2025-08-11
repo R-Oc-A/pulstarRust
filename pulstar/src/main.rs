@@ -2,7 +2,7 @@ use temp_name_lib::type_def::{CYCLI2RAD};
 use pulstar::{local_pulsation_velocity::observed_pulsation_velocity, local_temperature_and_gravity::local_surface_temperature_logg, reference_frames::{self, surface_normal, Coordinates}, utils::{print_info::print_report, write_grid_data::write_output_to_parquet}, PulstarConfig};
 use pulstar::utils::write_grid_data::{RasterizedStarOutput, collect_output};
 use std::{env, f64::consts::PI, time::Instant};
-use pulstar::AdvanceInTime;
+use pulstar::{AdvanceInTime,ParsingFromToml};
 fn main() {
 
     // program start!
