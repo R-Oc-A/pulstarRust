@@ -6,3 +6,4 @@ tags
 perf*
 *.gz
 profile/grids/*
+pulstar/pulstar_TODO.txt

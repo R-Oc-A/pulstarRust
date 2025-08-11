@@ -73,9 +73,9 @@ impl ParsingFromToml for InputParameters {
 }
 
 impl PulsationModeNoPhases{
-    pub fn get_initial_phases(NoPhasesVec:Vec<Self>) -> Vec<PulsationMode>{
+    pub fn get_initial_phases(no_phases_vec:Vec<Self>) -> Vec<PulsationMode>{
         let mut mode_data:Vec<PulsationMode> = Vec::new();
-        for mode in NoPhasesVec.into_iter(){
+        for mode in no_phases_vec.into_iter(){
             mode_data.push(
                 PulsationMode { l: mode.l,
                     m:mode.m, 

@@ -5,7 +5,6 @@ use serde::Deserialize;
 use temp_name_lib::math_module::spherical_harmonics;
 use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
 use temp_name_lib::type_def::PI;
-use std::fs;
 use nalgebra as na;
 
 
@@ -201,9 +200,11 @@ impl AdvanceInTime for PulsationMode{
         self.phase = 2.0 * PI *(self.frequency * time_point 
             + self.phase_offset);
 
-        self.phase_temp = self.phase + self.phase_rel_dtemp;
-        
-        self.phase_logg = self.phase + self.phase_rel_dg;
+        self.phase_temp = 2.0 * PI *(self.frequency * time_point 
+            + self.phase_offset) + self.phase_rel_dtemp;
+        self.phase_logg = 2.0 * PI *(self.frequency * time_point 
+            + self.phase_offset) + self.phase_rel_dg;
+
 
     }
 }

@@ -1,4 +1,4 @@
-use crate::{utils::parse_input_file::InputParameters, ParsingFromToml, PulstarConfig};
+use crate::{ParsingFromToml, PulstarConfig};
 
 pub mod write_grid_data;
 
