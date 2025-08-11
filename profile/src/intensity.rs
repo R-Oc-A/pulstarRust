@@ -3,7 +3,6 @@ use polars::{error::ErrString, prelude::*};
 use crate::intensity::parse_intensity_grids::IntensityDataFrames;
 
 use super::*;
-mod define_parameter_space;
 use std::fs::File;
 
 /// This module contains the methods and functions to process the intensity grids. 
@@ -137,64 +136,6 @@ impl UnwrappedGrids{
             .with_order_descending_multi([false,false]));
  
        df.unwrap()
-    }
-
-    /// This function creates an [Expr] that filters only the relevant grid files
-    /// 
-    /// ### Arguments:
-    /// * `temperatures` - a reference to a vector that contains all of the local temperatures for each surface cell
-    /// * `log_g` - a reference to a vector that contains all of the local values for log_g
-    /// * `delta_temp` - temperature spacing between grid files
-    /// * `delta_logg` - logg spacing between grid files
-    /// ### Returns:
-    /// This function returns a [Option] with the following variants:
-    /// * `Ok(Expr)` - where Expr defines the relevant temperatures and log g in the parameter space.
-    /// * 'None' - when there's an error on the computation of the local values. 
-    fn filter_grids(temperatures:&[f64],log_g:&[f64],delta_temp:f64,delta_logg:f64)->Option<Expr>{
-        
-        let max_temp = temperatures.iter().fold(0.0, |acc,x| if acc<*x {*x}else{acc});
-        let max_logg = log_g.iter().fold(0.0, |acc,x| if acc<*x {*x}else{acc});
-        let min_temp = temperatures.iter().fold(0.0, |acc,x| if acc>*x {*x}else{acc});
-        let min_logg = log_g.iter().fold(0.0, |acc,x| if acc>*x {*x}else{acc});
-
-        if max_temp*max_logg*min_temp*min_logg == 0.0{ //<--- If there's some maximum or minimum missing, filter nothing.
-            None
-        }else{
-
-            let upper_bound_temp = col("temperature").lt_eq(lit(max_temp+delta_temp));
-            let upper_bound_logg= col("log_gravity").lt_eq(lit(max_logg+delta_logg));
-            let lower_bound_temp = col("temperature").gt_eq(lit(min_temp-delta_temp));
-            let lower_bound_logg= col("log_gravity").gt_eq(lit(min_logg-delta_logg));
-        
-            let uu_expr = upper_bound_temp.clone().and(upper_bound_logg.clone());
-            let ul_expr = upper_bound_temp.and(lower_bound_logg.clone());
-            let lu_expr = lower_bound_temp.clone().and(upper_bound_logg);
-            let ll_expr = lower_bound_temp.and(lower_bound_logg);
-        
-            let combined_expr = uu_expr.and(lu_expr.and(ul_expr.and(ll_expr)));
-        
-            Some(combined_expr)
-        }
-        
-    }
-    /// This function creates a data frame with the columns "temperature","log_gravity","file name"
-    /// that are Float64, Float64, &[str] in that order. 
-    /// 
-    /// The data frame is ordered from lower to greater both in temperature and gravity. 
-    /// Only the relevant grid files from the computation will be loaded
-    fn load_gridfiles_into_dataframe(self,temperatures:&[f64],log_g:&[f64])->PolarsResult<DataFrame>{
-        let db_temp = self.temperatures.clone();
-        let db_log_g = self.log_g.clone();
-        let delta_temp = (db_temp.last().unwrap() - db_temp.get(0).unwrap())/(db_temp.len() as f64);
-        let delta_logg = (db_log_g.last().unwrap() - db_log_g.get(0).unwrap())/(db_log_g.len() as f64);
-        
-        let df = self.create_dataframe_sorted();
-
-        let lf = df.lazy();
-        
-        if let Some(param_space_expression) = Self::filter_grids(temperatures, log_g, delta_temp, delta_logg){
-            lf.filter(param_space_expression).collect()
-        }else { Err(PolarsError::InvalidOperation(ErrString::new_static("The loaded grid files are not adequate to carry on the computation."))) }
     }
 }
 
