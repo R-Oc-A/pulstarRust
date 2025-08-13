@@ -60,12 +60,7 @@ fn main() {
     println!("here they are:");
     println!("{:#?}",time_points);
     println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
-    // Initialize the arrays that contain all the output information. This will be saved at the end of the computation on a parquet file.
-    let mut all_fluxes:Vec<f64> = Vec::new(); // Intensity fluxes.
-    let mut all_cont: Vec<f64> = Vec::new(); // Continuum fluxes.
-    let mut all_times: Vec<f64> = Vec::new(); // time point where the intensity and continuum are calculated.
-    let mut all_wavelengths: Vec<f64> = Vec::new(); // Wavelengths whose fluxes are computed.
-
+    
     //--------------------------------------- 
     //----Loading intensity flux grids-------
     //---------------------------------------
@@ -164,4 +159,5 @@ fn main() {
         write_into_parquet(time_point_number as u16 + 1, fluxes).expect(&format!("Unable to write parquet file for {} time point",*phase));
     }
     println!("finished computation for a star's pulsation");
+    println!("Total computation time is {:#?}",start_computing_time.elapsed());
 }
