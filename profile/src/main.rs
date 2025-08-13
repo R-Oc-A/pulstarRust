@@ -1,7 +1,7 @@
 use std::env;
 use polars::prelude::*;
 //use profile::intensity::IntensityGrids;
-use profile::*;
+use profile::{utils::{write_into_parquet, FluxOfSpectra}, *};
 use temp_name_lib::type_def::CLIGHT;
 use std::time::Instant;
 
@@ -92,7 +92,7 @@ fn main() {
     //-------------- Collect fluxes for each time point  -------------
     //----------------------------------------------------------------
     //time loop    
-    for phase in time_points.iter() {
+    for (time_point_number,phase) in time_points.iter().enumerate() {
         
         let expr = col("time").eq(lit(*phase));
         let sphere_frame = lf.clone().filter(expr);
@@ -104,7 +104,7 @@ fn main() {
         let capacity = wavelength.len();
         let mut flux = vec![0.0;capacity];
         let mut cont = vec![0.0;capacity];
-        let mut time_vec = vec![*phase;capacity];
+        let time_vec = vec![*phase;capacity];
 
         println!("finished collecting a the star pulsation profile for the timestep {}",phase);
         println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
@@ -154,23 +154,14 @@ fn main() {
                     cont[index] += cont_thetaphi[index]; 
                 }
                 
-            }
-        
-        all_fluxes.append(& mut flux);
-        all_cont.append(& mut cont);
-        all_times.append(& mut time_vec);
-        all_wavelengths.extend(wavelength.iter().copied());
-        
-    }//end time loop
+        };
+        let fluxes = FluxOfSpectra{
+            all_times: time_vec,
+            all_continuum: cont,
+            all_wavelengths: wavelength.clone(),
+            all_fluxes:flux
+        };
+        write_into_parquet(time_point_number as u16 + 1, fluxes).expect(&format!("Unable to write parquet file for {} time point",*phase));
+    }
     println!("finished computation for a star's pulsation");
-    
-    //Write parquet file
-    let output_file_name= String::from("wavelengths.parquet");
-    utils::write_into_parquet(&output_file_name,
-         &all_wavelengths, 
-         &all_fluxes, 
-         &all_cont, 
-         &all_times);
-    
-    
 }

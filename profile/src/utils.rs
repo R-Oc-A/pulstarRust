@@ -1,6 +1,96 @@
 use std::path::PathBuf;
 use polars:: prelude::*;
 
+pub struct FluxOfSpectra{
+    pub all_times: Vec<f64>,
+    pub all_wavelengths: Vec<f64>,
+    pub all_fluxes: Vec<f64>,
+    pub all_continuum:Vec<f64>,
+}
+
+
+
+
+/// This function opens the parquet file and creates a lazyframe out of the handle.
+/// ### Arguments: 
+/// * `path to parquet` - a [std::path::PathBuf] that indicates the path and name to the parquet file.
+/// ### Returns:
+///  This function returns a [PolarsResult] with the following variants:
+/// * `Ok(LazyFrame)` - In case the [LazyFrame] was adequately created.
+/// * `Err(PolarsError)` - Returning a [PolarsError] to the calling function. 
+fn open_collecting_parquet_file_as_lazyframe(path_to_parquet: &std::path::PathBuf)->PolarsResult<LazyFrame>{
+    LazyFrame::scan_parquet(path_to_parquet, ScanArgsParquet::default())
+}
+
+
+/// This function stacks the the LazyFrame of the spectrum into the collection stored in the parquet file and creates a lazyframe out of the handle.
+/// ### Arguments: 
+/// * `spectrum_lazyframe` - a [LazyFrame] created from the data frame of the rasterized star.
+/// * `parquet_file_lazyframe` - a [LazyFrame] created from the parquet file
+/// ### Returns:
+///  This function returns a [PolarsResult] with the following variants:
+/// * `Ok(LazyFrame)` - In case the [LazyFrame] was adequately created.
+/// * `Err(PolarsError)` - Returning a [PolarsError] to the calling function. 
+fn append_current_lf_into_collection_lf(spectra_lazyframe:LazyFrame,parquet_file_lazyframe:LazyFrame)->PolarsResult<LazyFrame>{
+    concat(
+        [parquet_file_lazyframe,spectra_lazyframe],
+        UnionArgs::default()
+    )
+}
+
+/// This function removes the parquet file that holds the old collection of rasterized stars
+/// 
+/// ### Arguments: 
+/// * `path_to_parquet` - A [std::path::PathBuf] path to the old parquet file. 
+/// ### Returns: 
+/// This function returns a [Result] with the following variants:
+/// * `Ok(_)` - if everything went ok.
+/// * `Err(std::io::Error)` - where the error is passed to the calling function to indicate that it could not remove the file. 
+fn remove_temp_parquet_file(time_points:u16)->Result<(), std::io::Error>{
+    //let old_path = std::path::PathBuf::from(format!("rasterized_star_{}tp.parquet",time_points-1));
+    let old_file =format!("wavelengths_tp{}.parquet",time_points-1); 
+    println!("deletting {}",old_file);
+    std::fs::remove_file(old_file)?;
+    Ok(())
+}
+
+
+/// This function creates a [DataFrame] out of a [RasterizedStarOutput]. WARNING: This function takes ownership of the RasterizedStarOutput.
+/// 
+/// ### Arguments:
+/// * `fluxes` - An instance of [FluxOfSpectra] that contains all of the intensity values for a specific time point.
+/// ### Returns: 
+///  This function returns a [PolarsResult] with the following variants:
+/// * `Ok(DataFrame)` - In case the [DataFrame] was adequately created.
+/// * `Err(PolarsError)` - Returning a [PolarsError] to the calling function. 
+fn create_spectra_dataframe(fluxes: FluxOfSpectra)->PolarsResult<DataFrame>{
+    // The df! macro creates a new dataframe with the columns ("column header"=>values) ordered from left to right
+    df!(
+        "time" => fluxes.all_times,
+        "wave length" => fluxes.all_wavelengths,
+        "flux" => fluxes.all_fluxes,
+        "continuum" => fluxes.all_continuum
+    )
+}
+
+
+///This function creates the [LazyFrame] that will be used to create the parquet file 
+/// 
+/// ### Arguments:
+/// * `time_points` - a [u16] integer that indicates the time_point to be added. 
+/// * `flux_lf` - the [LazyFrame] of the [FluxOfSpectra] [DataFrame]
+/// ### Returns:
+/// * [LazyFrame] - This lazyframe will be sinked ([polars::prelude::LazyFrame::sink_parquet]) into a parquet file
+fn lazyframe_to_be_written (time_points:u16,flux_lf:LazyFrame)->PolarsResult<LazyFrame>{
+    if time_points == 1{
+        Ok(flux_lf)
+    }else{
+        let old_path = std::path::PathBuf::from(format!("wavelengths_tp{}.parquet",time_points-1));
+        let old_lf = open_collecting_parquet_file_as_lazyframe(&old_path)?;
+        Ok(append_current_lf_into_collection_lf(flux_lf, old_lf)?)
+    }
+}
+
 
 /// This function writes all of the data calculated into a single parquet. It may be modified into a version that handles memory more efficiently as
 /// this one currently stores all of the calculations into big arrays. 
@@ -16,39 +106,35 @@ use polars:: prelude::*;
 /// * `|time|wave length|flux|continuum|mean flux|`
 /// where `mean flux` is `flux / continuum`.
 pub fn write_into_parquet(
-    output_file_name: &str,
-    wavelength_vec:&[f64],
-    all_flux: &[f64],
-    all_cont: &[f64],
-    all_time: &[f64]
-){
-    let time_0 = all_time[0];
-    // create a data frame with all of the data, then create a lazy frame
-    let output_df = df!(
-        "time" => all_time,
-        "wave length" => wavelength_vec,
-        "flux" => all_flux,
-        "continuum" => all_cont,
-    ).expect("something went very wrong");
-    
+    time_points:u16,
+    fluxes: FluxOfSpectra,
+)->PolarsResult<()>{
+    //Initialize output_df
+    let time_0 = fluxes.all_times[0];
+    let output_df = create_spectra_dataframe(fluxes).expect("something went very wrong while creating output");
     let lf = output_df.lazy();
     
     // construct the mean flux expresion for the lazy data frame flux/cont
-    let expr = col("flux") / col("continuum").alias("mean flux");
-    let output_lf = lf.with_column(expr);
+    let expr = (col("flux") / col("continuum")).alias("mean flux");
+    let flux_lf = lf.with_column(expr);//<--Here's an error, it should be something like select... let's see How I fix it. However it's weird That it functions when I just present the fluxes...
 
     // write lazy frame into parquet
-    let mut path = PathBuf::new();
-    path.push(output_file_name);
-    let stream_lf = output_lf
-    .sink_parquet(SinkTarget::Path(Arc::new(path)),
-    ParquetWriteOptions::default(), 
-     None,
-     SinkOptions::default()).unwrap();
-    stream_lf.collect().unwrap();
+    let new_path = PathBuf::from(
+        format!("wavelengths_tp{}.parquet",time_points)
+    );
+    let lf_to_write = lazyframe_to_be_written(time_points,
+         flux_lf.clone())?;
+
+    if let Ok(lf) = lf_to_write.sink_parquet(
+        SinkTarget::Path(Arc::new(new_path.clone())),
+        ParquetWriteOptions::default(),
+        None,
+        SinkOptions::default()){
+            lf.collect()?;
+        }else {eprint!("unable to sink to a parket in {} time_point",time_points)};
 
     // print 5 rows of the parquet output
-    let llf = LazyFrame::scan_parquet(output_file_name,
+    let llf = LazyFrame::scan_parquet(new_path,
     ScanArgsParquet::default()).unwrap();
 
     println!("---------------------------------------");
@@ -56,7 +142,10 @@ pub fn write_into_parquet(
     println!("First 5 rows:");
     println!("{}", llf.filter(col("time").eq(lit(time_0))).collect()
     .unwrap().head(Some(5usize)));
+    
+    if time_points > 1u16
+    {remove_temp_parquet_file(time_points)?};
 
-    // wait for some one to ask "what's up doc?"
+    Ok(())
 }
 
