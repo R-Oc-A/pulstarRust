@@ -13,40 +13,49 @@ pub fn extract_relevant_wavelengths(
     
     // Extract df's collumns into vectors; Wavelengths are ordered from lower to greater so we'll profit from that.
         let df_wavelengths=extract_column_as_vectorf64("wavelength", grid_dataframe);
-        let df_a = extract_column_as_vectorf64("a", grid_dataframe);
-        let df_b = extract_column_as_vectorf64("b", grid_dataframe);
-        let df_c = extract_column_as_vectorf64("c", grid_dataframe);
-        let df_d = extract_column_as_vectorf64("d", grid_dataframe);
-        let df_ac = extract_column_as_vectorf64("ac", grid_dataframe);
-        let df_bc = extract_column_as_vectorf64("bc", grid_dataframe);
-        let df_cc = extract_column_as_vectorf64("cc", grid_dataframe);
-        let df_dc = extract_column_as_vectorf64("dc", grid_dataframe);
-    // Get relevant indices of the df_wavelength vector into an index vector
-        let indices = extract_important_indices(shifted_wavelengths, &df_wavelengths);
-    // Construct new vectors using only the relevant indices
-        let wavelengths = construct_new_vec_using_indices(df_wavelengths, &indices);
-        let a = construct_new_vec_using_indices(df_a, &indices);
-        let b = construct_new_vec_using_indices(df_b, &indices);
-        let c = construct_new_vec_using_indices(df_c, &indices);
-        let d = construct_new_vec_using_indices(df_d, &indices);
-        let ac = construct_new_vec_using_indices(df_ac, &indices);
-        let bc = construct_new_vec_using_indices(df_bc, &indices);
-        let cc = construct_new_vec_using_indices(df_cc, &indices);
-        let dc = construct_new_vec_using_indices(df_dc, &indices);
-
-    // Construct a data frame using the relevant indices
-    let relevant_df= df![
-        "wavelength"=>wavelengths,
-        "a" => a,
-        "b" => b,
-        "c" => c,
-        "d" => d,
-        "ac" => ac,
-        "bc" => bc,
-        "cc" => cc,
-        "dc" => dc
-    ].unwrap();
-    relevant_df
+        let grid_precision = (df_wavelengths[1]-df_wavelengths[0]).abs()+5.0e-3;
+        let wavelength_precision = (shifted_wavelengths[1]-shifted_wavelengths[0]).abs();
+    let relevant_df = match wavelength_precision>grid_precision{// If the requested wavelength spacing is bellow the grid precision, then all of the grids wavelengths are relevant ones.
+        true => {
+            let df_a = extract_column_as_vectorf64("a", grid_dataframe);
+	        let df_b = extract_column_as_vectorf64("b", grid_dataframe);
+	        let df_c = extract_column_as_vectorf64("c", grid_dataframe);
+	        let df_d = extract_column_as_vectorf64("d", grid_dataframe);
+	        let df_ac = extract_column_as_vectorf64("ac", grid_dataframe);
+	        let df_bc = extract_column_as_vectorf64("bc", grid_dataframe);
+	        let df_cc = extract_column_as_vectorf64("cc", grid_dataframe);
+	        let df_dc = extract_column_as_vectorf64("dc", grid_dataframe);
+		    // Get relevant indices of the df_wavelength vector into an index vector
+	        let indices = extract_important_indices(shifted_wavelengths, &df_wavelengths);
+    	    // Construct new vectors using only the relevant indices
+	        let wavelengths = construct_new_vec_using_indices(df_wavelengths, &indices);
+	        let a = construct_new_vec_using_indices(df_a, &indices);
+	        let b = construct_new_vec_using_indices(df_b, &indices);
+	        let c = construct_new_vec_using_indices(df_c, &indices);
+	        let d = construct_new_vec_using_indices(df_d, &indices);
+	        let ac = construct_new_vec_using_indices(df_ac, &indices);
+	        let bc = construct_new_vec_using_indices(df_bc, &indices);
+	        let cc = construct_new_vec_using_indices(df_cc, &indices);
+	        let dc = construct_new_vec_using_indices(df_dc, &indices);
+	
+	        // Construct a data frame using the relevant indices
+		    df![
+		        "wavelength"=>wavelengths,
+		        "a" => a,
+		        "b" => b,
+		        "c" => c,
+		        "d" => d,
+		        "ac" => ac,
+		        "bc" => bc,
+		        "cc" => cc,
+		        "dc" => dc
+		    ].unwrap()
+	        }
+	    false => {
+	            grid_dataframe.clone()
+	        }
+	    };
+	    relevant_df
 }
 
 /// This function is useful to get the relevant indices out of the wavelength vector. 

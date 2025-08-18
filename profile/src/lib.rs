@@ -74,7 +74,7 @@ impl ProfileConfig {
         match params.intensity_grids_are_loaded(){
             Ok(()) => { params }
             Err(e) => { panic!("Intensity files are not properly loaded into the directory, '{}' not found.
- Either load the file into the directory or check the toml file to see if there was a miss spelling",e)}
+ Either load the file into the directory or check the toml file to see if there was a misspelling",e)}
         }
     }
 
