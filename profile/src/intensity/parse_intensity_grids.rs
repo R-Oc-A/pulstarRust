@@ -1,3 +1,5 @@
+use polars::chunked_array::collect;
+
 use super::*;
 
 /// This structure has a collection of the [DataFrame]s extracted from the intensity grid file. This [DataFrame]s have been filtered
@@ -169,7 +171,7 @@ pub fn filter2_sift_wavelengths(
     maxval_rel_dopplershift:f64,
     minval_rel_dopplershift:f64)->Option<Expr> {
 
-    let epsilon = 0.01;    
+    let epsilon = 1.0e-3;    
     let mut combined_expresion: Option<Expr> = None;
     
     for wavelength in wavelengths.iter(){
@@ -210,21 +212,88 @@ pub fn parse_relevant_intensity_grids(
     let log_g_vector = extract_column_as_vectorf64("log_gravity", &grids_db);
     let filenames = extract_column_as_vector_string("file name", &grids_db);
 
+    let is_low_resolution = (wavelengths[1]-wavelengths[0])>5.0e-3;//if the requested wavelengths are separated by more than 0.005 nm
     let mut intensity_dfs:Vec<DataFrame> = Vec::new();
     for name in filenames{
         let lf = read_intensity_grid_file(&name).expect("Unable to read intensity grid file");
         println!("loading {} grid file",name);
-//        intensity_dfs.push(lf.filter(
-//            filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).unwrap()
-//            ).collect().expect("unable to produce dataframe using the intensity grid files"));
-        intensity_dfs.push(lf.filter(
-            filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).unwrap().and(
-            filter2_sift_wavelengths(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).unwrap()
-            )).collect().expect("unable to produce dataframe using the intensity grid files"));
+
+        let temp_df =lf.filter(
+            filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).unwrap()
+            ).collect().expect("unable to produce dataframe using the intensity grid files");
+        if is_low_resolution {
+            intensity_dfs.push(
+                sifted_wavelengths_dataframe(wavelengths,
+                    temp_df.lazy(),
+                    maxval_rel_dopplershift,
+                    minval_rel_dopplershift).expect("unable to produce dataframe using the intensity grid files")
+                );
+        }
+        else {
+            intensity_dfs.push(temp_df);
+        }
     }
     IntensityDataFrames{
         temperature_vector:temperature_vector,
         log_g_vector: log_g_vector,
         intensity_dfs:intensity_dfs,
     }
+}
+
+
+/// This function returns an intensity dataframe with only relevant wavelengths
+/// The main purpose of this function is when you have a  low_resolution wavelength spectra
+/// with bigger number of waves than 500. 
+/// 
+/// [polars] has a difficult time dealing with the combined expresion of more than 500 conditionals so the strategy implemented here
+/// is to sepparate an intensity dataframe into chunks and sift the relevant wavelengths by chunks. 
+/// 
+/// ### Arguments:
+/// * `wavelengths` - a [Vec<f64>] collection that contains the requested wavelengths.
+/// * `intensity_df` - An intensity [DataFrame] about to be filtered
+/// ### Returns: 
+/// This function returns a [PolarsResult] with the following variants
+/// * `Ok(DataFrame)` -where the binded data frame contains the sifted wavelengths
+fn sifted_wavelengths_dataframe(
+    wavelengths:&[f64],
+    temp_lf: LazyFrame,
+    maxval_rel_dopplershift:f64,
+    minval_rel_dopplershift:f64
+)->PolarsResult<DataFrame>{
+    //separate wavelengths into chunks of 500
+    let chunk_size = 500usize;
+
+    //initiallize collecting dataframe
+    let mut collecting_df = df!("empty"=>[0.0]).unwrap();
+
+    //loop over chunks
+    for (iteration,chunk_of_wavelengths) in wavelengths.chunks(chunk_size).enumerate(){
+
+        let partially_sifted_lf = temp_lf.clone().filter(filter2_sift_wavelengths(
+            chunk_of_wavelengths,
+            maxval_rel_dopplershift,
+            minval_rel_dopplershift).unwrap());
+
+        let new_df = 
+        if iteration == 0{
+            partially_sifted_lf.collect()?
+        }
+        else{
+            let old_lf = collecting_df.lazy();
+            concat([old_lf,partially_sifted_lf],
+            UnionArgs::default())?.collect()?
+        };
+
+        collecting_df = new_df;        
+    }
+    Ok(collecting_df)
+    //initialize the collecting dataframe
+    //There's an iterator function called .chunks(usize) I shall look into it
+    //loop over chunks
+        //create data frame with the filetered wavelenghts from chunk
+        //append with collecting data frame
+            //create a lazyframe with thefiltered wavelengths dataframe 
+            // create a lazyframe witht the collecting dataframe
+    //
+    //
 }

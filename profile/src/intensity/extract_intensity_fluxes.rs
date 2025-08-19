@@ -12,11 +12,11 @@ pub fn extract_relevant_wavelengths(
     grid_dataframe:&DataFrame)->DataFrame{
     
     // Extract df's collumns into vectors; Wavelengths are ordered from lower to greater so we'll profit from that.
-        let df_wavelengths=extract_column_as_vectorf64("wavelength", grid_dataframe);
-        let grid_precision = (df_wavelengths[1]-df_wavelengths[0]).abs()+5.0e-3;
+        let grid_precision = 5.0e-3;
         let wavelength_precision = (shifted_wavelengths[1]-shifted_wavelengths[0]).abs();
     let relevant_df = match wavelength_precision>grid_precision{// If the requested wavelength spacing is bellow the grid precision, then all of the grids wavelengths are relevant ones.
         true => {
+            let df_wavelengths=extract_column_as_vectorf64("wavelength", grid_dataframe);
             let df_a = extract_column_as_vectorf64("a", grid_dataframe);
 	        let df_b = extract_column_as_vectorf64("b", grid_dataframe);
 	        let df_c = extract_column_as_vectorf64("c", grid_dataframe);
