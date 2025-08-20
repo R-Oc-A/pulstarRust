@@ -1,5 +1,3 @@
-use polars::chunked_array::collect;
-
 use super::*;
 
 /// This structure has a collection of the [DataFrame]s extracted from the intensity grid file. This [DataFrame]s have been filtered
