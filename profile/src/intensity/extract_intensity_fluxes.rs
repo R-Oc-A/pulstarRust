@@ -1,5 +1,44 @@
 use super::*;
 
+
+impl GridsData {
+    pub fn compute_flux_en_continuum(&mut self,cell: &SurfaceCell){
+        let mu = cell.coschi.sqrt();
+
+        let bcoef = 1.0 - mu; 
+        let ccoef = 1.0 - cell.coschi;
+        let dcoef = 1.0 - mu.powi(3);
+
+        for i in self.grids_indices.iter(){
+            for (j,amplitude) in self.flux[*i].iter_mut().enumerate(){
+                *amplitude = self.limb_coef_flux[*i][0][j]
+                    +bcoef*self.limb_coef_flux[*i][1][j]
+                    +ccoef*self.limb_coef_flux[*i][2][j]
+                    +dcoef*self.limb_coef_flux[*i][3][j];
+
+                self.continuum[*i][j] = self.limb_coef_cont[*i][0][j]
+                    +bcoef*self.limb_coef_cont[*i][1][j]
+                    +ccoef*self.limb_coef_cont[*i][2][j]
+                    +dcoef*self.limb_coef_cont[*i][3][j];
+            }
+        }
+    }
+
+    pub fn extract_important_rows(&mut self,global_flux: &mut FluxOfSpectra){
+
+        
+        self.row_indices.iter().map(|_x| 0usize);
+
+        let mut counter = 0usize;
+        for shifted_wavelength in global_flux.shifted_wavelength.iter() {
+            self.row_indices[counter] = search_geq(&self.grid_wavelengths, *shifted_wavelength)-1;
+            self.row_indices[counter+1] = self.row_indices[counter]+1;
+            counter += 2usize;
+        }
+    }
+}
+
+
 /// This is a function that extracts only the relevant wavelengths as [Vec<f64>]. 
 /// 
 /// ### Arguments: 
