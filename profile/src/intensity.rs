@@ -1,6 +1,6 @@
 
 use polars::{error::ErrString, prelude::*};
-use crate::intensity::parse_intensity_grids::IntensityDataFrames;
+use crate::intensity::parse_intensity_grids::{IntensityDataFrames};
 
 use super::*;
 use std::fs::File;

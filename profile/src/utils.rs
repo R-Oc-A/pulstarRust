@@ -1,12 +1,6 @@
 use std::path::PathBuf;
 use polars:: prelude::*;
-
-pub struct FluxOfSpectra{
-    pub all_times: Vec<f64>,
-    pub all_wavelengths: Vec<f64>,
-    pub all_fluxes: Vec<f64>,
-    pub all_continuum:Vec<f64>,
-}
+use crate::FluxOfSpectra;
 
 
 
@@ -66,10 +60,10 @@ fn remove_temp_parquet_file(time_points:u16)->Result<(), std::io::Error>{
 fn create_spectra_dataframe(fluxes: FluxOfSpectra)->PolarsResult<DataFrame>{
     // The df! macro creates a new dataframe with the columns ("column header"=>values) ordered from left to right
     df!(
-        "time" => fluxes.all_times,
-        "wave length" => fluxes.all_wavelengths,
-        "flux" => fluxes.all_fluxes,
-        "continuum" => fluxes.all_continuum
+        "time" => fluxes.time,
+        "wave length" => fluxes.wavelengths,
+        "flux" => fluxes.flux,
+        "continuum" => fluxes.continuum
     )
 }
 
@@ -110,7 +104,7 @@ pub fn write_into_parquet(
     fluxes: FluxOfSpectra,
 )->PolarsResult<()>{
     //Initialize output_df
-    let time_0 = fluxes.all_times[0];
+    let time_0 = fluxes.time[0];
     let output_df = create_spectra_dataframe(fluxes).expect("something went very wrong while creating output");
     let lf = output_df.lazy();
     

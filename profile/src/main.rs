@@ -1,7 +1,7 @@
 use std::env;
 use polars::prelude::*;
 //use profile::intensity::IntensityGrids;
-use profile::{utils::{write_into_parquet, FluxOfSpectra}, *};
+use profile::{utils::{write_into_parquet}, *};
 use temp_name_lib::type_def::CLIGHT;
 use std::time::Instant;
 
@@ -36,6 +36,9 @@ fn main() {
    // |--> Initialize the profile parameters.
    let profile_config_path = env_args[1].clone();
    let profile_config = ProfileConfig::read_from_toml(&profile_config_path);
+   
+    let mut fluxes = FluxOfSpectra::new(&profile_config);
+
    //|-->Initialize the wavelength array that tracks the intensity flux profile.
     let wavelength = profile_config.wavelength_range.get_wavelength_vector();
 
@@ -83,10 +86,16 @@ fn main() {
         maxval_rel_dopplershift, 
         minval_rel_dopplershift);
     println!("Intensity DataFrames created!");
+    
+    let mut grids_data = GridsData::construct_from_dataframes(intensity_dfs);
+
     //----------------------------------------------------------------
     //-------------- Collect fluxes for each time point  -------------
     //----------------------------------------------------------------
+
+
     //time loop    
+
     for (time_point_number,phase) in time_points.iter().enumerate() {
         
         let expr = col("time").eq(lit(*phase));
@@ -96,10 +105,10 @@ fn main() {
         //--------------------------------------------------
         
         // Define the fluxes over the whole star.
-        let capacity = wavelength.len();
-        let mut flux = vec![0.0;capacity];
-        let mut cont = vec![0.0;capacity];
-        let time_vec = vec![*phase;capacity];
+        //let capacity = wavelength.len();
+        //let mut flux = vec![0.0;capacity];
+        //let mut cont = vec![0.0;capacity];
+        //let time_vec = vec![*phase;capacity];
 
         println!("finished collecting a the star pulsation profile for the timestep {}",phase);
         println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
@@ -118,45 +127,48 @@ fn main() {
         // |--> temperature over the surface cell
         // |--> log gravity value over the surface cell
 
-        let doppler_shift_series = observed_sphere_df.column("relative shift").unwrap();
-        let area_series = observed_sphere_df.column("area").unwrap();
-        let coschi_series = observed_sphere_df.column("coschi").unwrap();
-        let temperature_series = observed_sphere_df.column("temperature").unwrap();
-        let log_gravity_series = observed_sphere_df.column("log gravity").unwrap();
-        let doppler_shift:Vec<f64> = doppler_shift_series.f64().unwrap().into_iter().flatten().collect();
-        let area:Vec<f64> = area_series.f64().unwrap().into_iter().flatten().collect();
-        let coschi:Vec<f64> = coschi_series.f64().unwrap().into_iter().flatten().collect();
-        let temperature:Vec<f64> = temperature_series.f64().unwrap().into_iter().flatten().collect();
-        let log_gravity:Vec<f64> = log_gravity_series.f64().unwrap().into_iter().flatten().collect();
+//        let doppler_shift_series = observed_sphere_df.column("relative shift").unwrap();
+//        let area_series = observed_sphere_df.column("area").unwrap();
+//        let coschi_series = observed_sphere_df.column("coschi").unwrap();
+//        let temperature_series = observed_sphere_df.column("temperature").unwrap();
+//        let log_gravity_series = observed_sphere_df.column("log gravity").unwrap();
+//        let doppler_shift:Vec<f64> = doppler_shift_series.f64().unwrap().into_iter().flatten().collect();
+//        let area:Vec<f64> = area_series.f64().unwrap().into_iter().flatten().collect();
+//        let coschi:Vec<f64> = coschi_series.f64().unwrap().into_iter().flatten().collect();
+//        let temperature:Vec<f64> = temperature_series.f64().unwrap().into_iter().flatten().collect();
+//        let log_gravity:Vec<f64> = log_gravity_series.f64().unwrap().into_iter().flatten().collect();
+        let surface_cells = SurfaceCell::extract_cells_from_df(observed_sphere_df);
+
+        for cell in surface_cells.iter(){
+            fluxes.collect_flux_from_cell(cell, & mut grids_data);
+        }
+
+
+
         // phi loop
-        for i in 0..coschi.len(){
-            // Calculate the fluxes over the surface cell
-            let fluxcont =return_flux_for_cell_thetaphi(
-                coschi[i],
-                temperature[i],
-                log_gravity[i],
-                doppler_shift[i],
-                area[i],
-                &wavelength,
-                &intensity_dfs,
-                );
-                // Store the fluxes over the cell on vectors
-                let flux_thetaphi = fluxcont.0;
-                let cont_thetaphi = fluxcont.1;
-                // Collect fluxes onto the global vectors
-                for (index,flux_item) in flux_thetaphi.into_iter().enumerate(){
-                    flux[index] += flux_item;
-                    cont[index] += cont_thetaphi[index]; 
-                }
-                
-        };
-        let fluxes = FluxOfSpectra{
-            all_times: time_vec,
-            all_continuum: cont,
-            all_wavelengths: wavelength.clone(),
-            all_fluxes:flux
-        };
-        write_into_parquet(time_point_number as u16 + 1, fluxes).expect(&format!("Unable to write parquet file for {} time point",*phase));
+//        for i in 0..coschi.len(){
+//            // Calculate the fluxes over the surface cell
+//            let fluxcont =return_flux_for_cell_thetaphi(
+//                coschi[i],
+//                temperature[i],
+//                log_gravity[i],
+//                doppler_shift[i],
+//                area[i],
+//                &wavelength,
+//                &intensity_dfs,
+//                );
+//                // Store the fluxes over the cell on vectors
+//                let flux_thetaphi = fluxcont.0;
+//                let cont_thetaphi = fluxcont.1;
+//                // Collect fluxes onto the global vectors
+//                for (index,flux_item) in flux_thetaphi.into_iter().enumerate(){
+//                    flux[index] += flux_item;
+//                    cont[index] += cont_thetaphi[index]; 
+//                }
+//                
+//        };
+        
+        write_into_parquet(time_point_number as u16 + 1, fluxes.clone()).expect(&format!("Unable to write parquet file for {} time point",*phase));
     }
     println!("finished computation for a star's pulsation");
     println!("Total computation time is {:#?}",start_computing_time.elapsed());

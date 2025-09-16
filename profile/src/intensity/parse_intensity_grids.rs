@@ -1,5 +1,6 @@
 use super::*;
 
+
 /// This structure has a collection of the [DataFrame]s extracted from the intensity grid file. This [DataFrame]s have been filtered
 /// to include only the usefull wavelengths
 /// 
@@ -12,9 +13,50 @@ pub struct IntensityDataFrames{
     pub intensity_dfs: Vec<DataFrame>,
 }
 
+impl GridsData{
+    /// This function extracts all of the values outside from the data frames into vectors. With this setup the number of allocations is greatly reduced. 
+    pub fn construct_from_dataframes(Dfs: IntensityDataFrames)->Self{
+        let mut limb_coef_flux:Vec<Vec<Vec<f64>>>=Vec::new();
+        let mut limb_coef_cont:Vec<Vec<Vec<f64>>>=Vec::new();
+        let mut flux:Vec<Vec<f64>> = Vec::new();
+        let mut continuum: Vec<Vec<f64>> = Vec::new();
+        let grid_wavelengths = extract_column_as_vectorf64("wavelength", &Dfs.intensity_dfs[0]);
+        let indices = vec![0usize,grid_wavelengths.len()*2];
+        let grids_indices = vec![0usize,4];
+        for dataframe in Dfs.intensity_dfs.iter(){
+            flux.push(vec![0.0;grid_wavelengths.len()-1]);
+            continuum.push(vec![0.0;grid_wavelengths.len()-1]);
+            let a = extract_column_as_vectorf64("a",dataframe);
+            let b = extract_column_as_vectorf64("b",dataframe);
+            let c = extract_column_as_vectorf64("c",dataframe);
+            let d = extract_column_as_vectorf64("d",dataframe);
+            let ac = extract_column_as_vectorf64("ac",dataframe);
+            let bc = extract_column_as_vectorf64("bc",dataframe);
+            let cc = extract_column_as_vectorf64("cc",dataframe);
+            let dc = extract_column_as_vectorf64("dc",dataframe);
 
+            let limb_flux = vec![a,b,c,d];
+            let limb_cont = vec![ac,bc,cc,dc];
 
-impl IntensityDataFrames{
+            limb_coef_flux.push(limb_flux);
+            limb_coef_cont.push(limb_cont);
+        }
+        GridsData{
+            temperature_vector: Dfs.temperature_vector,
+            log_g_vector:Dfs.log_g_vector,
+            grid_wavelengths:grid_wavelengths,
+            limb_coef_cont:limb_coef_cont,
+            limb_coef_flux:limb_coef_flux,
+            flux:flux,
+            continuum:continuum,
+            row_indices: indices,
+            grids_indices:grids_indices,
+        }
+    }
+}
+
+impl GridsData{
+
     /// This method returns the four indices that construct the parameter space of where to find the intensity [DataFrame]s
     /// 
     /// ### Arguments: 
@@ -28,9 +70,9 @@ impl IntensityDataFrames{
     /// ------------------(temperature,log_gravity)----------------
     /// 
     /// (lower_temp,lower log g)------------(lower_temp,upper_logg)
-    pub fn get_rectangle_in_parameter_space(&self,
+    pub fn select_grids(&mut self,
     temperature:f64,
-    log_gravity:f64)->PolarsResult<Vec<usize>>{
+    log_gravity:f64)->PolarsResult<()>{
         
         //temp_vec = self.temperature_vector.clone();
         // lower_temperature_val
@@ -47,9 +89,8 @@ impl IntensityDataFrames{
                 });
         
 
-        let mut relevant_indices:Vec<usize> = Vec::new();
-        
-
+        self.grids_indices.iter_mut().map(|_x| 0); 
+        let mut counter = 0;
         let mut not_found_yet_lb =true;
         let mut not_found_yet_ub =true;
 
@@ -58,8 +99,9 @@ impl IntensityDataFrames{
 			if *temperature_val==l_temperature_val && not_found_yet_lb{
 			    if let Some(value) = self.log_g_vector.get(index+1){
 			        if self.log_g_vector[index]<=log_gravity && log_gravity<=*value && not_found_yet_lb{
-			            relevant_indices.push(index);
-			            relevant_indices.push(index+1);
+			            self.grids_indices[counter]=index;
+			            self.grids_indices[counter+1] = index+1;
+                        counter+=1;
 			            not_found_yet_lb = false;
 			        }
 			    }
@@ -68,20 +110,22 @@ impl IntensityDataFrames{
 			if *temperature_val == u_temperature_val && not_found_yet_ub{
 			    if let Some(value) = self.log_g_vector.get(index+1){
 			        if self.log_g_vector[index]<=log_gravity && log_gravity<=*value && not_found_yet_ub{
-			            relevant_indices.push(index);
-			            relevant_indices.push(index+1);
+                        self.grids_indices[counter] = index;
+                        self.grids_indices[counter+1] = index+1;
+                        counter +=2;
 			            not_found_yet_ub = false;
 			        }
 			    }
 			}
         };
-        if relevant_indices.len()==4{ Ok(relevant_indices)}
+        if counter==3{ Ok(())}
         else{
             Err(PolarsError::
                 InvalidOperation(
                     ErrString::new_static("Unable to load grid files for a surface cell; temperature and log g out of range. Load more grids.")))
         }
     }
+
 }
 
 

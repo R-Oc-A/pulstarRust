@@ -1,5 +1,59 @@
 use super::*;
 
+impl SurfaceCell{
+    pub fn interpolate(& self, grids_data: &GridsData,global_flux:&mut FluxOfSpectra){
+
+
+    // Counter orders the intensities 
+    let mut counter:usize = 0;
+    
+    let t0 = (self.t_eff-grids_data.temperature_vector[0])/
+        (grids_data.temperature_vector[2]-grids_data.temperature_vector[0]);
+    let t1 = (self.log_g-grids_data.log_g_vector[0])/(grids_data.log_g_vector[1]-grids_data.log_g_vector[0]);
+    
+    // loop over the four elements of the (temperature, log_gravity) parameter space
+    for i in 0..=1{//<- i goes from 0 to 1
+        let delta_temp = match i {
+            0 => 1.0-t0, 
+            1 => t0,
+            _ =>{0.0}};//although verbose, computationally this is faster than multiplying floats
+
+        for j in 0..=1{//<- j goes from 0 to 1
+            let delta_logg = match j{
+                0 => {1.0-t1}
+                1 => {t1}
+                _=> {0.0}};
+
+            
+            for (n,lambda) in global_flux.shifted_wavelength.iter().enumerate(){//<-this is to carry the same process onto every wavelength
+                
+                let index = 2*n;
+                let t2 = (lambda - grids_data.grid_wavelengths[index])/
+                (grids_data.grid_wavelengths[index+1]-grids_data.grid_wavelengths[index]);
+                
+                for k in 0..=1{
+                    let delta_lamb = match k {
+                        0 => {1.0-t2}
+                        1 => {t2}
+                        _ => {0.0} };
+                        
+                        global_flux.flux[n] += get_contribution_from_vertex(delta_temp, 
+                            delta_logg, 
+                            delta_lamb, 
+                            grids_data.flux[counter][n]);
+                        
+                        global_flux.continuum[n] += get_contribution_from_vertex(delta_temp,
+                            delta_logg,
+                            delta_lamb,
+                            grids_data.continuum[counter][n]);
+                }
+            }
+            counter += 1;//<- counter should from 0 to 3
+        }
+    }
+        
+    }
+}
 /// Computes by linear interpolation (see [trilinear interpolation](https://paulbourke.net/miscellaneous/interpolation/) ) the specific and continuum intensity for a surface cell.
 /// 
 /// ### Arguments:
