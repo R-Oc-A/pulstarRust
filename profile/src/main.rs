@@ -110,8 +110,6 @@ fn main() {
         //let mut cont = vec![0.0;capacity];
         //let time_vec = vec![*phase;capacity];
 
-        println!("finished collecting a the star pulsation profile for the timestep {}",phase);
-        println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
 
         // Filter if surface cell is visible.
         let expr = col("coschi").gt(lit(0.0));
@@ -139,10 +137,19 @@ fn main() {
 //        let log_gravity:Vec<f64> = log_gravity_series.f64().unwrap().into_iter().flatten().collect();
         let surface_cells = SurfaceCell::extract_cells_from_df(observed_sphere_df);
 
+        println!("finished collecting a the star pulsation profile for the timestep {}",phase);
+        println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
+        
+        fluxes.restart(*phase);
         for cell in surface_cells.iter(){
+            //println!("flux{}",ctr);
+            //ctr += 1;
             fluxes.collect_flux_from_cell(cell, & mut grids_data);
         }
+        println!("done computing flux");
 
+        println!("finished collecting fluxes {}",phase);
+        println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
 
 
         // phi loop

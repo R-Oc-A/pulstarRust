@@ -9,9 +9,12 @@ impl GridsData {
         let ccoef = 1.0 - cell.coschi;
         let dcoef = 1.0 - mu.powi(3);
 
+
+
         for i in self.grids_indices.iter(){
-            for (j,amplitude) in self.flux[*i].iter_mut().enumerate(){
-                *amplitude = self.limb_coef_flux[*i][0][j]
+            //for (j,amplitude) in self.flux[*i].iter_mut().enumerate(){
+            for  j in 0..self.grid_wavelengths.len(){
+                self.flux[*i][j] = self.limb_coef_flux[*i][0][j]
                     +bcoef*self.limb_coef_flux[*i][1][j]
                     +ccoef*self.limb_coef_flux[*i][2][j]
                     +dcoef*self.limb_coef_flux[*i][3][j];
@@ -27,7 +30,7 @@ impl GridsData {
     pub fn extract_important_rows(&mut self,global_flux: &mut FluxOfSpectra){
 
         
-        self.row_indices.iter().map(|_x| 0usize);
+        self.row_indices.fill(0);
 
         let mut counter = 0usize;
         for shifted_wavelength in global_flux.shifted_wavelength.iter() {
@@ -208,4 +211,6 @@ pub fn get_flux_continuum(
         continuum_from_df,
         lbd_from_df))
 }
+
+
 

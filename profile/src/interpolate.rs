@@ -1,12 +1,13 @@
 use super::*;
 
 impl SurfaceCell{
-    pub fn interpolate(& self, grids_data: &GridsData,global_flux:&mut FluxOfSpectra){
-
+    pub fn interpolate(& self, grids_data: &mut GridsData,global_flux:&mut FluxOfSpectra){
+    
 
     // Counter orders the intensities 
     let mut counter:usize = 0;
     
+    grids_data.extract_important_rows(global_flux);
     let t0 = (self.t_eff-grids_data.temperature_vector[0])/
         (grids_data.temperature_vector[2]-grids_data.temperature_vector[0]);
     let t1 = (self.log_g-grids_data.log_g_vector[0])/(grids_data.log_g_vector[1]-grids_data.log_g_vector[0]);
@@ -27,7 +28,8 @@ impl SurfaceCell{
             
             for (n,lambda) in global_flux.shifted_wavelength.iter().enumerate(){//<-this is to carry the same process onto every wavelength
                 
-                let index = 2*n;
+                let index = grids_data.row_indices[2*n];
+                
                 let t2 = (lambda - grids_data.grid_wavelengths[index])/
                 (grids_data.grid_wavelengths[index+1]-grids_data.grid_wavelengths[index]);
                 
@@ -40,12 +42,12 @@ impl SurfaceCell{
                         global_flux.flux[n] += get_contribution_from_vertex(delta_temp, 
                             delta_logg, 
                             delta_lamb, 
-                            grids_data.flux[counter][n]);
+                            grids_data.flux[counter][index]) * self.area;
                         
                         global_flux.continuum[n] += get_contribution_from_vertex(delta_temp,
                             delta_logg,
                             delta_lamb,
-                            grids_data.continuum[counter][n]);
+                            grids_data.continuum[counter][index]) * self.area;
                 }
             }
             counter += 1;//<- counter should from 0 to 3
