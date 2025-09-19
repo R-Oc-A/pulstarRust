@@ -15,17 +15,17 @@ pub struct IntensityDataFrames{
 
 impl GridsData{
     /// This function extracts all of the values outside from the data frames into vectors. With this setup the number of allocations is greatly reduced. 
-    pub fn construct_from_dataframes(Dfs: IntensityDataFrames)->Self{
+    pub fn construct_from_dataframes(dfs: IntensityDataFrames)->Self{
         let mut limb_coef_flux:Vec<Vec<Vec<f64>>>=Vec::new();
         let mut limb_coef_cont:Vec<Vec<Vec<f64>>>=Vec::new();
         let mut flux:Vec<Vec<f64>> = Vec::new();
         let mut continuum: Vec<Vec<f64>> = Vec::new();
-        let grid_wavelengths = extract_column_as_vectorf64("wavelength", &Dfs.intensity_dfs[0]);
-        let indices = vec![0usize,grid_wavelengths.len()*2];
-        let grids_indices = vec![0usize,4];
-        for dataframe in Dfs.intensity_dfs.iter(){
-            flux.push(vec![0.0;grid_wavelengths.len()-1]);
-            continuum.push(vec![0.0;grid_wavelengths.len()-1]);
+        let grid_wavelengths = extract_column_as_vectorf64("wavelength", &dfs.intensity_dfs[0]);
+        let indices = vec![0usize;grid_wavelengths.len()*2];
+        let grids_indices = vec![0usize;4];
+        for dataframe in dfs.intensity_dfs.iter(){
+            flux.push(vec![0.0;grid_wavelengths.len()]);
+            continuum.push(vec![0.0;grid_wavelengths.len()]);
             let a = extract_column_as_vectorf64("a",dataframe);
             let b = extract_column_as_vectorf64("b",dataframe);
             let c = extract_column_as_vectorf64("c",dataframe);
@@ -42,8 +42,8 @@ impl GridsData{
             limb_coef_cont.push(limb_cont);
         }
         GridsData{
-            temperature_vector: Dfs.temperature_vector,
-            log_g_vector:Dfs.log_g_vector,
+            temperature_vector: dfs.temperature_vector,
+            log_g_vector:dfs.log_g_vector,
             grid_wavelengths:grid_wavelengths,
             limb_coef_cont:limb_coef_cont,
             limb_coef_flux:limb_coef_flux,
@@ -89,7 +89,7 @@ impl GridsData{
                 });
         
 
-        self.grids_indices.iter_mut().map(|_x| 0); 
+        self.grids_indices.fill(0); 
         let mut counter = 0;
         let mut not_found_yet_lb =true;
         let mut not_found_yet_ub =true;
@@ -126,6 +126,8 @@ impl GridsData{
         }
     }
 
+
+    
 }
 
 

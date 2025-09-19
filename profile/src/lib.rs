@@ -247,7 +247,7 @@ impl FluxOfSpectra{
 		//unwrapping the four relevant grid files creating  a vector that holds the temperatures, logg values and the file names.
 	    grids_data.select_grids(cell.t_eff,cell.log_g).unwrap();
 	    
-	    // Doppler shift the wavelengths.
+        // Doppler shift the wavelengths.
 	    //let shifted_wavelengths= get_doppler_shifted_wavelengths(relative_shift, wavelengths);
 	    self.get_doppler_shifted_wavelengths(&cell);
         
@@ -261,6 +261,7 @@ impl FluxOfSpectra{
 //	        cont_collection.push(fluxes_from_grid.1);
 //	        wavelength_collection.push(fluxes_from_grid.2);
 //	    }
+        
         grids_data.compute_flux_en_continuum(&cell);
 	
 	    //function that linearly interpolates the intensity flux Ic and the continuum flux I from the 4 grids
@@ -275,10 +276,6 @@ impl FluxOfSpectra{
 //	        log_gravity);
         cell.interpolate(grids_data, self);
 	    
-        for index in 0..self.flux.len(){
-            self.flux[index] *= cell.area;
-            self.continuum[index] *= cell.area;
-        }
 	}
 }
 
