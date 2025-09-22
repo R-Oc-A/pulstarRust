@@ -5,13 +5,13 @@ use temp_name_lib::type_def::{CLIGHT,N_FLUX_POINTS};//Velocity of light in m/s
 //use crate::intensity:: interpolate::interpolate};
 use std::fs;
 
-use crate::intensity::{extract_intensity_fluxes, parse_intensity_grids::{IntensityDataFrames}};
+//use crate::intensity::parse_intensity_grids::{IntensityDataFrames};
 //use std::sync::Arc;
 
 /// The profile program reads a the quantities calculated over a Rasterized star on selected time points
 /// and reurns a parquet file that contains the time series of the mean intensity flux produced 
 /// for relevant observed wavelengths.
-/// 
+
 
 
 mod intensity;
@@ -44,10 +44,10 @@ pub struct SurfaceCell{
     area: f64,
     ///Cosine of the angle between the surface cell normal and the line of sight. 
     coschi: f64,
-    ///Total velocity.
-    v_tot: f64,
     ///Relative Doppler shift of a wavelength.
     rel_dlamb: f64,
+    ///Total velocity. It is not 
+    v_tot: f64,
 }
 
 
@@ -74,6 +74,8 @@ pub struct GridsData{
 }
 
 impl FluxOfSpectra{
+    /// This function creates a new instance of [FluxOfSpectra] where all of its members contain values of only 0.0.
+    /// This function should be used to construct a mutable instance at the beginning of the profile program. 
     pub fn new(profile_input: &ProfileConfig)->FluxOfSpectra{
         let wavelengths = profile_input.wavelength_range.get_wavelength_vector();
         let shifted_wavelengths = wavelengths.clone();
@@ -87,11 +89,15 @@ impl FluxOfSpectra{
 			flux: flux,
 			continuum: continuum }
     }
+
+    /// This function sets the specific intensity flux and continuum specific intensity as 0.0, it also stores the new phase of pulsation of the calculation. 
     pub fn restart(&mut self, time_point:f64){
          self.time.fill(time_point);
          self.flux.fill(0.0);
          self.continuum.fill(0.0);
     }
+
+    /// This function fills the `shifted_wavelength` member of [FluxOfSpectra] by multiplying the wavelength vector  with the relative doppler shift stored in a [SurfaceCell]. 
     pub fn get_doppler_shifted_wavelengths(&mut self,cell:&SurfaceCell){
         for (n,wavelength) in self.wavelengths.iter().enumerate(){
             self.shifted_wavelength[n] = wavelength * cell.rel_dlamb;
@@ -227,17 +233,14 @@ impl FluxOfSpectra{
 	/// This function that returns the intensity flux and the continuum flux interpolated from the intensity grids
 	/// for each surface cell of the rasterized sphere.
 	/// ### Arguments:
-	/// * `coschi` -  Projection of the normal vector of the surface cell with the unit vector towards the observer.
-	/// * `temperature` - temperature value over the surface cell of the rasterized star (in kelvin).
-	/// * `log_gravity` - log g value over the surface cell of the rasterized star.
-	/// * `relative shift` - relative doppler wavelength shift, this is of course related to the velocity.
-	/// 'area' - area of the surface cell of the rasterized star.
-	/// 'wavelengths` - a borrowed vector containing the observed wavelengths.
-	/// * `grid_id_lf` - a polars LazyFrame that contains the Database of the intensity grid files. 
+	/// * `cell` -  A &[SurfaceCell] that contains the `coschi`-Projection of the normal vector of the surface cell with the unit vector towards the observer;
+    ///  `temperature` - temperature value over the surface cell of the rasterized star (in kelvin);
+	///  `log_gravity` - log g value over the surface cell of the rasterized star;
+	///  `relative doppler shift` - relative doppler wavelength shift, this is of course related to the velocity.
+	///  'area' - area of the surface cell of the rasterized star;
+    /// * `grids_data` - A &[GridsData] instance that contains the limb darkening coefficients to calculate the specific intensities and then perform interpolation over them. 
 	/// ### Returns:
-	/// * `(Flux,Cont)` - a tupple of two vectors computed for the surface cell, where
-	/// 'Flux' - is the Intensity flux vector
-	/// 'Cont' - is the Continuum flux vector
+	/// - This function adds the contribution of the observed specific intensities by a surface cell. 
 	pub fn collect_flux_from_cell(
         &mut self,
 	    cell:&SurfaceCell,
@@ -248,39 +251,24 @@ impl FluxOfSpectra{
 	    grids_data.select_grids(cell.t_eff,cell.log_g).unwrap();
 	    
         // Doppler shift the wavelengths.
-	    //let shifted_wavelengths= get_doppler_shifted_wavelengths(relative_shift, wavelengths);
 	    self.get_doppler_shifted_wavelengths(&cell);
         
-	    // For each of the relevant grid files, extract the intensity and continuum values.
-//	    for index in relevant_indices.iter(){
-//	        let fluxes_from_grid = extract_intensity_fluxes::get_flux_continuum(
-//	            &intensity_dfs.intensity_dfs[*index],
-//	            &shifted_wavelengths,
-//	            coschi).unwrap();
-//	        flux_collection.push(fluxes_from_grid.0);
-//	        cont_collection.push(fluxes_from_grid.1);
-//	        wavelength_collection.push(fluxes_from_grid.2);
-//	    }
-        
+        // For each of the loaded grids, compute the fluxes using the cell's projection angle with the observer's line of sight and the limb darkening law.  
         grids_data.compute_flux_en_continuum(&cell);
 	
-	    //function that linearly interpolates the intensity flux Ic and the continuum flux I from the 4 grids
-//	    let fluxcont_interpolated = interpolate::interpolate(
-//	        intensity_dfs,
-//	        relevant_indices,
-//	        &shifted_wavelengths, 
-//	        &flux_collection, 
-//	        &cont_collection, 
-//	        &wavelength_collection, 
-//	        temperature, 
-//	        log_gravity);
-        cell.interpolate(grids_data, self);
+	    // Function that linearly interpolates the intensity flux Ic and the continuum flux I from the 4 loaded grids
+       cell.interpolate(grids_data, self);
 	    
 	}
 }
 
 
 impl SurfaceCell {
+    /// This function creates a vector collection of [SurfaceCell]s from the pulstar's output. 
+    /// ### Arguments: 
+    /// `star` - A [DataFrame] that contains the pulstar's output, which is a rasterized information of the parameters of the star over its surface. 
+    /// ### Retruns: 
+    /// - A [Vec] of [SurfaceCell]s that hold all of the local values. 
     pub fn extract_cells_from_df(star: DataFrame)-> Vec<Self>{
 
         let rel_dlamb_vector = extract_column_as_vectorf64("relative shift", & star);
@@ -339,36 +327,6 @@ fn search_geq(vector:&[f64],key:f64)-> usize {
     }
     else{ panic!("empty vector!")}
 }
-
-/// This function multiplies a vector of `f64` by a scalar
-/// ### Arguments:
-/// * `vecf64` - a vector containing `f64` values
-/// * `scalar` - an `f64` value
-/// ### Returns:
-/// * `vec_result` - The multiplied vector.
-fn multiply_vecf64_by_scalar(vecf64:Vec<f64>,scalar:f64)->Vec<f64>{
-    //let mut vec_result:Vec<f64> = Vec::new();
-    let vec_result = vecf64.into_iter().map(|s| s * scalar).collect();
-    vec_result
-}
-
-
-/// This function multiplies all of the wavelengths by the relative doppler wavelength shift
-/// ### Arguments:
-/// * `wavelengths` - a vector containing the observed wavelengths (in nm)
-/// * `relative shift` - an `f64` value that holds the relative doppler shift
-/// ### Returns:
-/// * `Vec<f64>` - The doppler shifted wavelenghts.
-/// This function applies a doppler shift to the observed wavelengths. It is a multiplication by a scalar
-fn get_doppler_shifted_wavelengths(relative_shift:f64,
-        wavelengths:&[f64])->Vec<f64>
-    {
-        let mut shifted:Vec<f64>=Vec::new();
-        for lambda in wavelengths.iter(){
-            shifted.push(*lambda * relative_shift);
-        }
-        shifted
-    }
 
 /// This function returns the maximum or minimum value of a column of [f64] from a [DataFrame]. This function is adviced to be used seldomly (as in outside of loops).
 /// 

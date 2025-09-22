@@ -15,14 +15,26 @@ pub struct IntensityDataFrames{
 
 impl GridsData{
     /// This function extracts all of the values outside from the data frames into vectors. With this setup the number of allocations is greatly reduced. 
+    /// ### Arguments: 
+    /// -dfs: [IntensityDataFrames] The in-between strucutre that  contains all of the data from the grids to be used for interpolation. 
+    /// ### Returns: 
+    /// - An instance of [GridsData] that holds all of the relevant information of the dataframes. 
     pub fn construct_from_dataframes(dfs: IntensityDataFrames)->Self{
+        //Initialize the limb darkening coefficients for flux and continuum. 
         let mut limb_coef_flux:Vec<Vec<Vec<f64>>>=Vec::new();
         let mut limb_coef_cont:Vec<Vec<Vec<f64>>>=Vec::new();
+        // Initialize the vectors that will hold the flux and continuum specific intensities. 
         let mut flux:Vec<Vec<f64>> = Vec::new();
         let mut continuum: Vec<Vec<f64>> = Vec::new();
+        // Fill the wavelength array. The grids that we'll be using are homogeneous with a spacing of  0.001 nm
         let grid_wavelengths = extract_column_as_vectorf64("wavelength", &dfs.intensity_dfs[0]);
+        // Initialize the array that will hold the relevant indices for the interpolation procedure. This is used so that the query is done only once.  
         let indices = vec![0usize;grid_wavelengths.len()*2];
+        // This array holds the 4 grids that  will be used to perform the interpolation.
+        //[Ricardo] Variations of Log G and effective temperature shouldn't be so great as to load more than 4 grids, however I leave this possibility coded
         let grids_indices = vec![0usize;4];
+
+        // Read each dataframe and extract the columns
         for dataframe in dfs.intensity_dfs.iter(){
             flux.push(vec![0.0;grid_wavelengths.len()]);
             continuum.push(vec![0.0;grid_wavelengths.len()]);
@@ -37,10 +49,13 @@ impl GridsData{
 
             let limb_flux = vec![a,b,c,d];
             let limb_cont = vec![ac,bc,cc,dc];
-
+            
+            // Fill the nested vector structures
             limb_coef_flux.push(limb_flux);
             limb_coef_cont.push(limb_cont);
         }
+
+        //Construct the instance of GridsData
         GridsData{
             temperature_vector: dfs.temperature_vector,
             log_g_vector:dfs.log_g_vector,
@@ -56,7 +71,6 @@ impl GridsData{
 }
 
 impl GridsData{
-
     /// This method returns the four indices that construct the parameter space of where to find the intensity [DataFrame]s
     /// 
     /// ### Arguments: 
