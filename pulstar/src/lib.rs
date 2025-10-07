@@ -8,6 +8,7 @@ use temp_name_lib::type_def::PI;
 use nalgebra as na;
 
 
+
 /// This structure is necessary for starting the program. 
 /// It contains `mode_data` which is a [Vec] collection of the pulsation modes to be implemented, the `star_data` that characterizes the star, and the `time points` to be simulated. 
 /// 
@@ -124,6 +125,31 @@ pub enum MeshConfig{
     //[Ricardo:]Here maybe some other geometries may rise
 }
 
+/// This structure holds the local quantities over a surface element of the star. 
+pub struct SurfaceCell{
+    /// Effective temperature.
+    t_eff: f64,
+    /// Log value of the surface gravity.
+    log_g: f64,
+    /// Normalized surface area.
+    area: f64,
+    /// Cosine of the angle between the surface cell normal and the line of sight. 
+    coschi: f64,
+    /// Relative Doppler shift of a wavelength.
+    rel_dlamb: f64,
+    /// Total velocity. It is not 
+    v_tot: f64,
+    /// Coordinates of the surface cell, As a surface, this should only require 2 values. 
+    coord_1: f64, // <- Theta in spherical coordinates
+    ///
+    coord_2: f64, // <- Phi in spherical coordinates
+}
+
+pub struct RasterizedStar{
+    cells: Vec<SurfaceCell>,
+    time_stamp: f64,
+}
+
 //----------------------------------------
 //----Parsing the pulstar_input.toml------
 //----------------------------------------
@@ -151,6 +177,42 @@ impl PulstarConfig {
             MeshConfig::Sphere { theta_step,
                  phi_step } => {(theta_step,phi_step)}
         }
+    }
+
+    pub fn rasterize_star(&self,)->RasterizedStar{
+        let mut rasterized_star = RasterizedStar::new();
+
+        match self.mesh {
+            MeshConfig::Sphere { theta_step, phi_step } =>{
+                let mut theta=1.0;
+                let mut phi =1.0;
+                while theta < 180.0{
+                    while phi < 360.0{
+                        rasterized_star.cells.push(SurfaceCell::new(theta, phi));
+                        phi += phi_step;
+                    }
+                    phi = 1.0;
+                    theta += theta_step;
+                }
+            }   
+        }
+        rasterized_star
+    }
+}
+
+impl RasterizedStar{
+    fn new()->Self{
+        RasterizedStar { cells: Vec::new(), time_stamp: 0.0 }
+    }
+
+}
+impl SurfaceCell{
+    fn new(coord_1:f64,coord_2:f64)->Self{
+        Self { t_eff: 0.0, log_g: 0.0, area: 0.0, coschi: 0.0, rel_dlamb: 0.0, v_tot: 0.0, coord_1: coord_1, coord_2: coord_2 }
+    }
+
+    fn update_local_quantities(time_stamp: f64)->f64{
+        0.0
     }
 }
 
