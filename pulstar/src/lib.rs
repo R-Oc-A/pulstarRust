@@ -7,6 +7,10 @@ use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
 use temp_name_lib::type_def::PI;
 use nalgebra as na;
 
+use crate::local_pulsation_velocity::observed_pulsation_velocity;
+use crate::local_temperature_and_gravity::local_surface_temperature_logg;
+use crate::reference_frames::{surface_normal, Coordinates};
+
 
 
 /// This structure is necessary for starting the program. 
@@ -148,6 +152,8 @@ pub struct SurfaceCell{
 pub struct RasterizedStar{
     cells: Vec<SurfaceCell>,
     time_stamp: f64,
+    t_eff: f64,
+    g_0: f64,
 }
 
 //----------------------------------------
@@ -191,7 +197,7 @@ impl PulstarConfig {
                         rasterized_star.cells.push(SurfaceCell::new(theta, phi));
                         phi += phi_step;
                     }
-                    phi = 1.0;
+                    phi += phi_step;
                     theta += theta_step;
                 }
             }   
@@ -202,7 +208,11 @@ impl PulstarConfig {
 
 impl RasterizedStar{
     fn new()->Self{
-        RasterizedStar { cells: Vec::new(), time_stamp: 0.0 }
+        RasterizedStar{ cells: Vec::new(), time_stamp: 0.0, t_eff:0.0, g_0:0.0 }
+    }
+
+    pub fn compute_local_quantities(&mut self, phase:f64){
+
     }
 
 }
@@ -210,9 +220,37 @@ impl SurfaceCell{
     fn new(coord_1:f64,coord_2:f64)->Self{
         Self { t_eff: 0.0, log_g: 0.0, area: 0.0, coschi: 0.0, rel_dlamb: 0.0, v_tot: 0.0, coord_1: coord_1, coord_2: coord_2 }
     }
+    fn set_local_values_to_zero(& mut self){
+        self.log_g = 0.0;
+        self.rel_dlamb = 0.0;
+        self.t_eff = 0.0;
+        self.v_tot = 0.0;
+        self.coschi = 0.0;
+    }
+    fn update_local_quantities(&mut self,parameters:& PulstarConfig, k:& Coordinates, temperature_0:f64, g0:f64, time_stamp: f64){
+        //Select the type of geometry
+        match parameters.mesh{
+            MeshConfig::Sphere { theta_step, phi_step } => {
+                let theta = self.coord_1;
+                let phi = self.coord_2;
+                let k_spherical = k.transform(theta, phi);
+                let s_normal = surface_normal(parameters,
+                     theta, phi).unwrap();
+                let cos_chi = reference_frames::cos_chi(
+                    &s_normal,
+                   &k_spherical,
+                    theta, phi);
+                if cos_chi < 0.0 { self.set_local_values_to_zero()}
+                else {
+                    let local_veloc = observed_pulsation_velocity(parameters, theta, phi,k).unwrap();
+                    let local_values = local_surface_temperature_logg(parameters, theta, phi, g0, temperature_0);
+                    let local_temp = local_values.0;
+                    let local_logg = local_values.1;
+                    let local_area = s_normal.project_vector(&k_spherical).unwrap();
+                }
 
-    fn update_local_quantities(time_stamp: f64)->f64{
-        0.0
+            }
+        }
     }
 }
 
