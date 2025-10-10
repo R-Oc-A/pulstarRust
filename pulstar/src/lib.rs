@@ -211,8 +211,14 @@ impl RasterizedStar{
         RasterizedStar{ cells: Vec::new(), time_stamp: 0.0, t_eff:0.0, g_0:0.0 }
     }
 
-    pub fn compute_local_quantities(&mut self, phase:f64){
-
+    pub fn compute_local_quantities(&mut self,
+        parameters:&PulstarConfig,
+        k: &Coordinates){
+        for cell in self.cells.iter_mut(){
+            cell.update_local_quantities(parameters, k,
+                 self.t_eff,
+                  self.g_0);
+        }
     }
 
 }
@@ -227,10 +233,10 @@ impl SurfaceCell{
         self.v_tot = 0.0;
         self.coschi = 0.0;
     }
-    fn update_local_quantities(&mut self,parameters:& PulstarConfig, k:& Coordinates, temperature_0:f64, g0:f64, time_stamp: f64){
+    fn update_local_quantities(&mut self,parameters:& PulstarConfig, k:& Coordinates, temperature_0:f64, g0:f64){
         //Select the type of geometry
         match parameters.mesh{
-            MeshConfig::Sphere { theta_step, phi_step } => {
+            MeshConfig::Sphere {..} => {
                 let theta = self.coord_1;
                 let phi = self.coord_2;
                 let k_spherical = k.transform(theta, phi);
