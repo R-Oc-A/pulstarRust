@@ -1,6 +1,7 @@
 //! Pulstar program is a binary that rasterizes a star and produces a polars DataFrame that contains
 //! the (linear) variations on surface temperature, log g, and also the pulsation velocity components.
 //! for each of the surface cells. 
+use polars::time;
 use serde::Deserialize;
 use temp_name_lib::math_module::spherical_harmonics;
 use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
@@ -152,8 +153,8 @@ pub struct SurfaceCell{
 pub struct RasterizedStar{
     cells: Vec<SurfaceCell>,
     time_stamp: f64,
-    t_eff: f64,
-    g_0: f64,
+    pub t_eff: f64,
+    pub g_0: f64,
 }
 
 //----------------------------------------
@@ -190,18 +191,27 @@ impl PulstarConfig {
 
         match self.mesh {
             MeshConfig::Sphere { theta_step, phi_step } =>{
-                let mut theta=1.0;
-                let mut phi =1.0;
+                let mut theta:f64=1.0;
+                let mut phi:f64 =1.0;
                 while theta < 180.0{
                     while phi < 360.0{
-                        rasterized_star.cells.push(SurfaceCell::new(theta, phi));
+                        rasterized_star.cells.push(SurfaceCell::new(theta.to_radians(), phi.to_radians()));
                         phi += phi_step;
                     }
-                    phi += phi_step;
+                    phi = 1.0;
                     theta += theta_step;
                 }
             }   
         }
+
+        //--Equilibrium log(g_0) (gravity g_0 is in cgs units)
+        //--Mass & radius are in solar units
+        let log_g0 = 4.438 + self.star_data.mass.log10()
+            - 2.0 * self.star_data.radius.log10();
+        
+        rasterized_star.g_0 = 10.0_f64.powf(log_g0);
+        rasterized_star.t_eff = self.star_data.effective_temperature;
+
         rasterized_star
     }
 }
@@ -232,6 +242,7 @@ impl SurfaceCell{
         self.t_eff = 0.0;
         self.v_tot = 0.0;
         self.coschi = 0.0;
+        self.area = 0.0;
     }
     fn update_local_quantities(&mut self,parameters:& PulstarConfig, k:& Coordinates, temperature_0:f64, g0:f64){
         //Select the type of geometry
@@ -246,7 +257,7 @@ impl SurfaceCell{
                     &s_normal,
                    &k_spherical,
                     theta, phi);
-                if cos_chi < 0.0 { self.set_local_values_to_zero()}
+                if cos_chi <= 0.0 { self.set_local_values_to_zero()}
                 else {
                     let local_veloc = observed_pulsation_velocity(parameters, theta, phi,k).unwrap();
                     let local_values = local_surface_temperature_logg(parameters, theta, phi, g0, temperature_0);
@@ -328,6 +339,12 @@ impl AdvanceInTime for PulstarConfig{
     }
 }
 
+impl AdvanceInTime for RasterizedStar{
+
+    fn advance_in_time(&mut self,time_point:f64) {
+        self.time_stamp=time_point;
+    }
+}
 
 pub trait ParsingFromToml {
     fn read_from_toml(path_to_file:&str)->Self;
