@@ -259,15 +259,17 @@ impl SurfaceCell{
                     theta, phi);
                 if cos_chi <= 0.0 { self.set_local_values_to_zero()}
                 else {
-                    let local_veloc = observed_pulsation_velocity(parameters, theta, phi,k).unwrap();
+                    self.coschi = cos_chi;
+                    self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k).unwrap();
                     let local_values = local_surface_temperature_logg(parameters, theta, phi, g0, temperature_0);
-                    let local_temp = local_values.0;
-                    let local_logg = local_values.1;
-                    let local_area = s_normal.project_vector(&k_spherical).unwrap();
-                }
+                    self.t_eff = local_values.0;
+                    self.log_g = local_values.1;
+                    self.area = s_normal.project_vector(&k_spherical).unwrap();
 
-            }
+                }
+            }   
         }
+
     }
 }
 
