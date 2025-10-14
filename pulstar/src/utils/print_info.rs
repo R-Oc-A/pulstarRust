@@ -1,20 +1,18 @@
-use std::time::{Instant};
+use std::{f64::consts::PI, time::Instant};
 use crate::PulstarConfig;
 use temp_name_lib::{
-    math_module::spherical_harmonics::norm_factor::ylmnorm,
+    math_module::spherical_harmonics::norm_factor::ylmnorm, type_def::CYCLI2RAD,
     };
+use polars::prelude::*;
 pub fn print_report(now:&Instant,
     parameters: &PulstarConfig,
-    k_theory:&[f64],
-    min_vel:&[f64],
-    max_vel:&[f64],
-    min_t:&[f64],
-    max_t:&[f64],
-    min_logg:&[f64],
-    max_logg:&[f64],
-    freqrad:&[f64],
-    period:&[f64],
-    log_g0:f64){
+    time_points:usize){
+    
+    
+    let new_path = std::path::PathBuf::from(format!("rasterized_star_{}tp.parquet",time_points));
+    let mut file = std::fs::File::open(new_path).unwrap();
+    let ddf = ParquetReader::new(&mut file).finish().unwrap();
+
     let mesh = parameters.get_mesh_structure();
     let theta_step = mesh.0;
     let phi_step = mesh.1;
@@ -34,19 +32,22 @@ pub fn print_report(now:&Instant,
         print!("| {} ",index+1);
         print!("| ({},{}) ",mode.l,mode.m);
         print!("|  {:8.5}  ",mode.frequency);
-        print!("|   {:8.5}   ",freqrad[index]);
-        print!("|  {:8.5}  ",period[index]);
+        print!("|   {:8.5}   ",mode.frequency*CYCLI2RAD);
+        print!("|  {:8.5}  ",2.0*PI/3.6e3/(mode.frequency*CYCLI2RAD));
         print!("|    {:8.5}    ",mode.rel_dr);
     }
     println!("\n+---+-------+------------+--------------+------------+---------------+");
     println!(  "| # | (l,m) |  Vp (km/s) |   K (user)   | K (theory) | Y_l^m norm    |");
     println!(  "+---+-------+------------+--------------+------------+---------------+");
     for (index,mode) in parameters.mode_data.iter().enumerate(){
+        let k_theory = 74.437 * parameters.star_data.mass 
+                /parameters.star_data.radius.powi(3)//r^3
+                /((mode.frequency).powi(2));//freq^2
         print!("| {} ",index+1);
         print!("| ({},{}) ",mode.l,mode.m);
         print!("|  {:8.5}  ",vampl[index]);
         print!("|   {:8.5}   ",mode.k);
-        print!("|  {:8.5}  ",k_theory[index]);
+        print!("|  {:8.5}  ",k_theory);
         print!("|    {:8.5}    ", ylmnorm(mode.l,mode.m)); 
     }
     println!("\n+---+-------+------------+--------------+------------+---------------+");
@@ -75,41 +76,64 @@ pub fn print_report(now:&Instant,
     println!(" Inclination angle: {} degrees", parameters.star_data.inclination_angle);
 
     println!("\nVISIBLE SURFACE DATA");
-    println!("+-------+-----------------+-----------------+------------+-----------+--------------+-------------+");
-    println!("| phase | Min. Proj. Vtot | Max. Proj. Vtot |  Min. T    |  Max. T   | Min. log(g)  | Max. log(g) |");
-    println!("+-------+-----------------+-----------------+------------+-----------+--------------+-------------+");
+    println!("+-----------------+-----------------+------------+-----------+--------------+-------------+");
+    println!("| Min. Proj. Vtot | Max. Proj. Vtot |  Min. T    |  Max. T   | Min. log(g)  | Max. log(g) |");
+    println!("+-----------------+-----------------+------------+-----------+--------------+-------------+");
+    let vels = extract_column_as_vectorf64("velocity", &ddf);
+    let tefs = extract_column_as_vectorf64("temperature", &ddf);
+    let loggs = extract_column_as_vectorf64("log gravity", &ddf);
 
-    for (n,min_v) in min_vel.iter().enumerate(){
-        print!("|  {:0>3}  ",n);
-        print!("|     {:8.3e}    ",*min_v);
-        print!("|     {:8.3e}    ",max_vel[n]);
-        print!("|  {:8.3e} ",min_t[n]);
-        print!("|  {:8.3e} ",max_t[n]);
-        print!("|  {:8.3e}   ",min_logg[n]);
-        print!("|  {:8.3e}   |\n",max_logg[n]);
-    }
+    let max_vel = get_max(&vels);
+    let min_vel = get_min(&vels);
+    let max_t = get_max(&tefs);
+    let min_t = get_min(&tefs);
+    let max_logg = get_max(&loggs);
+    let min_logg = get_min(&loggs);
+    print!("|     {:8.3e}    ",min_vel);
+    print!("|     {:8.3e}    ",max_vel);
+    print!("|  {:8.3e} ",min_t);
+    print!("|  {:8.3e} ",max_t);
+    print!("|  {:8.3e}   ",min_logg);
+    print!("|  {:8.3e}   |\n",max_logg);
 
-    let maxvel = max_vel.iter().fold(max_vel[0], |prev,curr| prev.max(*curr));
-    let minvel = min_vel.iter().fold(min_vel[0], |prev,curr| prev.min(*curr));
-    let maxt = max_t.iter().fold(max_t[0], |prev,curr| prev.max(*curr));
-    let mint = min_t.iter().fold(min_t[0], |prev,curr| prev.min(*curr));
-    let maxlogg = max_logg.iter().fold(max_logg[0], |prev,curr| prev.max(*curr));
-    let minlogg = min_logg.iter().fold(min_logg[0], |prev,curr| prev.min(*curr));
-    
     println!("EXTREMA:");
-    println!("Total veloc.:  {:8.3} -> {:8.3} (diff. = {:8.3} )",minvel,maxvel,maxvel-minvel);
-    println!("T_eff :  {:8.3} -> {:8.3} (diff. = {:8.3} )",mint,maxt,maxt-mint);
-    println!("- log(g) :  {:8.3} -> {:8.3} (diff. = {:8.3} )",minlogg,maxlogg,maxlogg-minlogg);
+    println!("Total veloc.:  {:8.3} -> {:8.3} (diff. = {:8.3} )",min_vel,max_vel,max_vel-min_vel);
+    println!("T_eff :  {:8.3} -> {:8.3} (diff. = {:8.3} )",min_t,max_t,max_t-min_t);
+    println!("- log(g) :  {:8.3} -> {:8.3} (diff. = {:8.3} )",min_logg,max_logg,max_logg-min_logg);
 
 
     println!("STAR PARAMETERS");
     println!(" - Mass/Mass_sun: {:8.4}",parameters.star_data.mass);
     println!(" - Radius/Radius_sun: {:8.4}", parameters.star_data.radius);
     println!(" - T_eff (Kelvin): {:8.4}", parameters.star_data.effective_temperature);
-    println!(" - Log(g_0): {:8.4}\n",log_g0);
+    println!(" - Log(g_0): {:8.4}\n",(max_logg+min_logg)*0.5);//This is a very lazy way of computing surface gravity...
 
     println!("RESOLUTION");
     println!(" - Delta theta: {}",theta_step);
     println!(" - Delta phi: {}\n",phi_step);
 
+}
+
+
+
+/// This function takes a polars data frame and returns all of the values from a given column that holds f64 values. 
+/// ### Arguments: 
+/// * `column_name` - a string slice that holds the name of a column. The column should hold f64 values.
+/// * `df`- a polars DataFrame
+/// ### Returns:
+/// * `Vec<f64>` - a vector that contains all of the values on the column.
+fn extract_column_as_vectorf64(column_name: &str,df:&DataFrame)->Vec<f64>{
+    let column = df.column(column_name).unwrap();
+    column.f64().unwrap().into_iter().flatten().collect()
+}
+
+fn get_max(vec:&Vec<f64>)->f64{
+    vec.iter().fold(0.0, |accumulator,item| 
+    if *item>accumulator {*item} else{accumulator})
+}
+
+fn get_min(vec:&Vec<f64>)->f64{
+    vec.iter().fold(0.0, |accumulator,item| 
+    if *item<accumulator ||*item>0.0 {*item} else{accumulator})
+    
 }

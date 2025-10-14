@@ -1,7 +1,7 @@
 //! Pulstar program is a binary that rasterizes a star and produces a polars DataFrame that contains
 //! the (linear) variations on surface temperature, log g, and also the pulsation velocity components.
 //! for each of the surface cells. 
-use polars::time;
+//use polars::time;
 use serde::Deserialize;
 use temp_name_lib::math_module::spherical_harmonics;
 use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};

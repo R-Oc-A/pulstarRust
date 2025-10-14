@@ -182,13 +182,13 @@ pub fn write_output_to_parquet(
             lf.collect()?;
         }else {eprint!("unable to sink to a parket in {} time_point",time_points)};
     //Reading test
-    println!("{:#?} file created",new_path);
+    /*println!("{:#?} file created",new_path);
     let mut file = std::fs::File::open(new_path).unwrap();
     let ddf = ParquetReader::new(&mut file).finish().unwrap();
     println!("---------------------------------------");
     println!("DataFrame for Rasterized Star Output  opened ");
     println!("First 5 rows:");
-    println!("{}", ddf.head(Some(5usize)));
+    println!("{}", ddf.head(Some(5usize)));*/
     if time_points > 1u16
         {remove_temp_parquet_file(time_points)?}
     
