@@ -7,5 +7,9 @@ pub mod math_module;
 /// Usefull constants for the binaries
 pub mod type_def;
 
+
+/// Interpolation module
+pub mod interpolation;
+
 pub mod utils;
 
