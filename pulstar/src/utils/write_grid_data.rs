@@ -5,7 +5,7 @@ use crate::RasterizedStar;
 
 /// This structure is an abstraction of the star. It effectively creates a columnar data base with all of the surface cells and the associated quantities.
 /// 
-pub struct RasterizedStarOutput{
+struct RasterizedStarOutput{
     /// This is the column that indicates all of the colatitude angles θ_i
     all_coords1: Vec<f64>,
     /// This is the column that indicates all of the azimuthal angles φ_i
@@ -25,24 +25,13 @@ pub struct RasterizedStarOutput{
 }
 
 impl RasterizedStarOutput{
-    /// This method creates a new instance of a rasterized star 
-    pub fn new_sphere(
-        num_theta_steps:usize,
-        num_phi_steps:usize,
-        num_timepoints:usize,
-    )->RasterizedStarOutput{
-        let total_rows = num_theta_steps* num_phi_steps * num_timepoints;
-        RasterizedStarOutput { 
-            all_coords1: Vec::with_capacity(total_rows),
-            all_coords2: Vec::with_capacity(total_rows), 
-            all_times: Vec::with_capacity(total_rows),
-            all_vel: Vec::with_capacity(total_rows),
-            all_temp: Vec::with_capacity(total_rows),
-            all_logg: Vec::with_capacity(total_rows),
-            all_coschi: Vec::with_capacity(total_rows),
-            all_area: Vec::with_capacity(total_rows) }
-    }
-
+    
+    /// This function is used to extract the data out of a [RasterizedStar] and order it into collumns so that it can be saved into a parquet file.  
+    /// 
+    /// ### Arguments: 
+    /// * `star` - A reference to a [RasterizedStar] that contains all the information in a [Vec<SurfaceCell>] collection. 
+    /// ### Returns: 
+    /// * A [RasterizedStarOutput] that will be used to create a [DataFrame] which will be saved into a parquet file. 
     pub fn format_the_star(
         star: &RasterizedStar,        
     )->RasterizedStarOutput{
@@ -56,7 +45,7 @@ impl RasterizedStarOutput{
         let mut all_coschi:Vec<f64> = Vec::with_capacity(capacity);
         let mut all_area:Vec<f64> = Vec::with_capacity(capacity);
 
-
+        // Fill the vectors. 
         for cell in star.cells.iter(){
             if cell.coschi!=0.0{
                 all_coords1.push(cell.coord_1);
@@ -181,25 +170,11 @@ pub fn write_output_to_parquet(
         SinkOptions::default()){
             lf.collect()?;
         }else {eprint!("unable to sink to a parket in {} time_point",time_points)};
-    //Reading test
-    /*println!("{:#?} file created",new_path);
-    let mut file = std::fs::File::open(new_path).unwrap();
-    let ddf = ParquetReader::new(&mut file).finish().unwrap();
-    println!("---------------------------------------");
-    println!("DataFrame for Rasterized Star Output  opened ");
-    println!("First 5 rows:");
-    println!("{}", ddf.head(Some(5usize)));*/
     if time_points > 1u16
         {remove_temp_parquet_file(time_points)?}
     
     Ok(())
-    /*ParquetWriter::new(file_parquet)
-        .finish(& mut df)?;
     
-    println!("Parquet file for Rasterized Star output succesfully created");
-    
-
-    Ok(())*/
 }
 
 ///This function creates the [LazyFrame] that will be used to create the parquet file 

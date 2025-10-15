@@ -1,7 +1,6 @@
 //! Pulstar program is a binary that rasterizes a star and produces a polars DataFrame that contains
 //! the (linear) variations on surface temperature, log g, and also the pulsation velocity components.
 //! for each of the surface cells. 
-//use polars::time;
 use serde::Deserialize;
 use temp_name_lib::math_module::spherical_harmonics;
 use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
@@ -150,10 +149,15 @@ pub struct SurfaceCell{
     coord_2: f64, // <- Phi in spherical coordinates
 }
 
+/// Discretized version of the star. 
 pub struct RasterizedStar{
+    /// A [Vec] collection  that contains the [SurfaceCell]s of the star excluding the poles. 
     cells: Vec<SurfaceCell>,
+    /// A [f64] value that holds the current phase of pulsation to be analized. 
     time_stamp: f64,
+    /// The effective temperature of the star. 
     pub t_eff: f64,
+    /// The surface gravity of the star. 
     pub g_0: f64,
 }
 
@@ -186,15 +190,20 @@ impl PulstarConfig {
         }
     }
 
+    //// This function sets a mesh on the surface of a star effectively creating a polygonal version of it. 
     pub fn rasterize_star(&self,)->RasterizedStar{
+
+        // Create a new instance of a rasterized star. 
         let mut rasterized_star = RasterizedStar::new();
 
+        // Set a mesh on the star depending on the selected geometry
         match self.mesh {
+            // On the spherical case we will be using equally spaced cells on (θ,φ)
             MeshConfig::Sphere { theta_step, phi_step } =>{
                 let mut theta:f64=1.0;
                 let mut phi:f64 =1.0;
                 while theta < 180.0{
-                    while phi < 360.0{
+                    while phi < 360.0{                        
                         rasterized_star.cells.push(SurfaceCell::new(theta.to_radians(), phi.to_radians()));
                         phi += phi_step;
                     }
@@ -217,6 +226,7 @@ impl PulstarConfig {
 }
 
 impl RasterizedStar{
+    /// Creates a new instance of a [RasterizedStar], setting all the member values to zero  and an empty [Vec<SurfaceCell>].
     fn new()->Self{
         RasterizedStar{ cells: Vec::new(), time_stamp: 0.0, t_eff:0.0, g_0:0.0 }
     }
@@ -233,9 +243,19 @@ impl RasterizedStar{
 
 }
 impl SurfaceCell{
+    /// Creates a new instance of a [SurfaceCell] setting the coordinates of the barycenter.
+    /// 
+    /// ### Arguments:
+    /// * `coord_1`: A [f64] value  indicating the first coordinate of the cell. 
+    /// * `coord_2`: A [f64] value indicating the second coordinate of the cell. 
+    /// 
+    /// ### Returns: 
+    /// * A new instance of [SurfaceCell]
     fn new(coord_1:f64,coord_2:f64)->Self{
         Self { t_eff: 0.0, log_g: 0.0, area: 0.0, coschi: 0.0, rel_dlamb: 0.0, v_tot: 0.0, coord_1: coord_1, coord_2: coord_2 }
     }
+
+    /// Sets all the local values of a [SurfaceCell] to zero, except for its coordinates. 
     fn set_local_values_to_zero(& mut self){
         self.log_g = 0.0;
         self.rel_dlamb = 0.0;
@@ -244,6 +264,18 @@ impl SurfaceCell{
         self.coschi = 0.0;
         self.area = 0.0;
     }
+
+    /// Calculates the variation of area, total velocity, effective temperature, and surface gravity for a [SurfaceCell]
+    /// 
+    /// ### Arguments: 
+    /// * `parameters` - A [PulstarConfig] reference that contains the parameters that describe the [PulsationMode]s
+    /// * `k` - A [Coordinates] reference to the unit vector pointing towards the observer. 
+    /// * `temperature_0` - A [f64] value of the effective temperature of the star.
+    /// * `g0` - A [f64] value of the surface gravity of the star. 
+    /// 
+    /// ### Returns: 
+    /// * This method updates a mutable instance of a [SurfaceCell].
+    /// 
     fn update_local_quantities(&mut self,parameters:& PulstarConfig, k:& Coordinates, temperature_0:f64, g0:f64){
         //Select the type of geometry
         match parameters.mesh{

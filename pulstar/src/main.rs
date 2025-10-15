@@ -50,11 +50,18 @@ fn main() {
         star.advance_in_time(*time_stamp);
         //--Initialize the minimum and maximum arrays
         
-        //--Start the loop over the whole stellar surface. Avoiding the poles
+        //--Computes effective temperature, log gravity, radial component of total velocity, cosχ, etc. on all surface cells avoiding the poles.  
         star.compute_local_quantities(&pulse_config, &k);
-
+        
+        //--Save the data of the current phase.
         write_output_to_parquet(&star, n as u16 +1).unwrap();
     }//end for time loop
+    
+    // Prints some values of the run
     print_report(&now, &pulse_config, time_points.len());
-    println!("\n PULSTARust finished...")    
-}
+    
+    println!("----------------------");
+    println!("|PULSTARust Finished |");
+    println!("----------------------");
+    
+}//end of pulstar program
