@@ -40,7 +40,7 @@ impl ParameterSpaceHypercube{
         for i in 0usize..2usize.pow(dimension){
             corner_values.push(0.0);
         }
-        for i in 0usize..(2.pow(dimension)-1){
+        for i in 0usize..(2.pow(dimension+1)){
             partial_interpolations.push(0.0);
         }
 
@@ -79,52 +79,47 @@ impl ParameterSpaceHypercube{
     }
 
 
-    // so this is what I want to do. I will take a slice of the partial interpolation and fill it, then I will take the next slice
+    // So this is what I want to do. I will take a slice of the partial interpolation and fill it, then I will take the next slice
     // Since this is done in a loop, it should go like this
     // start_index=2^i-1?
     // end_index = 2^i?
     // slice_i = 2[start_index..=end_index]
     // and then store the intermediate interpolations. 
     // With this I would be able to iterate. 
-    pub fn multilinear_interpolation(&mut self, coords_in_param_space:&[f64])->Result<_,f64>{
+    pub fn multilinear_interpolation(&mut self, coords_in_param_space:&[f64])->Result<f64,MathErrors>{
         self.get_fractional_distances(coords_in_param_space)?;        
-        let mut partial_interpolation = self.corner_values;
 
-        for i in 1usize..coords_in_param_space.len() {
-            let dimension_counter=coords_in_param_space.len()+1-i;
-            partial_interpolation = multilinear_interpolation(dimension_counter, partial_interpolation, self.fractional_distances[i])
+        let dimension = coords_in_param_space.len();
+        for index in 0..2.pow(dimension){
+            self.partial_interpolations[index] = self.corner_values[index];
         }
-        
+
+        //Something like this but I still need to think on some(most) details 
+        let mut start_index = 0usize;
+        for dimension_step in 1..=dimension{
+            let dimension_counter = dimension - dimension_step + 1 ;//should go from dimension to 1 in steps by 1
+            let end_index = start_index+2.pow(dimension_counter)-1;//I'll think of this later....
+            let previous_interpolation = &self.partial_interpolations[start_index..end_index];//
+            for (index,pair) in previous_interpolation.chunks(2usize).enumerate(){
+                self.partial_interpolations[end_index+index+1]=linear_interpolation(pair, self.fractional_distances[dimension_step-1]);
+            }
+            start_index += end_index;//???not sure
+        }
+
+        self.partial_interpolations[start_index]        
     }
-
-
 }
 
-
-pub fn multilinear_interpolation(dimension:usize,partial_interpolation:&[f64],fractional_distances:&f64)->Vec<f64>{
-    let mut new_partial_interpolation:Vec<f64> = Vec::with_capacity(2usize.pow(dimension-1));
-    for (index,pair) in partial_interpolation.chunks(2usize).enumerate(){
-        new_partial_interpolation.push(linear_interpolation(pair, fractional_distances))
-    }
-}
-
-pub fn linear_interpolation(values:&[f64],fractional_distance:f64)->f64{
+fn linear_interpolation(values:&[f64],fractional_distance:f64)->f64{
     values[0]*fractional_distance +  values[1]*(1.0-fractional_distance)
 }
 
-/// Multilinear interpolation
-/// 
-pub fn multilinear_interpolation(
-    point_coordinates:&[f64],
-    hypercube_corners:&[f64],
-    vertex_on_param_space:&[f64],
-)->f64{
- 0.0;
-}
 
 
-fn compute_weights(
-    point_coordinates:&[f64],
-    hypercube_corners:&[f64]
-)->Vec<f64>{
-    let mut weight:Vec<f64> = Vec::with_capacity(capacity)
+//#cfg!(tests){
+
+
+
+
+//}
+
