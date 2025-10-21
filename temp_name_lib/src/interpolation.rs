@@ -1,5 +1,3 @@
-use std::num::ParseIntError;
-
 use crate::utils::MathErrors;
 
 /// This structure contains all the relevant information to produce 
@@ -7,7 +5,7 @@ use crate::utils::MathErrors;
 /// 
 pub struct ParameterSpaceHypercube{
     /// This vector contains all the pairs of values that define the hypercube in the parameter space.
-    pub fractional_coordinates:Vec<f64>,
+    pub fractional_coordinates:Vec<[f64;2]>,
 
     /// This vector holds the pairs fractional distances that could be computed when requesting for an interpolation. 
     /// 
@@ -27,27 +25,31 @@ pub struct ParameterSpaceHypercube{
 impl ParameterSpaceHypercube{
     /// Creates a new instance of a hypercube in parameter space
     fn new(dimension: usize)->Self{
-        let mut fractional_coordinates:Vec<f64> = Vec::new();
+        let mut fractional_coordinates:Vec<[f64;2]> = Vec::new();
         let mut fractional_distances:Vec<f64> = Vec::new();
         let mut corner_values:Vec<f64> =  Vec::new();
+        let mut partial_interpolations:Vec<f64> = Vec::new();
 
-        for i in 0usize..2usize*dimension {
-            fractional_coordinates.push(0.0);
-        }
-        for i in 0usize..dimension{
+        for _i in 0usize..dimension {
+            fractional_coordinates.push([0.0;2]);
             fractional_distances.push(0.0);
         }
-        for i in 0usize..2usize.pow(dimension){
+        for _i in 0usize..2usize.pow(dimension as u32){
             corner_values.push(0.0);
         }
-        for i in 0usize..(2.pow(dimension+1)){
+        for _i in 0usize..(2usize.pow(dimension as u32 +1)){
             partial_interpolations.push(0.0);
         }
+
+        Self { fractional_coordinates: fractional_coordinates,
+               fractional_distances: fractional_distances,
+               corner_values: corner_values,
+               partial_interpolations: partial_interpolations }
 
     }
 
     /// Fills in the coordinates of the hypercube. 
-    fn fill_coordinates(&mut self,pairs:&[f64])->Result<(),MathErrors>{
+    fn fill_coordinates(&mut self,pairs:&[[f64;2]])->Result<(),MathErrors>{
         if pairs.len()!= self.fractional_coordinates.len(){Err(MathErrors::NotAdequateNumberOfElements)}
         else{
             for (index,item) in pairs.iter().enumerate(){
@@ -58,17 +60,18 @@ impl ParameterSpaceHypercube{
     }
 
     fn get_fractional_distances( &mut self, coords_in_param_space:&[f64])->Result<(),MathErrors>{
-       if coords_in_param_space.len()!= self.fractional_distances{Err(MathErrors::NotAdequateNumberOfElements)} 
+       if coords_in_param_space.len()!= self.fractional_distances.len(){Err(MathErrors::NotAdequateNumberOfElements)} 
        else{
-            for (index,item) in self.fractional_coordinates.chunks(2usize).enumerate(){
+            for (index,item) in self.fractional_coordinates.iter().enumerate(){
                 let x_l = item[0];
                 let x_r = item[1];
                 self.fractional_distances[index] = (coords_in_param_space[index]-x_l)/(x_r-x_l)
             }
+            Ok(())
        }
     }
 
-    fn fill_vertices_data (&mut self, vertices_data:&[f64])->Result<(),MathErros>{
+    fn fill_vertices_data (&mut self, vertices_data:&[f64])->Result<(),MathErrors>{
         if vertices_data.len() != self.corner_values.len(){Err(MathErrors::NotAdequateNumberOfElements)}
         else {
             for (index,item) in vertices_data.iter().enumerate(){
@@ -90,7 +93,7 @@ impl ParameterSpaceHypercube{
         self.get_fractional_distances(coords_in_param_space)?;        
 
         let dimension = coords_in_param_space.len();
-        for index in 0..2.pow(dimension){
+        for index in 0..2usize.pow(dimension as u32){
             self.partial_interpolations[index] = self.corner_values[index];
         }
 
@@ -98,15 +101,16 @@ impl ParameterSpaceHypercube{
         let mut start_index = 0usize;
         for dimension_step in 1..=dimension{
             let dimension_counter = dimension - dimension_step + 1 ;//should go from dimension to 1 in steps by 1
-            let end_index = start_index+2.pow(dimension_counter)-1;//I'll think of this later....
-            let previous_interpolation = &self.partial_interpolations[start_index..end_index];//
+            let end_index = start_index+2usize.pow(dimension_counter as u32);
+            
+            let (previous_interpolation,current_interpolation) = self.partial_interpolations.split_at_mut(end_index);
             for (index,pair) in previous_interpolation.chunks(2usize).enumerate(){
-                self.partial_interpolations[end_index+index+1]=linear_interpolation(pair, self.fractional_distances[dimension_step-1]);
+                current_interpolation[index]=linear_interpolation(pair, self.fractional_distances[dimension_step-1]);
             }
-            start_index += end_index;//???not sure
+            start_index = end_index;//???not sure
         }
 
-        self.partial_interpolations[start_index]        
+        Ok(self.partial_interpolations[start_index])
     }
 }
 
@@ -116,10 +120,43 @@ fn linear_interpolation(values:&[f64],fractional_distance:f64)->f64{
 
 
 
-//#cfg!(tests){
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct SampleGrid{
+        columns:Vec<f64>,
+    }
+    struct SamplePoint{
+
+    }
+    //This is a test to see if the linear interpolation works well for  a point on a line. 
+    #[test]
+    fn interpolate_traveltime(){
+        let point_a=1.0;
+        let point_c = 7.0;
+        let travel_time_a = 5.0;
+        let travel_time_c = 18.0;
+
+        let point_b = 0.5*(point_a + point_c);
+
+        let travel_time_b = travel_time_a + (point_b-point_a) * (travel_time_c-travel_time_a)/(point_c-point_a);
+
+        let values= vec![travel_time_a,travel_time_c];
+        let fractional_distance = (point_b-point_a )/(point_c-point_a);
+
+        assert_eq!(travel_time_b,linear_interpolation(&values, fractional_distance))
+    }
+
+    // Here I need to write a 2D test but I have to think on a problem
+
+    // A 3D test
+
+    // Now working with a grid of data
+    
+}
 
 
 
 
-//}
 
