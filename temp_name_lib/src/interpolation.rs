@@ -24,7 +24,7 @@ pub struct ParameterSpaceHypercube{
 
 impl ParameterSpaceHypercube{
     /// Creates a new instance of a hypercube in parameter space
-    fn new(dimension: usize)->Self{
+    pub fn new(dimension: usize)->Self{
         let mut fractional_coordinates:Vec<[f64;2]> = Vec::new();
         let mut fractional_distances:Vec<f64> = Vec::new();
         let mut corner_values:Vec<f64> =  Vec::new();
@@ -49,7 +49,7 @@ impl ParameterSpaceHypercube{
     }
 
     /// Fills in the coordinates of the hypercube. 
-    fn fill_coordinates(&mut self,pairs:&[[f64;2]])->Result<(),MathErrors>{
+    pub fn fill_coordinates(&mut self,pairs:&[[f64;2]])->Result<(),MathErrors>{
         if pairs.len()!= self.fractional_coordinates.len(){Err(MathErrors::NotAdequateNumberOfElements)}
         else{
             for (index,item) in pairs.iter().enumerate(){
@@ -71,7 +71,7 @@ impl ParameterSpaceHypercube{
        }
     }
 
-    fn fill_vertices_data (&mut self, vertices_data:&[f64])->Result<(),MathErrors>{
+    pub fn fill_vertices_data (&mut self, vertices_data:&[f64])->Result<(),MathErrors>{
         if vertices_data.len() != self.corner_values.len(){Err(MathErrors::NotAdequateNumberOfElements)}
         else {
             for (index,item) in vertices_data.iter().enumerate(){
@@ -122,13 +122,56 @@ fn linear_interpolation(values:&[f64],fractional_distance:f64)->f64{
 
 #[cfg(test)]
 mod tests {
+    use ndarray::{Array3, array};
+
     use super::*;
-
-    struct SampleGrid{
-        columns:Vec<f64>,
+    //quizas valdria la pena  pensar en utilizar un diccionario  para estas abstracciones
+    struct SampleGrids{
+        mu_values:[f64;7],
+        log_g:[f64;2],
+        t_eff:[f64;2],
+        grid_values:ndarray::Array3<f64>,
+        wavelengths: Vec<f64>
     }
-    struct SamplePoint{
 
+    impl SampleGrids{
+        ///This interpolation methods are developed to work using a grid of specific intensities calculated by Nadya. 
+        ///Thus here we construct a sample grid of 4 wavelengths, 2 mu values, and 2 values of log_gravity and effective temperature. 
+        fn nadya_sample()->Self {
+
+            let mu_values = [0.2673, 0.4629, 0.5976, 0.7071, 0.8018, 0.8864, 0.9636];//[0.9636, 0.8864, 0.8018, 0.7071, 0.5976, 0.4629, 0.2673];
+            let t_eff = [21000.0,24000.0];
+            let log_g= [3.5,4.5];
+
+            let wavelengths = vec![400.0,400.1];
+
+            let arr:Array3<f64> = array![
+                [
+                    
+                    //2DMatrix
+                ],//Fourth point on paramspace Teff=24000,logg=4.5,
+            ];
+
+            SampleGrids { mu_values:mu_values, log_g:log_g, t_eff:t_eff, grid_values: arr, wavelengths:wavelengths }
+        }
+        
+        fn fill_hypercube(t_eff:f64, log_g:f64, mu_val:f64, wavelength:f64)->ParameterSpaceHypercube{
+            let sample_grid = Self::nadya_sample();
+            let mut coordinates_in_parameter_space:Vec<[f64;2]> = Vec::new();
+
+            let find_mu_index = |x:f64,mu_vals:&[f64]|->usize{
+                let index:usize =0;
+                for (n,mu_val) in mu_vals.iter().enumerate(){
+                    if x>=mu_val || index < 6 { index = n}
+                }
+                index
+            };
+            coordinates_in_parameter_space.push(sample_grid.log_g.clone());
+            coordinates_in_parameter_space.push(sample_grid.t_eff.clone());
+            let index = find_mu_index(mu_val,sample_grid.mu_values);
+            
+            coordinates_in_parameter_space.push(sample_grid.mu_values[index..=index+1].clone());
+        }
     }
     //This is a test to see if the linear interpolation works well for  a point on a line. 
     #[test]
@@ -138,7 +181,8 @@ mod tests {
         let travel_time_a = 5.0;
         let travel_time_c = 18.0;
 
-        let point_b = 0.5*(point_a + point_c);
+        let point_b = 0.5*(point_a + point_c)//point b is the midpoint between a and c.
+        ;
 
         let travel_time_b = travel_time_a + (point_b-point_a) * (travel_time_c-travel_time_a)/(point_c-point_a);
 
@@ -148,11 +192,11 @@ mod tests {
         assert_eq!(travel_time_b,linear_interpolation(&values, fractional_distance))
     }
 
-    // Here I need to write a 2D test but I have to think on a problem
-
-    // A 3D test
-
     // Now working with a grid of data
+
+    
+
+    
     
 }
 
