@@ -60,7 +60,10 @@ impl ParameterSpaceHypercube{
     }
 
     fn get_fractional_distances( &mut self, coords_in_param_space:&[f64])->Result<(),MathErrors>{
-       if coords_in_param_space.len()!= self.fractional_distances.len(){Err(MathErrors::NotAdequateNumberOfElements)} 
+
+       if coords_in_param_space.len()!= self.fractional_distances.len(){
+        println!("here're the values {},{}",coords_in_param_space.len(),self.fractional_distances.len());
+        Err(MathErrors::NotAdequateNumberOfElements)} 
        else{
             for (index,item) in self.fractional_coordinates.iter().enumerate(){
                 let x_l = item[0];
@@ -91,19 +94,23 @@ impl ParameterSpaceHypercube{
     // With this I would be able to iterate. 
     pub fn multilinear_interpolation(&mut self, coords_in_param_space:&[f64])->Result<f64,MathErrors>{
         self.get_fractional_distances(coords_in_param_space)?;        
-
+        
         let dimension = coords_in_param_space.len();
         for index in 0..2usize.pow(dimension as u32){
             self.partial_interpolations[index] = self.corner_values[index];
         }
-
+        
         //Something like this but I still need to think on some(most) details 
         let mut start_index = 0usize;
         for dimension_step in 1..=dimension{
+
             let dimension_counter = dimension - dimension_step + 1 ;//should go from dimension to 1 in steps by 1
             let end_index = start_index+2usize.pow(dimension_counter as u32);
             
-            let (previous_interpolation,current_interpolation) = self.partial_interpolations.split_at_mut(end_index);
+            let (old_interpolations,current_interpolation) = self.partial_interpolations.split_at_mut(end_index);
+            let (_oldest_interpolations,previous_interpolation) = old_interpolations.split_at_mut(start_index);
+
+            println!("start_index {}, end index {}",start_index,end_index);
             for (index,pair) in previous_interpolation.chunks(2usize).enumerate(){
                 current_interpolation[index]=linear_interpolation(pair, self.fractional_distances[dimension_step-1]);
             }
@@ -174,9 +181,9 @@ mod tests {
             let find_mu_index = |x:f64,mu_vals:&[f64]|->usize{
                 let mut index:usize =0;
                 for (n,mu_val) in mu_vals.iter().enumerate(){
-                    if x>=*mu_val || index < 6usize { index = n}
-                }
-                index
+                    if x<=*mu_val { index = n;
+                    break;}}
+                index-1
             };
             coordinates_in_parameter_space.push(sample_grid.log_g.clone());
             coordinates_in_parameter_space.push(sample_grid.t_eff.clone());
@@ -187,13 +194,13 @@ mod tests {
             coordinates_in_parameter_space.push(slice);
             let wavelength:Vec<f64>=vec![4000.0,4000.1];
             let index_wavelengths = 0usize;
-            slice.copy_from_slice(&wavelength[index_wavelengths..index_wavelengths+1]);
+            slice.copy_from_slice(&wavelength[index_wavelengths..=index_wavelengths+1]);
             coordinates_in_parameter_space.push(slice);
             let mut corner_values:Vec<f64> = Vec::with_capacity(16usize);
     
             for i in 0..2usize{//teff
-                for j in 0..2usize{//
-                    let grid_number = i+2*j;
+                for j in 0..2usize{//logg
+                    let grid_number = 2*i+j;
                     for k in 0..2usize{//lambda
                         for l in 0..2usize{//mu
                             corner_values.push(sample_grid.grid_values[[grid_number,index_wavelengths+k,index+l]]);
@@ -202,7 +209,7 @@ mod tests {
                 }
             }
 
-            ParameterSpaceHypercube { fractional_coordinates: coordinates_in_parameter_space, fractional_distances: vec![0.0;16], corner_values:corner_values, partial_interpolations: vec![0.0;2usize.pow(5)] }
+            ParameterSpaceHypercube { fractional_coordinates: coordinates_in_parameter_space, fractional_distances: vec![0.0;4], corner_values:corner_values, partial_interpolations: vec![0.0;2usize.pow(5)] }
         }
     }
     //This is a test to see if the linear interpolation works well for  a point on a line. 
@@ -225,14 +232,92 @@ mod tests {
     }
 
     // Now working with a grid of data
-    fn manual_grid_interpolation(){
+    #[test]
+    fn are_corner_values_filled_appropriately(){
+        let hypercube = SampleGrids::fill_hypercube();
+        let ex_sample = SampleGrids::nadya_sample();
+        let arr = ex_sample.grid_values;
+        let corner_values_manually_chosen = vec![
+            arr[[0,0,2]],//Teff=21000, Logg = 3.5,wavelenght=4000.00,mu =0.5976
+            arr[[0,0,3]],//Teff=21000, Logg = 3.5,wavelength=4000.00,mu = 0.7071
+            arr[[0,1,2]],//Teff=21000, Logg = 3.5,wavelenght=4000.01,mu =0.5976
+            arr[[0,1,3]],//Teff=21000, Logg = 3.5,wavelength=4000.01,mu = 0.7071
+            arr[[1,0,2]],//Teff=21000, Logg = 4.5,wavelenght=4000.00,mu =0.5976
+            arr[[1,0,3]],//Teff=21000, Logg = 4.5,wavelength=4000.00,mu = 0.7071
+            arr[[1,1,2]],//Teff=21000, Logg = 4.5,wavelenght=4000.01,mu =0.5976
+            arr[[1,1,3]],//Teff=24000, Logg = 4.5,wavelength=4000.01,mu = 0.7071
+            arr[[2,0,2]],//Teff=24000, Logg = 3.5,wavelenght=4000.00,mu =0.5976
+            arr[[2,0,3]],//Teff=24000, Logg = 3.5,wavelength=4000.00,mu = 0.7071
+            arr[[2,1,2]],//Teff=24000, Logg = 3.5,wavelenght=4000.01,mu =0.5976
+            arr[[2,1,3]],//Teff=24000, Logg = 3.5,wavelength=4000.01,mu = 0.7071
+            arr[[3,0,2]],//Teff=24000, Logg = 3.5,wavelenght=4000.00,mu =0.5976
+            arr[[3,0,3]],//Teff=24000, Logg = 3.5,wavelength=4000.00,mu = 0.7071
+            arr[[3,1,2]],//Teff=24000, Logg = 3.5,wavelenght=4000.01,mu =0.5976
+            arr[[3,1,3]],//Teff=24000, Logg = 3.5,wavelength=4000.01,mu = 0.7071
+        ];
+        let corner_values_if_done_right = vec![
+            0.00124444,
+            0.0013054,
+            0.00124444,
+            0.00130539,
+            0.00120154,
+            0.00125596,
+            0.00120153,
+            0.00125595,
+            0.00163161,
+            0.00170613,
+            0.0016316,
+            0.00170612,
+            0.00157459,
+            0.00163924,
+            0.00157458,
+            0.00163924
+        ];
+        assert_eq!(corner_values_manually_chosen,corner_values_if_done_right);
+        assert_eq!(hypercube.corner_values,corner_values_if_done_right);
+    }
 
+    fn manual_grid_interpolation()->f64{
+
+        let coordinates:Vec<f64> = vec![22000.0,4.32,4000.03,0.66];
+
+        let mut hypercube = SampleGrids::fill_hypercube();
+
+        hypercube.get_fractional_distances(&coordinates).unwrap();
+
+        //first 16 partial lineal interpolations; this are done on temperature.
+        let mut d = hypercube.fractional_distances[0];
+        let mut c1: Vec<f64> = Vec::with_capacity(8usize);
+        for chunk in hypercube.corner_values.chunks(2usize){
+            c1.push(linear_interpolation(chunk, d));
+        }
+        if c1.len()!= 8 {panic!("not appropriate size, step 1")};
+        
+        let mut c2:Vec<f64>  = Vec::with_capacity(4);
+        d = hypercube.fractional_distances[1];
+        for chunk in c1.chunks(2usize){
+            c2.push(linear_interpolation(chunk, d));
+        }
+        if c2.len() != 4 {panic!("not appropriate size, step 2")};
+
+        d = hypercube.fractional_distances[2];
+        let mut c3:Vec<f64> = Vec::with_capacity(2usize);
+        for chunk in c2.chunks(2usize){
+            c3.push(linear_interpolation(chunk,d))
+        }
+        if c3.len() != 2 {panic!("not appropriate size, step 3")};
+
+        d = hypercube.fractional_distances[3];
+        let c4 = linear_interpolation(&c3, d);
+
+        c4
     }
     #[test]
+    //#[ignore = "first must passs the previous test"]
     fn multilinear_interpolation_test(){
         let coordinates:Vec<f64> = vec![22000.0,4.32,4000.03,0.66];
 
-        let hypercube = SampleGrids::fill_hypercube();
+        let mut hypercube = SampleGrids::fill_hypercube();
 
         assert_eq!(hypercube.multilinear_interpolation(&coordinates).unwrap(),manual_grid_interpolation())
 
