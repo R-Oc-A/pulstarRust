@@ -17,13 +17,17 @@ pub struct ParameterSpaceHypercube{
     /// This [Vec] must contain the 2^N values of the vertices of the hypercube on the parameter space. 
     pub corner_values:Vec<f64>,
 
-    /// Intermediate Interpolation values. 
+    /// Intermediate Interpolation values. The multilinear-interpolation will be done on an iterative process on the dimensions.  
     pub partial_interpolations:Vec<f64>,
 
 }
 
 impl ParameterSpaceHypercube{
-    /// Creates a new instance of a hypercube in parameter space
+    /// Creates a new instance of a hypercube in parameter space. This method is intendet to be used to create a mutable instance. 
+    /// ### Arguments:
+    /// `dimension` - A [usize] value indicating the number of dimensions on the parameter space. 
+    /// ### Returns: 
+    /// -A new instance of the [ParameterSpaceHypercube] filled with zeroes.
     pub fn new(dimension: usize)->Self{
         let mut fractional_coordinates:Vec<[f64;2]> = Vec::new();
         let mut fractional_distances:Vec<f64> = Vec::new();
@@ -49,6 +53,10 @@ impl ParameterSpaceHypercube{
     }
 
     /// Fills in the coordinates of the hypercube. 
+    /// ### Arguments: 
+    /// * `pairs` - A &[[f64];2] reference containing the coordinates in parameter space ordered from lower to upper. 
+    /// ### Returns: 
+    /// * This method returns a [Result] with [Ok()] variant or an [[Err] ([MathErrors])] variant indicating that the number of pairs does not match the number of dimensions in parameter space. 
     pub fn fill_coordinates(&mut self,pairs:&[[f64;2]])->Result<(),MathErrors>{
         if pairs.len()!= self.fractional_coordinates.len(){Err(MathErrors::NotAdequateNumberOfElements)}
         else{
@@ -59,8 +67,13 @@ impl ParameterSpaceHypercube{
         }
     }
 
+    /// This method is used to compute the fractional distances to a point in parameter space.
+    /// ### Arguments: 
+    /// * `coords_in_param_space` - a &[[f64]] slice that contains the coordinates of a poin inside the [ParameterSpaceHypercube] where we want to know the result of the interpolation.
+    /// ### Returns: 
+    /// * This method returns a [Result] with a [Ok()] variant in case the fractional distances where calculated correctly and an 
+    /// [Err] variant  in case the coordinates of the point are not well indicated or the point is outside the domain of the [ParameterSpaceHypercube].
     fn get_fractional_distances( &mut self, coords_in_param_space:&[f64])->Result<(),MathErrors>{
-
        if coords_in_param_space.len()!= self.fractional_distances.len(){
         println!("here're the values {},{}",coords_in_param_space.len(),self.fractional_distances.len());
         Err(MathErrors::NotAdequateNumberOfElements)} 
@@ -68,12 +81,24 @@ impl ParameterSpaceHypercube{
             for (index,item) in self.fractional_coordinates.iter().enumerate(){
                 let x_l = item[0];
                 let x_r = item[1];
-                self.fractional_distances[index] = (coords_in_param_space[index]-x_l)/(x_r-x_l)
+                if coords_in_param_space[index]<x_l || coords_in_param_space[index]>x_r{
+                    println!("One of the coordinates of the point in parameter space is out of bounds");
+                    println!("coordinate value = {}, left bound = {}, right bound = {}",coords_in_param_space[index],x_l,x_r);
+                    return Err(MathErrors::OutOfBounds)
+                };
+                
+                self.fractional_distances[index] = (coords_in_param_space[index]-x_l)/(x_r-x_l);
             }
             Ok(())
        }
     }
 
+    /// This function fills the data contained in the vertices of the [ParameterSpaceHypercube].
+    /// ### Arguments:
+    /// * `vertices_data` - a &[[f64]] reference that contains the values in the vertices. 
+    /// ### Returns:
+    /// * This method returns a [Result] with an [Ok()] variant in case the vertices in the [ParameterSpaceHypercube] were filled correctly and an
+    /// [Err] ([MathErrors]) variant in case the number of elements provided to fill the data was not adequate. 
     pub fn fill_vertices_data (&mut self, vertices_data:&[f64])->Result<(),MathErrors>{
         if vertices_data.len() != self.corner_values.len(){Err(MathErrors::NotAdequateNumberOfElements)}
         else {
@@ -92,13 +117,28 @@ impl ParameterSpaceHypercube{
     // slice_i = 2[start_index..=end_index]
     // and then store the intermediate interpolations. 
     // With this I would be able to iterate. 
+
+    ///This method performs multilinear interpolation for a point in the parameter space. The implementation was based on the algorithm described on the [Numerical Recipes](https://numerical.recipes/) book. 
+    /// ### Arguments:
+    /// * `Coords_in_param_space`- A &[[f64]] reference that contains the coordinates of a point in the parameter space. 
+    /// ### Returns: 
+    /// This function returns a [Result] with the following variants: 
+    /// * [Ok] ([f64]) - where the binded value is the result of the interpolation. 
+    /// * [Err] ([MathErrors]) - If there was a problem with the slice containing the coordinates on the parameter space. 
     pub fn multilinear_interpolation(&mut self, coords_in_param_space:&[f64])->Result<f64,MathErrors>{
+        //Compute the fractional distances for all of the dimensions. 
         self.get_fractional_distances(coords_in_param_space)?;        
         
+        // get the dimensions of the parameterspace
         let dimension = coords_in_param_space.len();
-        for index in 0..2usize.pow(dimension as u32){
-            self.partial_interpolations[index] = self.corner_values[index];
-        }
+
+        // The first iteration of linear interpolations uses all of the data contained on the vertices of the hypercube. So first I produce a copy of the values contained there to perform the loop.
+        let end_index = 2usize.pow(dimension as u32);
+        let (slice0,_slice1)=self.partial_interpolations.split_at_mut(end_index);
+        slice0.copy_from_slice(& self.corner_values[0..end_index]);
+        //for index in 0..2usize.pow(dimension as u32){
+        //    self.partial_interpolations[index] = self.corner_values[index];
+        //}
         
         //Something like this but I still need to think on some(most) details 
         let mut start_index = 0usize;
@@ -185,16 +225,19 @@ mod tests {
                     break;}}
                 index-1
             };
-            coordinates_in_parameter_space.push(sample_grid.log_g.clone());
             coordinates_in_parameter_space.push(sample_grid.t_eff.clone());
-            let mu_val = 0.66;
-            let index = find_mu_index(mu_val,&sample_grid.mu_values);
+            coordinates_in_parameter_space.push(sample_grid.log_g.clone());
+            
             let mut slice:[f64;2] = [0.0;2];
-            slice.copy_from_slice(&sample_grid.mu_values[index..=index+1]);
-            coordinates_in_parameter_space.push(slice);
+            
             let wavelength:Vec<f64>=vec![4000.0,4000.1];
             let index_wavelengths = 0usize;
             slice.copy_from_slice(&wavelength[index_wavelengths..=index_wavelengths+1]);
+            coordinates_in_parameter_space.push(slice);
+            
+            let mu_val = 0.66;
+            let index = find_mu_index(mu_val,&sample_grid.mu_values);
+            slice.copy_from_slice(&sample_grid.mu_values[index..=index+1]);
             coordinates_in_parameter_space.push(slice);
             let mut corner_values:Vec<f64> = Vec::with_capacity(16usize);
     
@@ -313,7 +356,7 @@ mod tests {
         c4
     }
     #[test]
-    //#[ignore = "first must passs the previous test"]
+    
     fn multilinear_interpolation_test(){
         let coordinates:Vec<f64> = vec![22000.0,4.32,4000.03,0.66];
 
@@ -322,9 +365,6 @@ mod tests {
         assert_eq!(hypercube.multilinear_interpolation(&coordinates).unwrap(),manual_grid_interpolation())
 
     }    
-
-    
-    
 }
 
 
