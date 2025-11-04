@@ -1,12 +1,9 @@
 use polars::{error::ErrString, prelude::*};
 use serde::Deserialize;
 use temp_name_lib::type_def::{CLIGHT,N_FLUX_POINTS};//Velocity of light in m/s
+use ndarray;
 
-//use crate::intensity:: interpolate::interpolate};
 use std::fs;
-
-//use crate::intensity::parse_intensity_grids::{IntensityDataFrames};
-//use std::sync::Arc;
 
 /// The profile program reads a the quantities calculated over a Rasterized star on selected time points
 /// and reurns a parquet file that contains the time series of the mean intensity flux produced 
@@ -17,6 +14,17 @@ use std::fs;
 mod intensity;
 mod interpolate;
 pub mod utils;
+
+
+/// This structure holds the information contained on Nadya's specific intensity grids. 
+#[derive(Clone)]
+pub struct SpectralGrid {
+    mu_values:[f64;7],
+    t_eff:[f64;2],
+    log_g:[f64;2],
+    grid_values:ndarray::Array3<f64>,
+    wavelengths: Vec<f64>
+}
 
 /// This structure holds the data to construct the synthetic normalized flux.
 #[derive(Clone)]
