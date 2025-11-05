@@ -14,17 +14,8 @@ use std::fs;
 mod intensity;
 mod interpolate;
 pub mod utils;
+pub mod nadialike_grids;
 
-
-/// This structure holds the information contained on Nadya's specific intensity grids. 
-#[derive(Clone)]
-pub struct SpectralGrid {
-    mu_values:[f64;7],
-    t_eff:[f64;2],
-    log_g:[f64;2],
-    grid_values:ndarray::Array3<f64>,
-    wavelengths: Vec<f64>
-}
 
 /// This structure holds the data to construct the synthetic normalized flux.
 #[derive(Clone)]
@@ -81,7 +72,17 @@ pub struct GridsData{
     pub grids_indices: Vec<usize>,
 }
 
+#[derive(Clone)]
+pub struct SpectralGrid {
+    mu_values:[f64;7],
+    t_eff:[f64;2],
+    log_g:[f64;2],
+    grid_values:ndarray::Array3<f64>,
+    wavelengths: Vec<f64>
+}
+
 impl FluxOfSpectra{
+
     /// This function creates a new instance of [FluxOfSpectra] where all of its members contain values of only 0.0.
     /// This function should be used to construct a mutable instance at the beginning of the profile program. 
     pub fn new(profile_input: &ProfileConfig)->FluxOfSpectra{
