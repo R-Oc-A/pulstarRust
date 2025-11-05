@@ -82,7 +82,6 @@ pub struct SpectralGrid {
 }
 
 impl FluxOfSpectra{
-
     /// This function creates a new instance of [FluxOfSpectra] where all of its members contain values of only 0.0.
     /// This function should be used to construct a mutable instance at the beginning of the profile program. 
     pub fn new(profile_input: &ProfileConfig)->FluxOfSpectra{
