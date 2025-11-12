@@ -1,18 +1,5 @@
 use super::*;
 
-
-/// This structure has a collection of the [DataFrame]s extracted from the intensity grid file. This [DataFrame]s have been filtered
-/// to include only the usefull wavelengths
-/// 
-pub struct IntensityDataFrames{
-    /// Collection of the associated temperature values for the intensity dataframe
-    pub temperature_vector: Vec<f64>,
-    /// Collection of the associated log gravity values for the intensity dataframe
-    pub log_g_vector: Vec<f64>,
-    /// Collection of the dataframes extracted from the grid files.
-    pub intensity_dfs: Vec<DataFrame>,
-}
-
 impl GridsData{
     /// This function extracts all of the values outside from the data frames into vectors. With this setup the number of allocations is greatly reduced. 
     /// ### Arguments: 

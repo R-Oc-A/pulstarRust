@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 use polars:: prelude::*;
 use crate::FluxOfSpectra;
-
-
+pub mod csv_to_ndarray;
 
 
 /// This function opens the parquet file and creates a lazyframe out of the handle.

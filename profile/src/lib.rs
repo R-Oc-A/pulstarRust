@@ -49,7 +49,7 @@ pub struct SurfaceCell{
     v_tot: f64,
 }
 
-
+/*
 /// Contains the relevant information to perform interpolation and get the specific intensity values. 
 pub struct GridsData{
     /// Collection of the associated temperature values for the intensity dataframe
@@ -71,14 +71,36 @@ pub struct GridsData{
     /// Grids to use in the interpolation.
     pub grids_indices: Vec<usize>,
 }
+*/
 
+///Contains the relevant information to perform interpolation and get specific intensity values. 
 #[derive(Clone)]
-pub struct SpectralGrid {
-    mu_values:[f64;7],
-    t_eff:[f64;2],
-    log_g:[f64;2],
-    grid_values:ndarray::Array3<f64>,
-    wavelengths: Vec<f64>
+pub enum SpectralGrid {
+    Joris{
+        /// Effective temperature of the plane parallel atmosphere.
+        t_eff:[f64;2],
+        /// Logarithm of the surface gravity of a plane parallel atmosphere. 
+        log_g:[f64;2],
+        /// Specific intensity and continuum intensity values dependant of the wavelength and χ.
+        grid_values:ndarray::Array3<f64>,
+        /// Array containing the wavelengths. 
+        wavelengths: Vec<f64>
+    },
+    Nadya{
+        /// Effective temperature of the plane parallel atmosphere.
+        t_eff:[f64;2],
+        /// Logarithm of the surface gravity of a plane parallel atmosphere. 
+        log_g:[f64;2],
+        /// Specific intensity and continuum intensity values dependant of the wavelength and χ.
+        grid_values:ndarray::Array3<f64>,
+        /// Array containing the wavelengths. 
+        wavelengths: Vec<f64>,
+        /// µ=sqrt(cos(χ)),
+        ///  
+        /// where χ is the angle of the normal of a parallel atmosphere plane with respect to the unit vector in direction of the observer.
+        mu_values:[f64;7],
+    }
+
 }
 
 impl FluxOfSpectra{
@@ -142,13 +164,23 @@ pub struct WavelengthRange{
 /// - the temperature in Kelvin
 /// - the logarithm of the surface gravity
 #[derive(Deserialize,Debug,PartialEq)]
-pub struct IntensityGrid{
-pub temperature: f64,
-pub log_gravity: f64,
-pub filename: String,
+pub enum IntensityGrid{
+    Joris{
+        temperature: f64,
+        log_gravity: f64,
+        filename: String,
+    },
+    /// Nadya's intensity grids also enable parameter study in metalicity
+    /// They provide specific intensity values dependant on µ.
+    Nadya{
+        temperature: f64,
+        log_gravity: f64,
+        metalicity: f64,
+        filename:String,
+    }
 }
 
-
+//maybe I'll use this struct CommonGridId{ temp, logg, fname}
 
 
 impl ProfileConfig {
@@ -156,7 +188,7 @@ impl ProfileConfig {
     /// #### Arguments:
     /// * `path_to_file` - this is a string that indicates the path to the `profile_input.toml` file
     /// #### Returns:
-    /// * new instance of the profile config structure.
+    // * new instance of the profile config structure.
     pub fn read_from_toml(path_to_file:&str)->Self{
         let contents = match fs::read_to_string(path_to_file){
             Ok(c)=>c,
@@ -252,11 +284,11 @@ impl FluxOfSpectra{
 	pub fn collect_flux_from_cell(
         &mut self,
 	    cell:&SurfaceCell,
-	    grids_data:&mut GridsData,
+	    grids_data:&mut SpectralGrid,
 	    ){
 	    
 		//unwrapping the four relevant grid files creating  a vector that holds the temperatures, logg values and the file names.
-	    grids_data.select_grids(cell.t_eff,cell.log_g).unwrap();
+	    //grids_data.select_grids(cell.t_eff,cell.log_g).unwrap();
 	    
         // Doppler shift the wavelengths.
 	    self.get_doppler_shifted_wavelengths(&cell);
