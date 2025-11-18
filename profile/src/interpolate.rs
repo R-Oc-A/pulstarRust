@@ -1,7 +1,35 @@
 use super::*;
+use temp_name_lib::interpolation::ParameterSpaceHypercube;
+impl SpectralGrid{
+    pub fn new_hypercube(& self)->ParameterSpaceHypercube{
+        let dimension = 4usize;//T_eff,Log_g,mu,lambda
+        let mut cube = ParameterSpaceHypercube::new(dimension);
+            let (temps,log_g) = match self{
+                Self::Joris { t_eff:temps, log_g:log_g, grid_values:_, wavelengths:_ }=>{
+                    (temps.clone(),log_g.clone())
+                }
+                Self::Nadya { t_eff:temps, log_g:log_g, grid_values:_, wavelengths:_, mu_values:_ }=>{
+                    (temps.clone(),log_g.clone())
+                }
+            };
+            let mut wavelength:[f64;2]=[0.0,0.0];
+            let mut mu_vals:[f64;2]=[0.0,0.0];
+        cube.fill_coordinates(& vec![temps,log_g,wavelength,mu_vals]).unwrap();
 
+        cube
+    }
+
+    fn fill_hypercube(&self, mu:f64, hypercube: & mut ParameterSpaceHypercube){
+
+    }
+
+}
 impl SurfaceCell{
-    pub fn interpolate(& self, grids_data: &mut GridsData,global_flux:&mut FluxOfSpectra){
+    pub fn interpolate(& self, spectral_grid: &SpectralGrid, global_flux:&mut FluxOfSpectra){
+        
+    }
+
+    pub fn interpolate_old(& self, spectral_grid: &mut SpectralGrid,global_flux:&mut FluxOfSpectra){
     // Counter orders the intensities 
     let mut counter:usize = 0;
     

@@ -10,6 +10,7 @@ use std::fs;
 /// for relevant observed wavelengths.
 
 
+// I'll translate everything to Nadyalike grids. It's easier to work with only one type of spectral grids. 
 
 mod intensity;
 mod interpolate;
@@ -75,18 +76,7 @@ pub struct GridsData{
 
 ///Contains the relevant information to perform interpolation and get specific intensity values. 
 #[derive(Clone)]
-pub enum SpectralGrid {
-    Joris{
-        /// Effective temperature of the plane parallel atmosphere.
-        t_eff:[f64;2],
-        /// Logarithm of the surface gravity of a plane parallel atmosphere. 
-        log_g:[f64;2],
-        /// Specific intensity and continuum intensity values dependant of the wavelength and χ.
-        grid_values:ndarray::Array3<f64>,
-        /// Array containing the wavelengths. 
-        wavelengths: Vec<f64>
-    },
-    Nadya{
+pub struct SpectralGrid {
         /// Effective temperature of the plane parallel atmosphere.
         t_eff:[f64;2],
         /// Logarithm of the surface gravity of a plane parallel atmosphere. 
@@ -96,11 +86,11 @@ pub enum SpectralGrid {
         /// Array containing the wavelengths. 
         wavelengths: Vec<f64>,
         /// µ=sqrt(cos(χ)),
-        ///  
         /// where χ is the angle of the normal of a parallel atmosphere plane with respect to the unit vector in direction of the observer.
         mu_values:[f64;7],
-    }
 
+        /// Important indices 
+        
 }
 
 impl FluxOfSpectra{

@@ -1,7 +1,7 @@
 use super::*;
 
 
-impl GridsData {
+impl SpectralGrid {
     /// This function  computes the specific intensities on a grid using it's limb darkening coefficients
     /// ### Arguments: 
     /// `cell` - A &[SurfaceCell] that has the projection angle with the line of sight `coschi`.
@@ -16,7 +16,7 @@ impl GridsData {
 
 
 
-        for i in self.grids_indices.iter(){
+        /*for i in self.grids_indices.iter(){
             //for (j,amplitude) in self.flux[*i].iter_mut().enumerate(){
             for  j in 0..self.grid_wavelengths.len(){
                 self.flux[*i][j] = self.limb_coef_flux[*i][0][j]
@@ -29,7 +29,7 @@ impl GridsData {
                     +ccoef*self.limb_coef_cont[*i][2][j]
                     +dcoef*self.limb_coef_cont[*i][3][j];
             }
-        }
+        }*/
     }
     /// This function is used to store for the observed wavelength the indices of the wavelengths in [GridsData] that will be used for interpolation. 
     /// This function relies on the bisection algorithm to perform the query.

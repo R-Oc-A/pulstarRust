@@ -53,6 +53,8 @@ impl IntensityGrid {
                 ]
             }
         }
+
+
     }
 
 
@@ -76,6 +78,8 @@ impl IntensityGrid {
         .with_schema(Some(Arc::new(schema))).finish()?;
         Ok(lf)
     }
+
+    fn convert_Joris_grid_to_Nadya_grid(){}
 
     /// This function extracts all of the csv data binded to a [IntensityGrid] into a [Vec<f64>]
     fn extract_grid_into_vector(& self)->Vec<f64>{
