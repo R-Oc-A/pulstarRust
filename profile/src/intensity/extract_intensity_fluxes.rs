@@ -38,7 +38,7 @@ impl SpectralGrid {
 
         let mut counter = 0usize;
         for shifted_wavelength in global_flux.shifted_wavelength.iter() {
-            self.row_indices[counter] = search_geq(&self.grid_wavelengths, *shifted_wavelength)-1;
+            self.row_indices[counter] = search_geq(&self.wavelengths, *shifted_wavelength)-1;
             self.row_indices[counter+1] = self.row_indices[counter]+1;
             counter += 2usize;
         }

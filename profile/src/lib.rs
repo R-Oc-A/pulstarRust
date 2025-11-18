@@ -90,7 +90,7 @@ pub struct SpectralGrid {
         mu_values:[f64;7],
 
         /// Important indices 
-        
+        row_indices: Vec<usize>
 }
 
 impl FluxOfSpectra{

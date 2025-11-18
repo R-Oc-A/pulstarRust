@@ -19,15 +19,70 @@ impl SpectralGrid{
         cube
     }
 
+    fn return_mu_index(&self, mu:f64)->usize{
+        let mut index:usize =0;
+        
+        for (n,mu_val) in self.mu_values.iter().enumerate(){
+            if mu<=*mu_val { index = n;
+            break;}
+        }
+        index-1
+    }
+
     fn fill_hypercube(&self, mu:f64, hypercube: & mut ParameterSpaceHypercube){
 
     }
 
 }
 impl SurfaceCell{
-    pub fn interpolate(& self, spectral_grid: &SpectralGrid, global_flux:&mut FluxOfSpectra){
-        
+    pub fn interpolate(& self, spectral_grid: &mut SpectralGrid, global_flux:&mut FluxOfSpectra,hypercube:& mut ParameterSpaceHypercube){
+        spectral_grid.extract_important_rows(global_flux);   
+        let mu_index= spectral_grid.return_mu_index(self.coschi.sqrt());
+
+        //fill coordinates of the hypercube in the parameter space
+        //mu value
+        hypercube.fractional_coordinates[3][0..=1]
+            .copy_from_slice(spectral_grid.mu_values[mu_index..=mu_index+1]);
+
+        for (n,wavelenght) in global_flux.shifted_wavelength.iter().enumerate(){
+            //------------------------------------------------
+            //------Get coordinates in parameter space--------
+            //------------------------------------------------
+
+
+
+            //----------------------------------------
+            //------------------fill hypercube--------
+            //----------------------------------------
+            //fill wavelength coordinate
+            let wavelength_index = spectral_grid.row_indices[2*n];
+            //hypercube.fractional_coordinates[2][0..=1]= *spectral_grid.wavelengths[wavelength_index..=wavelength_index+1].copy_from_slice(src);
+            hypercube.fractional_coordinates[2][0..=1]
+                .copy_from_slice(&spectral_grid.wavelengths[wavelength_index..wavelength_index+1]);
+            //fill vertices values
+            for i in 0..2usize{// effective temperature
+                for j in 0..2usize{// log gravity
+                    let grid_number = 2*i+j;
+                    for k in 0..2usize{//wavelength
+                        for l in 0..2usize{//mu value
+                            let corner_value_index = l+2*k+4*j+8*i;
+                            hypercube.corner_values[corner_value_index]=spectral_grid.grid_values[[grid_number,wavelength_index+k,mu_index+l]].clone();
+                        }
+                    }
+                }
+            }
+
+
+
+
+        }
+
+
+        //fill coordinates in parameter_space
+        //get contribution for parameter space
     }
+
+
 
     pub fn interpolate_old(& self, spectral_grid: &mut SpectralGrid,global_flux:&mut FluxOfSpectra){
     // Counter orders the intensities 
