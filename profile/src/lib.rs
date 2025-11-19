@@ -13,9 +13,7 @@ use std::fs;
 // I'll translate everything to Nadyalike grids. It's easier to work with only one type of spectral grids. 
 
 mod intensity;
-mod interpolate;
 pub mod utils;
-pub mod nadialike_grids;
 
 
 /// This structure holds the data to construct the synthetic normalized flux.
@@ -49,30 +47,6 @@ pub struct SurfaceCell{
     ///Total velocity. It is not 
     v_tot: f64,
 }
-
-/*
-/// Contains the relevant information to perform interpolation and get the specific intensity values. 
-pub struct GridsData{
-    /// Collection of the associated temperature values for the intensity dataframe
-    pub temperature_vector: Vec<f64>,
-    /// Collection of the associated log gravity values for the intensity dataframe
-    pub log_g_vector: Vec<f64>,
-    /// Relevant wavelengths
-    pub grid_wavelengths: Vec<f64>,
-    /// Limb darkening coefficients for specific intensity
-    pub limb_coef_flux: Vec<Vec<Vec<f64>>>,
-    /// limb darkening coefficients for specific intenisty for continuum spectra
-    pub limb_coef_cont: Vec<Vec<Vec<f64>>>,
-    /// Specific intensity
-    pub flux: Vec<Vec<f64>>,
-    /// Continuum intensity
-    pub continuum: Vec<Vec<f64>>,
-    /// Rows to use in the interpolation
-    pub row_indices: Vec<usize>,
-    /// Grids to use in the interpolation.
-    pub grids_indices: Vec<usize>,
-}
-*/
 
 ///Contains the relevant information to perform interpolation and get specific intensity values. 
 #[derive(Clone)]
@@ -257,39 +231,6 @@ fn extract_column_as_vector_string (column_name: &str, df:&DataFrame)->Vec<Strin
     let vecc:Vec<String> = vec_str.iter().map(|s| s.to_string()).collect();
 
     vecc
-}
-
-impl FluxOfSpectra{
-	/// This function that returns the intensity flux and the continuum flux interpolated from the intensity grids
-	/// for each surface cell of the rasterized sphere.
-	/// ### Arguments:
-	/// * `cell` -  A &[SurfaceCell] that contains the `coschi`-Projection of the normal vector of the surface cell with the unit vector towards the observer;
-    ///  `temperature` - temperature value over the surface cell of the rasterized star (in kelvin);
-	///  `log_gravity` - log g value over the surface cell of the rasterized star;
-	///  `relative doppler shift` - relative doppler wavelength shift, this is of course related to the velocity.
-	///  'area' - area of the surface cell of the rasterized star;
-    /// * `grids_data` - A &[GridsData] instance that contains the limb darkening coefficients to calculate the specific intensities and then perform interpolation over them. 
-	/// ### Returns:
-	/// - This function adds the contribution of the observed specific intensities by a surface cell. 
-	pub fn collect_flux_from_cell(
-        &mut self,
-	    cell:&SurfaceCell,
-	    grids_data:&mut SpectralGrid,
-	    ){
-	    
-		//unwrapping the four relevant grid files creating  a vector that holds the temperatures, logg values and the file names.
-	    //grids_data.select_grids(cell.t_eff,cell.log_g).unwrap();
-	    
-        // Doppler shift the wavelengths.
-	    self.get_doppler_shifted_wavelengths(&cell);
-        
-        // For each of the loaded grids, compute the fluxes using the cell's projection angle with the observer's line of sight and the limb darkening law.  
-        grids_data.compute_flux_en_continuum(&cell);
-	
-	    // Function that linearly interpolates the intensity flux Ic and the continuum flux I from the 4 loaded grids
-       cell.interpolate(grids_data, self);
-	    
-	}
 }
 
 

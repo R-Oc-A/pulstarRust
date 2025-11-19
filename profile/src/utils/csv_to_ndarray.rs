@@ -2,8 +2,10 @@ use crate::IntensityGrid;
 use crate::ProfileConfig;
 use crate::SpectralGrid;
 use crate::extract_column_as_vectorf64;
+use crate::intensity::parse_intensity_grids::{
+    filter_wavelength_range,
+    joris_grids::convert_joris_grid_to_regular_grid};
 use polars::prelude::*;
-
 use ndarray::{Array2,Array3};
 
 /// This module is used to obtain a [SpectralGrid] out of the Csv files provided by Nadya and Joris. 
@@ -79,61 +81,56 @@ impl IntensityGrid {
         Ok(lf)
     }
 
-    fn convert_Joris_grid_to_Nadya_grid(){}
 
     /// This function extracts all of the csv data binded to a [IntensityGrid] into a [Vec<f64>]
-    fn extract_grid_into_vector(& self)->Vec<f64>{
-        let grid_df = self.read_intensity_grid_file().unwrap().collect().unwrap();
+    fn extract_grid_into_vector(& self, 
+        wavelengths:&[f64],
+        maxval_rel_dopplershift:f64,
+        minval_rel_dopplershift:f64)->(usize,Vec<f64>){
+
+        let filtered_lf = filter_wavelength_range(
+            self.read_intensity_grid_file().unwrap(),
+            wavelengths,
+            maxval_rel_dopplershift,
+            minval_rel_dopplershift);
+        let grid_df = match self{
+                Self::Nadya { temperature:_, log_gravity:_, metalicity:_, filename:_ }=>{filtered_lf.collect().unwrap()}
+                Self::Joris { temperature:_, log_gravity:_, filename:_ }=>{convert_joris_grid_to_regular_grid(filtered_lf.clone()).collect().unwrap()}
+                _=>{panic!("this grid type {:?} hasn't been coded!",self)}
+        };
         let mut collection:Vec<f64>= Vec::new();
-        match self{
-            Self::Joris { temperature:_, log_gravity:_, filename:_ }=>{
-                collection.append(& mut extract_column_as_vectorf64("a", &grid_df));
-                collection.append(& mut extract_column_as_vectorf64("b", &grid_df));
-                collection.append(& mut extract_column_as_vectorf64("c", &grid_df));
-                collection.append(& mut extract_column_as_vectorf64("d", &grid_df));
-                collection.append(& mut extract_column_as_vectorf64("ac", &grid_df));
-                collection.append(& mut extract_column_as_vectorf64("bc", &grid_df));
-                collection.append(& mut extract_column_as_vectorf64("cc", &grid_df));
-                collection.append(& mut extract_column_as_vectorf64("dc", &grid_df));
-            }
             //I'm going to order the mu values from lower to greater.
-            Self::Nadya { temperature:_, log_gravity:_, metalicity:_, filename:_}=>{
-                collection.append(&mut extract_column_as_vectorf64("mu7_s", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu6_s", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu5_s", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu4_s", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu3_s", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu2_s", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu1_s", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu7_c", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu6_c", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu5_c", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu4_c", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu3_c", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu2_c", &grid_df));
-                collection.append(&mut extract_column_as_vectorf64("mu1_c", &grid_df));
-            }
-        }
-        collection
+        collection.append(&mut extract_column_as_vectorf64("mu7_s", &grid_df));
+        let nwavelengths = collection.len();
+        collection.append(&mut extract_column_as_vectorf64("mu6_s", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu5_s", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu4_s", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu3_s", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu2_s", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu1_s", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu7_c", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu6_c", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu5_c", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu4_c", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu3_c", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu2_c", &grid_df));
+        collection.append(&mut extract_column_as_vectorf64("mu1_c", &grid_df));
+            
+        (nwavelengths,collection)
     }
 
     ///This function extracts the data contained in the csv file binded to a [IntensityGrid] into a 2D array
     /// ### Returns:
     /// * - A [Array2<f64>] that has the same tabular structure as the csv file of the specific intensity grid. 
-    fn extract_grid_into_array2(& self,number_of_wavelengths:usize)->Array2<f64>{
-        let ncols=match self{
-            Self::Joris { temperature:_, log_gravity:_, filename:_}=>{
-                8usize
-            }
-            Self::Nadya { temperature:_, log_gravity:_, metalicity:_, filename:_}=>{
-                14usize
-            }
-            _=>{panic!("this grid type {:?} hasn't been coded!",self)}
-        };
-        let nrows=number_of_wavelengths;
+    fn extract_grid_into_array2(& self,
+        wavelengths:&[f64],
+        maxval_rel_dopplershift:f64,
+        minval_rel_dopplershift:f64
+        )->Array2<f64>{
+        let ncols= 14usize;
+        let (nrows, collection) = self.extract_grid_into_vector(wavelengths,maxval_rel_dopplershift,minval_rel_dopplershift);
         //the shape of the matrix is inverted because polars stores data column wise, and ndarray does it row wise.
         let shape = (ncols,nrows);
-        let collection = self.extract_grid_into_vector();
         //Then the array obtained used ndarray's from_shape_vec method is the transpose of the one we want
         let transposed = ndarray::Array2::from_shape_vec(shape, collection).unwrap();
         //So the final array must have the axes reversed.
@@ -147,31 +144,32 @@ impl ProfileConfig{
     /// * This is an implementation on the [ProfileConfig] data structure that contains the user's inputs. 
     /// ### Returns:
     /// * This implementation returns a [SpectralGrid] that contains the domain on the parameter space as well as the tabular data of the intensity grids. 
-    pub fn init_spectral_grid_from_csv(&self)->SpectralGrid{
+    pub fn init_spectral_grid_from_csv(&self,
+        maxval_rel_dopplershift:f64,
+        minval_rel_dopplershift:f64)->SpectralGrid{
 
         let intensity_grids = &self.intensity_grids;
         
         //nested array2 of the data in the grid files. 
-
-        let wavelengths = self.extract_wavelength_array_from_grid();
+        let obs_wavelengths= self.wavelength_range.get_wavelength_vector();
+        let wavelengths = self.extract_wavelength_array_from_grid(
+            &obs_wavelengths,
+            maxval_rel_dopplershift,
+            minval_rel_dopplershift
+        );
         let mut t_eff:[f64;2] = [0.0;2];
         let mut log_g:[f64;2] = [0.0;2];
 
         let nrows=wavelengths.len();
-        let ncols= match self.intensity_grids[0]{
-            IntensityGrid::Joris { temperature:_ , log_gravity:_ , filename:_  }=>{
-                8usize
-            }
-            IntensityGrid::Nadya { temperature:_ , log_gravity:_ , metalicity:_ , filename:_  }=>{
-                14usize
-            }
-        };
+        let ncols= 14usize;
         
         let mut nested:Vec<Array2<f64>>=Vec::new();
 
         for (n,grid) in intensity_grids.iter().enumerate(){
-            nested.push(grid.extract_grid_into_array2(nrows));
-            if n>4{panic!("Exceeded the number of spectral grids.")}
+            nested.push(grid.extract_grid_into_array2(&wavelengths,
+            maxval_rel_dopplershift,
+            minval_rel_dopplershift));
+            if n>3{panic!("Exceeded the number of spectral grids.")}
         }
         
         let flat:Vec<f64> = nested.iter().flatten().cloned().collect();
@@ -180,38 +178,42 @@ impl ProfileConfig{
 
         //Fill last members of coordinate space
         match self.intensity_grids[3]{
-            IntensityGrid::Joris { temperature:temp , log_gravity:log_gravity , filename:_ }=>{
-                t_eff[1]=temp;
+            IntensityGrid::Joris { temperature , log_gravity , filename:_ }=>{
+                t_eff[1]=temperature;
                 log_g[1]=log_gravity;
             }
-            IntensityGrid::Nadya { temperature:temp , log_gravity:log_gravity , metalicity:_ , filename:_}=>{
-                t_eff[1]=temp;
+            IntensityGrid::Nadya { temperature , log_gravity , metalicity:_ , filename:_}=>{
+                t_eff[1]=temperature;
                 log_g[1]=log_gravity;
             }
         }
 
         //Fill first members of coordinate space and create spectral grids;
+        let mu_values=[0.2673,0.4629,0.5976,0.7071,0.8018,0.8864,0.9636];
         match self.intensity_grids[0]{
-            IntensityGrid::Joris { temperature:temp , log_gravity:log_gravity , filename:_ }=>{
-                t_eff[0]=temp;
+            IntensityGrid::Joris { temperature , log_gravity , filename:_ }=>{
+                t_eff[0]=temperature;
                 log_g[0]=log_gravity;
-                SpectralGrid::Joris { t_eff:t_eff, log_g:log_g, grid_values:array3 , wavelengths:wavelengths}
             }
-            IntensityGrid::Nadya { temperature:temp , log_gravity:log_gravity , metalicity:_ , filename:_  }=>{
-                t_eff[0]=temp;
+            IntensityGrid::Nadya { temperature , log_gravity , metalicity:_ , filename:_  }=>{
+                t_eff[0]=temperature;
                 log_g[0]=log_gravity; 
-                let mu_values=[0.2673,0.4629,0.5976,0.7071,0.8018,0.8864,0.9636];
-                SpectralGrid::Nadya { t_eff:t_eff, log_g:log_g, grid_values: array3, wavelengths:wavelengths, mu_values:mu_values}
             }
         }
-        
-
-
+        let row_indices = vec![0usize;2*wavelengths.len()];
+        SpectralGrid{ t_eff:t_eff, log_g:log_g, grid_values: array3, wavelengths:wavelengths, mu_values:mu_values, row_indices:row_indices}
     }
+
     ///This function is used to obtain the wavelengths of the specific intensity grids. 
-    fn extract_wavelength_array_from_grid(&self)->Vec<f64>{
-        let df = self.intensity_grids[0].read_intensity_grid_file()
-                    .unwrap()
+    fn extract_wavelength_array_from_grid(&self,
+        obs_wavelengths:&[f64],
+        maxval_rel_dopplershift:f64,
+        minval_rel_dopplershift:f64)->Vec<f64>{
+        let df = filter_wavelength_range(self.intensity_grids[0].read_intensity_grid_file().unwrap(),
+                    obs_wavelengths,
+                    maxval_rel_dopplershift,
+                    minval_rel_dopplershift
+                    )
                     .collect()
                     .unwrap();
 

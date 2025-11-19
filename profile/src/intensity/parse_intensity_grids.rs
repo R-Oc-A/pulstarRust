@@ -1,5 +1,7 @@
 use super::*;
 
+pub mod joris_grids;
+
 /// This function constructs a polars expression [Expr] that filters out wavelengths that are greater than or less than
 /// observed (requested) ones. This reduces memory consumption and computation time.
 /// 
@@ -74,42 +76,26 @@ pub fn filter2_sift_wavelengths(
 /// ### Returns:
 /// * an Instance of [IntensityDataFrames] where the temperature, log_g are ordered and it contains the [DataFrame]s of the intensity grid files
 /// 
-pub fn parse_relevant_intensity_grids(
-    grids_db: DataFrame,
+pub fn filter_wavelength_range(
+    grids_lf: LazyFrame,
     wavelengths:&[f64],
     maxval_rel_dopplershift:f64,
     minval_rel_dopplershift:f64,
-)->IntensityDataFrames{
+)->LazyFrame{
     
-    let temperature_vector = extract_column_as_vectorf64("temperature", &grids_db);
-    let log_g_vector = extract_column_as_vectorf64("log_gravity", &grids_db);
-    let filenames = extract_column_as_vector_string("file name", &grids_db);
-
     let is_low_resolution = (wavelengths[1]-wavelengths[0])>5.0e-3;//if the requested wavelengths are separated by more than 0.005 nm
-    let mut intensity_dfs:Vec<DataFrame> = Vec::new();
-    for name in filenames{
-        let lf = read_intensity_grid_file(&name).expect("Unable to read intensity grid file");
-        println!("loading {} grid file",name);
+    
+    let combined_expresion=match is_low_resolution{
+        true => {filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).or(
+            filter2_sift_wavelengths(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift)
+        )}
+        false => {filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift)}
+    };
 
-        let temp_df =lf.filter(
-            filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).unwrap()
-            ).collect().expect("unable to produce dataframe using the intensity grid files");
-        if is_low_resolution {
-            intensity_dfs.push(
-                sifted_wavelengths_dataframe(wavelengths,
-                    temp_df.lazy(),
-                    maxval_rel_dopplershift,
-                    minval_rel_dopplershift).expect("unable to produce dataframe using the intensity grid files")
-                );
-        }
-        else {
-            intensity_dfs.push(temp_df);
-        }
-    }
-    IntensityDataFrames{
-        temperature_vector:temperature_vector,
-        log_g_vector: log_g_vector,
-        intensity_dfs:intensity_dfs,
+    match combined_expresion{
+        Some(expresion)=>{grids_lf.filter(expresion)}
+        None=>{panic!("unable to produce dataframe using the intensity grid files")}
+        
     }
 }
 

@@ -75,14 +75,11 @@ fn main() {
     let minval_rel_dopplershift = 1.0+min_vel/CLIGHT*1.0e3;
     println!("min relative dopplershift is {}",minval_rel_dopplershift);
     println!("max relative dopplershift is {}", maxval_rel_dopplershift);
-    let intensity_dfs = profile_config.get_filtered_intensity_dataframes(
-        &wavelength,
-        maxval_rel_dopplershift, 
-        minval_rel_dopplershift);
-    println!("Intensity DataFrames created!");
-    
-    let mut grids_data = GridsData::construct_from_dataframes(intensity_dfs);
 
+    println!("creating the spectral grids data structures from csv files...or neural network regresor");
+    let mut spectral_grids = profile_config.init_spectral_grid_from_csv(maxval_rel_dopplershift, minval_rel_dopplershift);
+    println!("allocating memory for hypercube in the parameter space");
+    let mut hypercube= spectral_grids.new_hypercube();
     //----------------------------------------------------------------
     //-------------- Collect fluxes for each time point  -------------
     //----------------------------------------------------------------
@@ -119,7 +116,7 @@ fn main() {
         // Integrate specific intensity.        
         fluxes.restart(*phase);
         for cell in surface_cells.iter(){
-            fluxes.collect_flux_from_cell(cell, & mut grids_data);
+            fluxes.collect_flux_from_cell(cell, & mut spectral_grids,&mut hypercube);
         }
         println!("done computing flux");
 
