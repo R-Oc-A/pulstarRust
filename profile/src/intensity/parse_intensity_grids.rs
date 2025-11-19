@@ -32,8 +32,8 @@ pub fn filter1_if_contains_wavelenghts(
             if*wavelength_val > accumulator {*wavelength_val} else {accumulator}
         )+epsilon;    
 
-    let filter_lower_expr = col("wavelength").gt(lit(min_wavelength));
-    let filter_greater_expr = col("wavelength").lt(lit(max_wavelength));
+    let filter_lower_expr = col("wavelengths").gt(lit(min_wavelength));
+    let filter_greater_expr = col("wavelengths").lt(lit(max_wavelength));
 
     let combined_filter_exp = filter_lower_expr.or(filter_greater_expr);
     Some(combined_filter_exp)
@@ -50,8 +50,8 @@ pub fn filter2_sift_wavelengths(
     let mut combined_expresion: Option<Expr> = None;
     
     for wavelength in wavelengths.iter(){
-        let lb_wavelength = col("wavelength").gt(lit(wavelength*minval_rel_dopplershift - epsilon));
-        let ub_wavelength = col("wavelength").lt(lit(wavelength*maxval_rel_dopplershift + epsilon));
+        let lb_wavelength = col("wavelengths").gt(lit(wavelength*minval_rel_dopplershift - epsilon));
+        let ub_wavelength = col("wavelengths").lt(lit(wavelength*maxval_rel_dopplershift + epsilon));
         
         let current_mask = lb_wavelength.and(ub_wavelength);
         combined_expresion = match combined_expresion{

@@ -22,7 +22,7 @@ impl IntensityGrid {
             // the other 4 columns are the coefficients of the fourth order limb darkening law used to compute the specific intensity and the last four are for the continuum intensity.
             IntensityGrid::Joris { temperature:_, log_gravity:_,filename:_ }=>{
                 vec![
-            		Field::new("wavelength".into(), DataType::Float64),
+            		Field::new("wavelengths".into(), DataType::Float64),
             		Field::new("a".into(), DataType::Float64),
             		Field::new("b".into(), DataType::Float64),
             		Field::new("c".into(), DataType::Float64),
@@ -37,7 +37,7 @@ impl IntensityGrid {
             // the other 7 columns are the specific intensity values for  a given mu, and the last seven are for the continuum intensity for these same mu values.
             IntensityGrid::Nadya { temperature:_, log_gravity:_, metalicity:_, filename:_ }=>{
                 vec![
-                    Field::new("wavelength".into(), DataType::Float64),
+                    Field::new("wavelengths".into(), DataType::Float64),
                     Field::new("mu1_s".into(),DataType::Float64),//specific intensity for mu=0.9636
                     Field::new("mu2_s".into(),DataType::Float64),//specific intensity for mu=0.8864
                     Field::new("mu3_s".into(),DataType::Float64),//specific intensity for mu=0.8018
@@ -68,11 +68,12 @@ impl IntensityGrid {
      /// * `PolarsResult<LazyFrame>` - where the lazy frame has as headers
      /// * `|wavelength|a|b|c|d|ac|bc|cc|dc|`- In case we're dealing with Joris intensity grids.
      /// * `|wavelength|I_s(mu1)|I_s(mu2)|I_s(mu3)|I_s(mu4)|I_s(mu5)|I_s(mu6)|I_s(mu7)|I_c(mu1)|I_c(mu2)|I_c(mu3)|I_c(mu4)|I_c(mu5)|I_c(mu6)|I_c(mu7)|`- In case they're Nadya's intensity grids.
-     fn read_intensity_grid_file(& self) -> PolarsResult<LazyFrame> {
-        let path = match self {
+     fn read_intensity_grid_file(& self,path_to_grid: &str) -> PolarsResult<LazyFrame> {
+        let filename = match self {
             Self::Joris { temperature:_, log_gravity:_, filename:path_to_grid}=>{path_to_grid} 
             Self::Nadya { temperature:_, log_gravity:_, metalicity:_, filename: path_to_grid }=>{path_to_grid}
         };
+        let path = format!("{}{}",path_to_grid,filename);
         let schema = Schema::from_iter(self.get_schema());
         let lf= LazyCsvReader::new(path)
         .with_separator(b' ')
@@ -86,10 +87,11 @@ impl IntensityGrid {
     fn extract_grid_into_vector(& self, 
         wavelengths:&[f64],
         maxval_rel_dopplershift:f64,
-        minval_rel_dopplershift:f64)->(usize,Vec<f64>){
+        minval_rel_dopplershift:f64,
+        path_to_grid: &str)->(usize,Vec<f64>){
 
         let filtered_lf = filter_wavelength_range(
-            self.read_intensity_grid_file().unwrap(),
+            self.read_intensity_grid_file(path_to_grid).unwrap(),
             wavelengths,
             maxval_rel_dopplershift,
             minval_rel_dopplershift);
@@ -125,10 +127,11 @@ impl IntensityGrid {
     fn extract_grid_into_array2(& self,
         wavelengths:&[f64],
         maxval_rel_dopplershift:f64,
-        minval_rel_dopplershift:f64
+        minval_rel_dopplershift:f64,
+        path_to_grid: &str
         )->Array2<f64>{
         let ncols= 14usize;
-        let (nrows, collection) = self.extract_grid_into_vector(wavelengths,maxval_rel_dopplershift,minval_rel_dopplershift);
+        let (nrows, collection) = self.extract_grid_into_vector(wavelengths,maxval_rel_dopplershift,minval_rel_dopplershift,path_to_grid);
         //the shape of the matrix is inverted because polars stores data column wise, and ndarray does it row wise.
         let shape = (ncols,nrows);
         //Then the array obtained used ndarray's from_shape_vec method is the transpose of the one we want
@@ -168,7 +171,8 @@ impl ProfileConfig{
         for (n,grid) in intensity_grids.iter().enumerate(){
             nested.push(grid.extract_grid_into_array2(&wavelengths,
             maxval_rel_dopplershift,
-            minval_rel_dopplershift));
+            minval_rel_dopplershift,
+        &self.path_to_grids));
             if n>3{panic!("Exceeded the number of spectral grids.")}
         }
         
@@ -209,7 +213,7 @@ impl ProfileConfig{
         obs_wavelengths:&[f64],
         maxval_rel_dopplershift:f64,
         minval_rel_dopplershift:f64)->Vec<f64>{
-        let df = filter_wavelength_range(self.intensity_grids[0].read_intensity_grid_file().unwrap(),
+        let df = filter_wavelength_range(self.intensity_grids[0].read_intensity_grid_file(&self.path_to_grids).unwrap(),
                     obs_wavelengths,
                     maxval_rel_dopplershift,
                     minval_rel_dopplershift

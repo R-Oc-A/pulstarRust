@@ -21,18 +21,10 @@ step = 0.001
 # Associated value for the logarithm of it's surface gravity
 # File name of the intensity grid. 
 [[intensity_grids]]
-temperature = 21000.0
-log_gravity = 3.5
-filename = "t21000g35.txt"
+Joris = {temperature = 21000.0, log_gravity = 3.5, filename = "t21000g35.txt"}
 [[intensity_grids]]
-temperature = 21000.0
-log_gravity = 4.5
-filename = "t21000g45.txt"
+Joris = {temperature = 21000.0, log_gravity = 4.5, filename = "t21000g45.txt"}
 [[intensity_grids]]
-temperature = 24000.0
-log_gravity = 3.5
-filename = "t24000g35.txt"
+Joris = {temperature = 24000.0, log_gravity = 3.5, filename = "t24000g35.txt"}
 [[intensity_grids]]
-temperature = 24000.0
-log_gravity = 4.5
-filename = "t24000g45.txt"
+Joris = {temperature = 24000.0, log_gravity = 4.5, filename = "t24000g45.txt"}

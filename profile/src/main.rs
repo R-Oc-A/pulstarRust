@@ -40,7 +40,7 @@ fn main() {
     let mut fluxes = FluxOfSpectra::new(&profile_config);
 
    //|-->Initialize the wavelength array that tracks the intensity flux profile.
-    let wavelength = profile_config.wavelength_range.get_wavelength_vector();
+    //let wavelength = profile_config.wavelength_range.get_wavelength_vector();
 
    //---------------------------------------- 
    //----Parsing rasterized_star.parquet-----
