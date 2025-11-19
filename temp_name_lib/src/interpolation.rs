@@ -158,13 +158,13 @@ impl ParameterSpaceHypercube{
             let (old_interpolations,current_interpolation) = self.partial_interpolations.split_at_mut(end_index);
             let (_oldest_interpolations,previous_interpolation) = old_interpolations.split_at_mut(start_index);
 
-            println!("start_index {}, end index {}",start_index,end_index);
+            //println!("start_index {}, end index {}",start_index,end_index);
             for (index,pair) in previous_interpolation.chunks(2usize).enumerate(){
                 current_interpolation[index]=linear_interpolation(pair, self.fractional_distances[dimension_step-1]);
             }
             start_index = end_index;
         }//end loop
-
+        //println!("end index{}",end_index);
         Ok(self.partial_interpolations[end_index])
     }
 }

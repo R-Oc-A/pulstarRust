@@ -41,7 +41,7 @@ pub struct SurfaceCell{
     ///Normalized surface area.
     area: f64,
     ///Cosine of the angle between the surface cell normal and the line of sight. 
-    coschi: f64,
+    pub coschi: f64,
     ///Relative Doppler shift of a wavelength.
     rel_dlamb: f64,
     ///Total velocity. It is not 

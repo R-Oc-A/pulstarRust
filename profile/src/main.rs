@@ -96,7 +96,7 @@ fn main() {
         //--------------------------------------------------
 
         // Filter if surface cell is visible.
-        let expr = col("coschi").gt(lit(0.0));
+        let expr = col("coschi").gt(lit(0.08));//.and(col("coschi").lt(lit(0.9285)));
         let visible_lf =sphere_frame.filter(expr);
             
         // Append relative doppler wavelength shift 
@@ -116,7 +116,8 @@ fn main() {
         // Integrate specific intensity.        
         fluxes.restart(*phase);
         for cell in surface_cells.iter(){
-            fluxes.collect_flux_from_cell(cell, & mut spectral_grids,&mut hypercube);
+            if cell.coschi>0.9285{println!("mu = {}",cell.coschi.sqrt())}
+            else{fluxes.collect_flux_from_cell(cell, & mut spectral_grids,&mut hypercube)};
         }
         println!("done computing flux");
 

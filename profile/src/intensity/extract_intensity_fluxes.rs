@@ -18,6 +18,7 @@ impl SpectralGrid{
             if mu<=*mu_val { index = n;
             break;}
         }
+        //println!("mu = {}; between {} and {}",mu,index,index+1);
         index-1
     }
     
@@ -72,7 +73,7 @@ impl FluxOfSpectra{
             //fill wavelength coordinate
             let wavelength_index = spectral_grid.row_indices[2*n];
             hypercube.fractional_coordinates[2][0..=1]
-                .copy_from_slice(&spectral_grid.wavelengths[wavelength_index..wavelength_index+1]);
+                .copy_from_slice(&spectral_grid.wavelengths[wavelength_index..=wavelength_index+1]);
             
             // Fill vertices values specific intensities
             for i in 0..2usize{// effective temperature
