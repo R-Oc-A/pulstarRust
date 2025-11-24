@@ -79,7 +79,8 @@ fn main() {
     println!("creating the spectral grids data structures from csv files...or neural network regresor");
     let mut spectral_grids = profile_config.init_spectral_grid_from_csv(maxval_rel_dopplershift, minval_rel_dopplershift);
     println!("allocating memory for hypercube in the parameter space");
-    let mut hypercube= spectral_grids.new_hypercube();
+    let mut hypercube4d= spectral_grids.new_hypercube(4usize);
+    let mut hypercube3d= spectral_grids.new_hypercube(3usize);
     //----------------------------------------------------------------
     //-------------- Collect fluxes for each time point  -------------
     //----------------------------------------------------------------
@@ -116,8 +117,11 @@ fn main() {
         // Integrate specific intensity.        
         fluxes.restart(*phase);
         for cell in surface_cells.iter(){
-            if cell.coschi>0.9285{println!("mu = {}",cell.coschi.sqrt())}
-            else{fluxes.collect_flux_from_cell(cell, & mut spectral_grids,&mut hypercube)};
+            fluxes.get_doppler_shifted_wavelengths(cell);
+            match cell.coschi>0.9285{
+                true => {fluxes.collect_flux_from_cell(cell, & mut spectral_grids,&mut hypercube3d)}
+                false => {fluxes.collect_flux_from_cell(cell, & mut spectral_grids,&mut hypercube4d)}
+            }
         }
         println!("done computing flux");
 

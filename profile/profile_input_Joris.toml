@@ -7,13 +7,13 @@
 max_velocity = 1.0e2
 
 # Path to the directory where the intensity grid files are stored
-path_to_grids = "./grids/nadyalike_grids/"
+path_to_grids = "./grids/"
 
 # Set the wave length range. The units are in nm 
 [wavelength_range]
-start = 4110.0
-end = 4140.0
-step = 0.01
+start = 413.85
+end = 414.0
+step = 0.002
 
 # Collection of the intensity grid files
 # Each intensity grid contains the following information
@@ -21,10 +21,10 @@ step = 0.01
 # Associated value for the logarithm of it's surface gravity
 # File name of the intensity grid. 
 [[intensity_grids]]
-Nadya = {temperature = 21000.0, log_gravity = 3.5, metalicity=0.02, filename = "lp00000_21000_03500_0200..imu"}
+Joris = {temperature = 21000.0, log_gravity = 3.5, filename = "t21000g35.txt"}
 [[intensity_grids]]
-Nadya = {temperature = 21000.0, log_gravity = 4.5, metalicity=0.02, filename = "lp00000_21000_04500_0200..imu"}
+Joris = {temperature = 21000.0, log_gravity = 4.5, filename = "t21000g45.txt"}
 [[intensity_grids]]
-Nadya = {temperature = 24000.0, log_gravity = 3.5, metalicity=0.02, filename = "lp00000_24000_03500_0200..imu"}
+Joris = {temperature = 24000.0, log_gravity = 3.5, filename = "t24000g35.txt"}
 [[intensity_grids]]
-Nadya = {temperature = 24000.0, log_gravity = 4.5, metalicity=0.02, filename = "lp00000_24000_04500_0200..imu"}
+Joris = {temperature = 24000.0, log_gravity = 4.5, filename = "t24000g45.txt"}

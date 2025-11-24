@@ -1,15 +1,20 @@
 use super::*;
 use temp_name_lib::interpolation::ParameterSpaceHypercube;
 impl SpectralGrid{
-    pub fn new_hypercube(& self)->ParameterSpaceHypercube{
-        let dimension = 4usize;//T_eff,Log_g,mu,lambda
+    pub fn new_hypercube(& self,dimension:usize)->ParameterSpaceHypercube{
+        //let dimension = 4usize;//T_eff,Log_g,mu,lambda
         let mut cube = ParameterSpaceHypercube::new(dimension);
         let (temps,log_g) = (self.t_eff.clone(),self.log_g.clone());
         let wavelength:[f64;2]=[0.0,0.0];
         let mu_vals:[f64;2]=[0.0,0.0];
-        cube.fill_coordinates(& vec![temps,log_g,wavelength,mu_vals]).unwrap();
+        match dimension{
+            4usize => {cube.fill_coordinates(& vec![temps,log_g,wavelength,mu_vals]).unwrap();}
+            3usize => {cube.fill_coordinates(& vec![temps,log_g,mu_vals]).unwrap();}//This is for when mu>=0.9636
+            _ => {panic!("never thought of this case")}
+        }
         cube
     }
+
 
     fn return_mu_index(&self, mu:f64)->usize{
         let mut index:usize =0;
@@ -52,19 +57,25 @@ impl FluxOfSpectra{
 /// - This function adds the contribution of the observed specific intensities by a surface cell. 
     pub fn collect_flux_from_cell(& mut self, cell: & SurfaceCell, spectral_grid: &mut SpectralGrid, hypercube:& mut ParameterSpaceHypercube){
         spectral_grid.extract_important_rows(self);   
-        let mu_index= spectral_grid.return_mu_index(cell.coschi.sqrt());
 
-        //fill coordinates of the hypercube in the parameter space
-        //mu value
-        hypercube.fractional_coordinates[3][0..=1]
-            .copy_from_slice(&spectral_grid.mu_values[mu_index..=mu_index+1]);
+        let mu_index = if hypercube.fractional_coordinates.len()==4{
+            let index= spectral_grid.return_mu_index(cell.coschi.sqrt());
+            //fill coordinates of the hypercube in the parameter space
+            //mu value
+            hypercube.fractional_coordinates[3][0..=1]
+                .copy_from_slice(&spectral_grid.mu_values[index..=index+1]);
+            index
+        }
+        else{ 0usize};
 
         for (n,wavelength) in self.shifted_wavelength.iter().enumerate(){
             //------------------------------------------------
             //------Get coordinates in parameter space--------
             //------------------------------------------------
 
-            let coordinate_point = vec![cell.t_eff,cell.log_g, *wavelength,cell.coschi.sqrt()];
+            let coordinate_point = if hypercube.fractional_coordinates.len()==4
+                {vec![cell.t_eff,cell.log_g, *wavelength,cell.coschi.sqrt()]}
+                else{vec![cell.t_eff,cell.log_g,*wavelength]};
 
 
             //----------------------------------------
@@ -75,37 +86,53 @@ impl FluxOfSpectra{
             hypercube.fractional_coordinates[2][0..=1]
                 .copy_from_slice(&spectral_grid.wavelengths[wavelength_index..=wavelength_index+1]);
             
-            // Fill vertices values specific intensities
-            for i in 0..2usize{// effective temperature
-                for j in 0..2usize{// log gravity
-                    let grid_number = 2*i+j;
-                    for k in 0..2usize{//wavelength
-                        for l in 0..2usize{//mu value
-                            let corner_value_index = l+2*k+4*j+8*i;
-                            hypercube.corner_values[corner_value_index]=spectral_grid.grid_values[[grid_number,wavelength_index+k,mu_index+l]].clone();
-                        }
-                    }
-                }
-            }
+            spectral_grid.fill_corner_values(wavelength_index, mu_index, hypercube);
             self.flux[n] += hypercube.multilinear_interpolation(&coordinate_point).unwrap() * cell.area;
 
             //fill vertices values continuum
-            for i in 0..2usize{// effective temperature
-                for j in 0..2usize{// log gravity
-                    let grid_number = 2*i+j;
-                    for k in 0..2usize{//wavelength
-                        for l in 0..2usize{//mu value
-                            let corner_value_index = l+2*k+4*j+8*i;
-                            hypercube.corner_values[corner_value_index]=spectral_grid.grid_values[[grid_number,wavelength_index+k,mu_index+l+7]].clone();
-                        }
-                    }
-                }
-            }
-
+            spectral_grid.fill_corner_values(wavelength_index, mu_index+7, hypercube);
             self.continuum[n] += hypercube.multilinear_interpolation(&coordinate_point).unwrap() * cell.area;
         }
     }
 
-
 }
 
+impl SpectralGrid{
+    
+    fn fill_corner_values_4d(&mut self,wavelength_index:usize,mu_index:usize,hypercube:&mut ParameterSpaceHypercube){
+        // Fill vertices values specific intensities
+        for i in 0..2usize{// effective temperature
+            for j in 0..2usize{// log gravity
+                let grid_number = 2*i+j;
+                for k in 0..2usize{//wavelength
+                    for l in 0..2usize{//mu value
+                        let corner_value_index = l+2*k+4*j+8*i;
+                        hypercube.corner_values[corner_value_index]=self.grid_values[[grid_number,wavelength_index+k,mu_index+l]].clone();
+                    }
+                }
+            }
+        }
+    }
+
+    fn fill_corner_values_3d(&mut self,wavelength_index:usize,hypercube:&mut ParameterSpaceHypercube){
+        // Fill vertices values specific intensities
+        for i in 0..2usize{// effective temperature
+            for j in 0..2usize{// log gravity
+                let grid_number = 2*i+j;
+                for k in 0..2usize{//wavelength
+                    let corner_value_index = k+2*j+4*i;
+                    hypercube.corner_values[corner_value_index]=self.grid_values[[grid_number,wavelength_index+k,6]].clone();
+                }
+            }
+        }
+    }
+
+    fn fill_corner_values(&mut self,wavelength_index:usize,mu_index:usize,hypercube:&mut ParameterSpaceHypercube){
+        match hypercube.fractional_coordinates.len(){
+            4usize=>{self.fill_corner_values_4d(wavelength_index, mu_index, hypercube);}
+            3usize=>{self.fill_corner_values_3d(wavelength_index, hypercube);}
+            _=>{panic!("never thought of this case; in extract intensity fluxes\n 
+the dimension of the hypercube in the parameter space is {}",{hypercube.fractional_coordinates.len()})}
+        }
+    }
+}

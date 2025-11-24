@@ -83,8 +83,8 @@ pub fn filter_wavelength_range(
     minval_rel_dopplershift:f64,
 )->LazyFrame{
     
-    let is_low_resolution = (wavelengths[1]-wavelengths[0])>5.0e-3;//if the requested wavelengths are separated by more than 0.005 nm
-    
+    //Nadya's grids are in Angstroms while Joris's are in nm. To check if the requested wavelengths are low resolution i.e. dλ,1e-3nm, I need to specify that or use the same wavelenght units.
+    let is_low_resolution=false;
     let combined_expresion=match is_low_resolution{
         true => {filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).or(
             filter2_sift_wavelengths(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift)
@@ -100,59 +100,4 @@ pub fn filter_wavelength_range(
 }
 
 
-/// This function returns an intensity dataframe with only relevant wavelengths
-/// The main purpose of this function is when you have a  low_resolution wavelength spectra
-/// with bigger number of waves than 500. 
-/// 
-/// [polars] has a difficult time dealing with the combined expresion of more than 500 conditionals so the strategy implemented here
-/// is to sepparate an intensity dataframe into chunks and sift the relevant wavelengths by chunks. 
-/// 
-/// ### Arguments:
-/// * `wavelengths` - a [Vec<f64>] collection that contains the requested wavelengths.
-/// * `intensity_df` - An intensity [DataFrame] about to be filtered
-/// ### Returns: 
-/// This function returns a [PolarsResult] with the following variants
-/// * `Ok(DataFrame)` -where the binded data frame contains the sifted wavelengths
-fn sifted_wavelengths_dataframe(
-    wavelengths:&[f64],
-    temp_lf: LazyFrame,
-    maxval_rel_dopplershift:f64,
-    minval_rel_dopplershift:f64
-)->PolarsResult<DataFrame>{
-    //separate wavelengths into chunks of 500
-    let chunk_size = 500usize;
-
-    //initiallize collecting dataframe
-    let mut collecting_df = df!("empty"=>[0.0]).unwrap();
-
-    //loop over chunks
-    for (iteration,chunk_of_wavelengths) in wavelengths.chunks(chunk_size).enumerate(){
-
-        let partially_sifted_lf = temp_lf.clone().filter(filter2_sift_wavelengths(
-            chunk_of_wavelengths,
-            maxval_rel_dopplershift,
-            minval_rel_dopplershift).unwrap());
-
-        let new_df = 
-        if iteration == 0{
-            partially_sifted_lf.collect()?
-        }
-        else{
-            let old_lf = collecting_df.lazy();
-            concat([old_lf,partially_sifted_lf],
-            UnionArgs::default())?.collect()?
-        };
-
-        collecting_df = new_df;        
-    }
-    Ok(collecting_df)
-    //initialize the collecting dataframe
-    //There's an iterator function called .chunks(usize) I shall look into it
-    //loop over chunks
-        //create data frame with the filetered wavelenghts from chunk
-        //append with collecting data frame
-            //create a lazyframe with thefiltered wavelengths dataframe 
-            // create a lazyframe witht the collecting dataframe
-    //
-    //
-}
+//add interpolating profile test for each fractional coordinate.
