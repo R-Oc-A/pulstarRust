@@ -14,7 +14,7 @@ use std::fs;
 
 mod intensity;
 pub mod utils;
-
+pub mod profile_mkr;
 pub mod regresor_template;
 
 /// This structure holds the data to construct the synthetic normalized flux.
