@@ -108,7 +108,7 @@ pub fn write_into_parquet(
     let lf = output_df.lazy();
     
     // construct the mean flux expresion for the lazy data frame flux/cont
-    let expr = (col("flux") / col("continuum")).alias("mean flux");
+    let expr = (col("flux") / col("continuum")).alias("normalized flux");
     let flux_lf = lf.with_column(expr);//<--Here's an error, it should be something like select... let's see How I fix it. However it's weird That it functions when I just present the fluxes...
 
     // write lazy frame into parquet
