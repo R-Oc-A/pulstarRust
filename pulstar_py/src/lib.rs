@@ -71,5 +71,5 @@ mod pulstar_py {
 
 // create pulstar_input.toml (both file and string)
 // create profile_input.toml (both file and string)
-// run pulstar from pulstar_py
+// run pulstar from pulstar_py-> done
 // run profile from pulstar_py
