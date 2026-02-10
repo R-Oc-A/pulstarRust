@@ -7,6 +7,11 @@ use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
 use temp_name_lib::type_def::PI;
 use nalgebra as na;
 
+use crate::local_pulsation_velocity::observed_pulsation_velocity;
+use crate::local_temperature_and_gravity::local_surface_temperature_logg;
+use crate::reference_frames::{surface_normal, Coordinates};
+
+
 
 /// This structure is necessary for starting the program. 
 /// It contains `mode_data` which is a [Vec] collection of the pulsation modes to be implemented, the `star_data` that characterizes the star, and the `time points` to be simulated. 
@@ -124,6 +129,38 @@ pub enum MeshConfig{
     //[Ricardo:]Here maybe some other geometries may rise
 }
 
+/// This structure holds the local quantities over a surface element of the star. 
+pub struct SurfaceCell{
+    /// Effective temperature.
+    t_eff: f64,
+    /// Log value of the surface gravity.
+    log_g: f64,
+    /// Normalized surface area.
+    area: f64,
+    /// Cosine of the angle between the surface cell normal and the line of sight. 
+    coschi: f64,
+    /// Relative Doppler shift of a wavelength.
+    rel_dlamb: f64,
+    /// Total velocity. It is not 
+    v_tot: f64,
+    /// Coordinates of the surface cell, As a surface, this should only require 2 values. 
+    coord_1: f64, // <- Theta in spherical coordinates
+    ///
+    coord_2: f64, // <- Phi in spherical coordinates
+}
+
+/// Discretized version of the star. 
+pub struct RasterizedStar{
+    /// A [Vec] collection  that contains the [SurfaceCell]s of the star excluding the poles. 
+    cells: Vec<SurfaceCell>,
+    /// A [f64] value that holds the current phase of pulsation to be analized. 
+    time_stamp: f64,
+    /// The effective temperature of the star. 
+    pub t_eff: f64,
+    /// The surface gravity of the star. 
+    pub g_0: f64,
+}
+
 //----------------------------------------
 //----Parsing the pulstar_input.toml------
 //----------------------------------------
@@ -151,6 +188,120 @@ impl PulstarConfig {
             MeshConfig::Sphere { theta_step,
                  phi_step } => {(theta_step,phi_step)}
         }
+    }
+
+    //// This function sets a mesh on the surface of a star effectively creating a polygonal version of it. 
+    pub fn rasterize_star(&self,)->RasterizedStar{
+
+        // Create a new instance of a rasterized star. 
+        let mut rasterized_star = RasterizedStar::new();
+
+        // Set a mesh on the star depending on the selected geometry
+        match self.mesh {
+            // On the spherical case we will be using equally spaced cells on (θ,φ)
+            MeshConfig::Sphere { theta_step, phi_step } =>{
+                let mut theta:f64=1.0;
+                let mut phi:f64 =1.0;
+                while theta < 180.0{
+                    while phi < 360.0{                        
+                        rasterized_star.cells.push(SurfaceCell::new(theta.to_radians(), phi.to_radians()));
+                        phi += phi_step;
+                    }
+                    phi = 1.0;
+                    theta += theta_step;
+                }
+            }   
+        }
+
+        //--Equilibrium log(g_0) (gravity g_0 is in cgs units)
+        //--Mass & radius are in solar units
+        let log_g0 = 4.438 + self.star_data.mass.log10()
+            - 2.0 * self.star_data.radius.log10();
+        
+        rasterized_star.g_0 = 10.0_f64.powf(log_g0);
+        rasterized_star.t_eff = self.star_data.effective_temperature;
+
+        rasterized_star
+    }
+}
+
+impl RasterizedStar{
+    /// Creates a new instance of a [RasterizedStar], setting all the member values to zero  and an empty [Vec<SurfaceCell>].
+    fn new()->Self{
+        RasterizedStar{ cells: Vec::new(), time_stamp: 0.0, t_eff:0.0, g_0:0.0 }
+    }
+
+    pub fn compute_local_quantities(&mut self,
+        parameters:&PulstarConfig,
+        k: &Coordinates){
+        for cell in self.cells.iter_mut(){
+            cell.update_local_quantities(parameters, k,
+                 self.t_eff,
+                  self.g_0);
+        }
+    }
+
+}
+impl SurfaceCell{
+    /// Creates a new instance of a [SurfaceCell] setting the coordinates of the barycenter.
+    /// 
+    /// ### Arguments:
+    /// * `coord_1`: A [f64] value  indicating the first coordinate of the cell. 
+    /// * `coord_2`: A [f64] value indicating the second coordinate of the cell. 
+    /// 
+    /// ### Returns: 
+    /// * A new instance of [SurfaceCell]
+    fn new(coord_1:f64,coord_2:f64)->Self{
+        Self { t_eff: 0.0, log_g: 0.0, area: 0.0, coschi: 0.0, rel_dlamb: 0.0, v_tot: 0.0, coord_1: coord_1, coord_2: coord_2 }
+    }
+
+    /// Sets all the local values of a [SurfaceCell] to zero, except for its coordinates. 
+    fn set_local_values_to_zero(& mut self){
+        self.log_g = 0.0;
+        self.rel_dlamb = 0.0;
+        self.t_eff = 0.0;
+        self.v_tot = 0.0;
+        self.coschi = 0.0;
+        self.area = 0.0;
+    }
+
+    /// Calculates the variation of area, total velocity, effective temperature, and surface gravity for a [SurfaceCell]
+    /// 
+    /// ### Arguments: 
+    /// * `parameters` - A [PulstarConfig] reference that contains the parameters that describe the [PulsationMode]s
+    /// * `k` - A [Coordinates] reference to the unit vector pointing towards the observer. 
+    /// * `temperature_0` - A [f64] value of the effective temperature of the star.
+    /// * `g0` - A [f64] value of the surface gravity of the star. 
+    /// 
+    /// ### Returns: 
+    /// * This method updates a mutable instance of a [SurfaceCell].
+    /// 
+    fn update_local_quantities(&mut self,parameters:& PulstarConfig, k:& Coordinates, temperature_0:f64, g0:f64){
+        //Select the type of geometry
+        match parameters.mesh{
+            MeshConfig::Sphere {..} => {
+                let theta = self.coord_1;
+                let phi = self.coord_2;
+                let k_spherical = k.transform(theta, phi);
+                let s_normal = surface_normal(parameters,
+                     theta, phi).unwrap();
+                let cos_chi = reference_frames::cos_chi(
+                    &s_normal,
+                   &k_spherical,
+                    theta, phi);
+                if cos_chi <= 0.0 { self.set_local_values_to_zero()}
+                else {
+                    self.coschi = cos_chi;
+                    self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k).unwrap();
+                    let local_values = local_surface_temperature_logg(parameters, theta, phi, g0, temperature_0);
+                    self.t_eff = local_values.0;
+                    self.log_g = local_values.1;
+                    self.area = s_normal.project_vector(&k_spherical).unwrap();
+
+                }
+            }   
+        }
+
     }
 }
 
@@ -222,6 +373,12 @@ impl AdvanceInTime for PulstarConfig{
     }
 }
 
+impl AdvanceInTime for RasterizedStar{
+
+    fn advance_in_time(&mut self,time_point:f64) {
+        self.time_stamp=time_point;
+    }
+}
 
 pub trait ParsingFromToml {
     fn read_from_toml(path_to_file:&str)->Self;

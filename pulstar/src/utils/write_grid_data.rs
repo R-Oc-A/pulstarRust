@@ -1,13 +1,15 @@
 use polars::prelude::*;
 use polars::prelude::LazyFrame;
 
+use crate::RasterizedStar;
+
 /// This structure is an abstraction of the star. It effectively creates a columnar data base with all of the surface cells and the associated quantities.
 /// 
-pub struct RasterizedStarOutput{
+struct RasterizedStarOutput{
     /// This is the column that indicates all of the colatitude angles θ_i
-    all_thetas: Vec<f64>,
+    all_coords1: Vec<f64>,
     /// This is the column that indicates all of the azimuthal angles φ_i
-    all_phis: Vec<f64>,
+    all_coords2: Vec<f64>,
     /// This is the time point collumn. This value is redundant as it's the same for all of the star however this redundancy is necesary for the parquet file. 
     all_times: Vec<f64>,
     /// Collumn that collects all of the observed variations in total velocity with respect to the observer.
@@ -23,45 +25,48 @@ pub struct RasterizedStarOutput{
 }
 
 impl RasterizedStarOutput{
-    /// This method creates a new instance of a rasterized star 
-    pub fn new_sphere(
-        num_theta_steps:usize,
-        num_phi_steps:usize,
-        num_timepoints:usize,
+    
+    /// This function is used to extract the data out of a [RasterizedStar] and order it into collumns so that it can be saved into a parquet file.  
+    /// 
+    /// ### Arguments: 
+    /// * `star` - A reference to a [RasterizedStar] that contains all the information in a [Vec<SurfaceCell>] collection. 
+    /// ### Returns: 
+    /// * A [RasterizedStarOutput] that will be used to create a [DataFrame] which will be saved into a parquet file. 
+    pub fn format_the_star(
+        star: &RasterizedStar,        
     )->RasterizedStarOutput{
-        let total_rows = num_theta_steps* num_phi_steps * num_timepoints;
-        RasterizedStarOutput { 
-            all_thetas: Vec::with_capacity(total_rows),
-            all_phis: Vec::with_capacity(total_rows), 
-            all_times: Vec::with_capacity(total_rows),
-            all_vel: Vec::with_capacity(total_rows),
-            all_temp: Vec::with_capacity(total_rows),
-            all_logg: Vec::with_capacity(total_rows),
-            all_coschi: Vec::with_capacity(total_rows),
-            all_area: Vec::with_capacity(total_rows) }
+        let capacity = star.cells.len();
+        let mut all_coords1:Vec<f64> = Vec::with_capacity(capacity);
+        let mut all_coords2:Vec<f64> = Vec::with_capacity(capacity);
+        let mut all_times:Vec<f64> = Vec::with_capacity(capacity);
+        let mut all_vel:Vec<f64> = Vec::with_capacity(capacity);
+        let mut all_temp:Vec<f64> = Vec::with_capacity(capacity);
+        let mut all_logg:Vec<f64> = Vec::with_capacity(capacity);
+        let mut all_coschi:Vec<f64> = Vec::with_capacity(capacity);
+        let mut all_area:Vec<f64> = Vec::with_capacity(capacity);
+
+        // Fill the vectors. 
+        for cell in star.cells.iter(){
+            if cell.coschi!=0.0{
+                all_coords1.push(cell.coord_1);
+                all_coords2.push(cell.coord_2);
+                all_times.push(star.time_stamp);
+                all_vel.push(cell.v_tot);
+                all_temp.push(cell.t_eff);
+                all_logg.push(cell.log_g);
+                all_coschi.push(cell.coschi);
+                all_area.push(cell.area);
+            }
+        }
+        RasterizedStarOutput{all_area:all_area,
+            all_coords1:all_coords1,
+            all_coords2:all_coords2,
+            all_coschi:all_coschi,
+            all_logg:all_logg,
+            all_temp:all_temp,
+            all_times:all_times,
+            all_vel:all_vel}
     }
-}
-
-/// This function is used to gather all of the local values of a surface cell 
-pub fn collect_output( rasterized_star: & mut RasterizedStarOutput,
-        theta_rad:f64,
-        phi_rad:f64,
-        time:f64,
-        local_veloc: f64,
-        local_temp: f64,
-        local_logg:f64,
-        coschi:f64,
-        local_area:f64,){
-
-            rasterized_star.all_thetas.push(theta_rad);
-            rasterized_star.all_phis.push(phi_rad);
-            rasterized_star.all_times.push(time);
-            rasterized_star.all_vel.push(local_veloc);
-            rasterized_star.all_temp.push(local_temp);
-            rasterized_star.all_logg.push(local_logg);
-            rasterized_star.all_coschi.push(coschi);
-            rasterized_star.all_area.push(local_area);
-        
 }
 
 /// This function creates a [DataFrame] out of a [RasterizedStarOutput]. WARNING: This function takes ownership of the RasterizedStarOutput.
@@ -75,8 +80,8 @@ pub fn collect_output( rasterized_star: & mut RasterizedStarOutput,
 fn create_rasterized_star_dataframe(star: RasterizedStarOutput)->PolarsResult<DataFrame>{
     // The df! macro creates a new dataframe with the columns ("column header"=>values) ordered from left to right
     df!(
-        "theta" => star.all_thetas,
-        "phi" => star.all_phis,
+        "coord1" => star.all_coords1,
+        "coord2" => star.all_coords2,
         "time" => star.all_times,
         "velocity" => star.all_vel,
         "temperature" => star.all_temp,
@@ -145,10 +150,13 @@ fn remove_temp_parquet_file(time_points:u16)->Result<(), std::io::Error>{
 /// * `Err(PolarsError)` - returns a [PolarsError] to the calling function in case that there was an error creating a data frame for the rasterized star,
 ///  the output file couldn't be created, or  the `old_output_file`` file wasn't succesfully erased. 
 pub fn write_output_to_parquet(
-    star_output: RasterizedStarOutput,
+    star: &RasterizedStar,
     time_points:u16,
     ) -> PolarsResult<()>{
     
+    let star_output = RasterizedStarOutput::format_the_star(star);
+
+
     let new_path = std::path::PathBuf::from(format!("rasterized_star_{}tp.parquet",time_points));
     let star_df = create_rasterized_star_dataframe(star_output)?;
     let star_lf = star_df.lazy();
@@ -162,25 +170,11 @@ pub fn write_output_to_parquet(
         SinkOptions::default()){
             lf.collect()?;
         }else {eprint!("unable to sink to a parket in {} time_point",time_points)};
-    //Reading test
-    println!("{:#?} file created",new_path);
-    let mut file = std::fs::File::open(new_path).unwrap();
-    let ddf = ParquetReader::new(&mut file).finish().unwrap();
-    println!("---------------------------------------");
-    println!("DataFrame for Rasterized Star Output  opened ");
-    println!("First 5 rows:");
-    println!("{}", ddf.head(Some(5usize)));
     if time_points > 1u16
         {remove_temp_parquet_file(time_points)?}
     
     Ok(())
-    /*ParquetWriter::new(file_parquet)
-        .finish(& mut df)?;
     
-    println!("Parquet file for Rasterized Star output succesfully created");
-    
-
-    Ok(())*/
 }
 
 ///This function creates the [LazyFrame] that will be used to create the parquet file 

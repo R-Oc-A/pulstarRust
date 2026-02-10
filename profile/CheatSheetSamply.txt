@@ -1,0 +1,2 @@
+echo '1' | sudo tee /proc/sys/kernel/perf_event_paranoid
+samply record ../target/release/profile profile_input.toml rasterized_star_10tp.parquet
