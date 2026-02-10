@@ -1,4 +1,4 @@
-use super::{*,utils::write_into_parquet};
+use super::*;
 use temp_name_lib::interpolation::ParameterSpaceHypercube;
 
 pub fn parsing_star(path_to_star:&str)->(LazyFrame,Vec<f64>){
@@ -87,6 +87,6 @@ impl FluxOfSpectra {
 
     /// So far I've only coded the version to write into a parquet file. 
     pub fn write_output(&mut self,time_point:u16)->PolarsResult<()>{
-        write_into_parquet(time_point + 1, self.clone())
+        utils::write_into_parquet(time_point + 1, self.clone())
     }
 }
