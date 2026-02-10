@@ -4,6 +4,7 @@ use polars::prelude::*;
 use profile::{utils::{write_into_parquet}, *};
 use temp_name_lib::type_def::CLIGHT;
 use std::time::Instant;
+use profile_mkr::*;
 
 fn main() {
 
@@ -34,8 +35,8 @@ fn main() {
    // |--> Check if the Profile_input.toml is well written.
    // |--> Check if the Intensity Grid files exist.
    // |--> Initialize the profile parameters.
-   let profile_config_path = env_args[1].clone();
-   let profile_config = ProfileConfig::read_from_toml(&profile_config_path);
+    let profile_config_path = env_args[1].clone();
+    let profile_config = ProfileConfig::read_from_toml(&profile_config_path);
    
     let mut fluxes = FluxOfSpectra::new(&profile_config);
 
@@ -46,6 +47,8 @@ fn main() {
    //----Parsing rasterized_star.parquet-----
    //----------------------------------------
    // Obtain the lazy frame of the parquet file, Obtain the time points, obtain the theta points
+   let (lf,time_points)=parsing_star(&env_args[2].clone());
+   /*
     let rasterized_star_path = env_args[2].clone();
     let lf = LazyFrame::scan_parquet(rasterized_star_path, Default::default()).unwrap();
     //get vector of time_points
@@ -57,11 +60,11 @@ fn main() {
     println!("here they are:");
     println!("{:#?}",time_points);
     println!("time_elapsed is {:?} seconds \n",start_computing_time.elapsed());
-
+    */
     //--------------------------------------- 
     //----Loading intensity flux grids-------
     //---------------------------------------
-
+    /*
     let max_vel = extremal_val_from_col(
         "velocity",
          lf.clone(),
@@ -81,6 +84,12 @@ fn main() {
     println!("allocating memory for hypercube in the parameter space");
     let mut hypercube4d= spectral_grids.new_hypercube(4usize);
     let mut hypercube3d= spectral_grids.new_hypercube(3usize);
+    */
+    let (
+        mut spectral_grid,
+        mut hypercube3d,
+        mut hypercube4d,
+    )= loading_intensity_grids(lf.clone(), & profile_config);
     //----------------------------------------------------------------
     //-------------- Collect fluxes for each time point  -------------
     //----------------------------------------------------------------
@@ -88,8 +97,14 @@ fn main() {
 
     //time loop    
 
-    for (time_point_number,phase) in time_points.iter().enumerate() {
-        
+    for (time_point_number,pulsation_phase) in time_points.iter().enumerate() {
+        fluxes.integrate(
+            lf.clone(),
+            *pulsation_phase,
+            & mut spectral_grid,
+            & mut hypercube3d,
+            & mut hypercube4d);
+        /*
         let expr = col("time").eq(lit(*phase));
         let sphere_frame = lf.clone().filter(expr);
         //--------------------------------------------------
@@ -123,12 +138,16 @@ fn main() {
                 false => {fluxes.collect_flux_from_cell(cell, & mut spectral_grids,&mut hypercube4d)}
             }
         }
+        */
+
         println!("done computing flux");
 
-        println!("finished collecting fluxes {}",phase);
+        println!("finished collecting fluxes {}",pulsation_phase);
         println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
         
-        write_into_parquet(time_point_number as u16 + 1, fluxes.clone()).expect(&format!("Unable to write parquet file for {} time point",*phase));
+        //write_into_parquet(time_point_number as u16 + 1, fluxes.clone()).expect(&format!("Unable to write parquet file for {} time point",*phase));
+        fluxes.write_output(time_point_number as u16).expect(&format!("Unable to write parquet file for {} time point",*pulsation_phase));
+
     }
     println!("finished computation for a star's pulsation");
     println!("Total computation time is {:#?}",start_computing_time.elapsed());

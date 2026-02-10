@@ -1,6 +1,7 @@
 use super::{*,utils::write_into_parquet};
 use temp_name_lib::interpolation::ParameterSpaceHypercube;
-fn parsing_star(path_to_star:&str)->(LazyFrame,Vec<f64>){
+
+pub fn parsing_star(path_to_star:&str)->(LazyFrame,Vec<f64>){
    //---------------------------------------- 
    //----Parsing rasterized_star.parquet-----
    //----------------------------------------
@@ -15,10 +16,8 @@ fn parsing_star(path_to_star:&str)->(LazyFrame,Vec<f64>){
     (lf.clone(),time_points)
 }
 
-fn loading_intensity_grids(star_lf:LazyFrame,
+pub fn loading_intensity_grids(star_lf:LazyFrame,
 profile_config:& ProfileConfig)->(
-f64,//maxvel
-f64,//minvel
 SpectralGrid,//SpectralGrid
 ParameterSpaceHypercube,//hypercube3d
 ParameterSpaceHypercube,//hypercube4d
@@ -38,16 +37,16 @@ ParameterSpaceHypercube,//hypercube4d
     println!("max relative dopplershift is {}", maxval_rel_dopplershift);
 
     println!("creating the spectral grids data structures from csv files...or neural network regresor");
-    let mut spectral_grids = profile_config.init_spectral_grid_from_csv(maxval_rel_dopplershift, minval_rel_dopplershift);
+    let spectral_grids = profile_config.init_spectral_grid_from_csv(maxval_rel_dopplershift, minval_rel_dopplershift);
     println!("allocating memory for hypercube in the parameter space");
-    let mut hypercube4d= spectral_grids.new_hypercube(4usize);
-    let mut hypercube3d= spectral_grids.new_hypercube(3usize);
+    let hypercube4d= spectral_grids.new_hypercube(4usize);
+    let hypercube3d= spectral_grids.new_hypercube(3usize);
 
-    (max_vel,min_vel,spectral_grids,hypercube3d,hypercube4d)
+    (spectral_grids,hypercube3d,hypercube4d)
 }
 
 impl FluxOfSpectra {
-    fn integrate_fluxes(& mut self,
+    pub fn integrate(& mut self,
         star_lf:LazyFrame,
         pulsation_phase:f64,
         spectral_grid:& mut SpectralGrid,
@@ -87,7 +86,7 @@ impl FluxOfSpectra {
     }
 
     /// So far I've only coded the version to write into a parquet file. 
-    fn write_profile_output(self,time_point:u16)->PolarsResult<()>{
+    pub fn write_output(&mut self,time_point:u16)->PolarsResult<()>{
         write_into_parquet(time_point + 1, self.clone())
     }
 }
