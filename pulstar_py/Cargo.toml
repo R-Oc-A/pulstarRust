@@ -1,0 +1,15 @@
+[package]
+name = "pulstar_py"
+version = "0.1.0"
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "pulstar_py"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = "0.27.0"
+temp_name_lib = {path ="../temp_name_lib"}
+pulstar = {path ="../pulstar"}
+profile = {path ="../profile"}

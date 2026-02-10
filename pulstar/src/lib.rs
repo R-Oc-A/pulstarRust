@@ -11,7 +11,7 @@ use crate::local_pulsation_velocity::observed_pulsation_velocity;
 use crate::local_temperature_and_gravity::local_surface_temperature_logg;
 use crate::reference_frames::{surface_normal, Coordinates};
 
-
+pub mod pulstar_mkr;
 
 /// This structure is necessary for starting the program. 
 /// It contains `mode_data` which is a [Vec] collection of the pulsation modes to be implemented, the `star_data` that characterizes the star, and the `time points` to be simulated. 
