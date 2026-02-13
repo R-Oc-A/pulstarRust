@@ -1,8 +1,12 @@
 use pyo3::prelude::*;
-use pulstar::*;
+/*use pulstar::*;
 use profile::*;
 use temp_name_lib::*;
 use pyo3::exceptions::PyValueError;
+*/
+
+mod make_pulstar_input;
+
 
 /// A Python module implemented in Rust.
 #[pymodule]
@@ -60,16 +64,22 @@ mod pulstar_py {
     }
 
     #[pyfunction]
-    fn run_pulstar(path:String)->PyResult<()>{
-
-        pulstar::pulstar_mkr::pulstar_main(&path);
-
+    fn propulse(path_to_profile_input:String,path_to_pulstar_input:String)->PyResult<()>{
+        match pulstar::pulstar_mkr::pulstar_main(&path_to_pulstar_input){
+            Some(star_df)=>{
+                profile::profile_mkr::profile_main(&path_to_profile_input,star_df);
+            }
+            None => {println!("unable to create rasterized star")}
+        };
         Ok(())        
     }
 
 }
 
 // create pulstar_input.toml (both file and string)
+/* */
+
+
 // create profile_input.toml (both file and string)
 // run pulstar from pulstar_py-> done
-// run profile from pulstar_py
+// run profile from pulstar_py->Done

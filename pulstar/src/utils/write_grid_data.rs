@@ -111,11 +111,11 @@ fn open_collecting_parquet_file_as_lazyframe(path_to_parquet: &std::path::PathBu
 ///  This function returns a [PolarsResult] with the following variants:
 /// * `Ok(LazyFrame)` - In case the [LazyFrame] was adequately created.
 /// * `Err(PolarsError)` - Returning a [PolarsError] to the calling function. 
-fn append_current_lf_into_collection_lf(star_lazyframe:LazyFrame,parquet_file_lazyframe:LazyFrame)->PolarsResult<LazyFrame>{
-    concat(
-        [parquet_file_lazyframe,star_lazyframe],
+fn append_current_lf_into_collection_lf(star_lf:LazyFrame,collection_lf:LazyFrame)->PolarsResult<LazyFrame>{
+        Ok(concat(
+        [collection_lf,star_lf],
         UnionArgs::default()
-    )
+        )?)
 }
 
 /// This function removes the parquet file that holds the old collection of rasterized stars
@@ -192,4 +192,51 @@ fn lazyframe_to_be_written (time_points:u16,star_lf:LazyFrame)->PolarsResult<Laz
         let old_lf = open_collecting_parquet_file_as_lazyframe(&old_path)?;
         Ok(append_current_lf_into_collection_lf(star_lf, old_lf)?)
     }
+}
+
+
+/*TO DO: Change the writing output
+The function should receive an Option<DataFrame> and append to that and only write at the end of the process. 
+
+Then the output can be either writing a parquet or just the end DataFrame.
+
+*/
+
+pub fn write_output(
+    star: &RasterizedStar,
+    collection_df:Option<DataFrame>,
+)->PolarsResult<DataFrame>{
+
+    let star_output = RasterizedStarOutput::format_the_star(star);
+
+    let star_df = create_rasterized_star_dataframe(star_output)?;
+    
+    if let Some(collection_of_phases) = collection_df{
+        let star_lf = star_df.lazy();
+        Ok(append_current_lf_into_collection_lf(star_lf,
+             collection_of_phases.lazy())?.collect()?)
+    }else{
+        Ok(star_df)
+    }
+}
+
+
+pub fn output_to_parquet(
+    star_df: DataFrame,
+    time_points:u16,
+    ) -> PolarsResult<()>{
+    
+    let star_lf = star_df.lazy();
+    let new_path = std::path::PathBuf::from(format!("rasterized_star_{}tp.parquet",time_points));
+
+    if let Ok(lf) = star_lf.sink_parquet(
+        SinkTarget::Path(Arc::new(new_path.clone())),
+        ParquetWriteOptions::default(), 
+        
+        None, 
+        SinkOptions::default()){
+            lf.collect()?;
+        }else {eprint!("unable to sink to a parket in {} time_point",time_points)};
+    
+    Ok(())
 }

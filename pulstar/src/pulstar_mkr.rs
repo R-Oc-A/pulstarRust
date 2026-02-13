@@ -1,12 +1,11 @@
-use crate::{reference_frames::{Coordinates}, 
-            utils::{print_info::{ print_report}, 
-                    write_grid_data::write_output_to_parquet},
-             PulstarConfig,};
+use crate::{PulstarConfig, reference_frames::Coordinates, utils::{print_info::print_report, 
+                    write_grid_data::{output_to_parquet, write_output}}};
 use std::{time::Instant};
 use crate::{AdvanceInTime,ParsingFromToml};
+use polars::prelude::*;
 
 /// This function is used to get the output of the pulstar code
-pub fn pulstar_main(path:&str){
+pub fn pulstar_main(path:&str)->Option<DataFrame>{
     println!("--------------------");
     println!("|PULSTARust launched|");
     println!("--------------------");
@@ -33,7 +32,8 @@ pub fn pulstar_main(path:&str){
     //---------------------------------------- 
     //----------Start of loop-----------------
     //---------------------------------------- 
-
+    
+    let mut collection_df:Option<DataFrame> = None;
     for (n,time_stamp) in time_points.iter().enumerate(){
         println!("\n +-- Computing surface data for time point number {} with time stamp {:.3}.", n,*time_stamp);
 
@@ -46,14 +46,14 @@ pub fn pulstar_main(path:&str){
         star.compute_local_quantities(&pulse_config, &k);
         
         //--Save the data of the current phase.
-        write_output_to_parquet(&star, n as u16 +1).unwrap();
+        collection_df=Some(write_output(&star,collection_df).unwrap());
     }//end for time loop
     
-    // Prints some values of the run
-    print_report(&now, &pulse_config, time_points.len());
     
     println!("----------------------");
     println!("|PULSTARust Finished |");
     println!("----------------------");
+
+    collection_df
 
 }

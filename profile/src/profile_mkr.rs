@@ -90,3 +90,50 @@ impl FluxOfSpectra {
         utils::write_into_parquet(time_point + 1, self.clone())
     }
 }
+
+pub fn profile_main(toml_string:&str,star_df:DataFrame){
+   //---------------------------------------- 
+   //------Parsing profile_input.toml--------
+   //----------------------------------------
+   // |--> Check that the toml file exists
+   // |--> Check if the Profile_input.toml is well written.
+   // |--> Check if the Intensity Grid files exist.
+   // |--> Initialize the profile parameters.
+    let profile_config = ProfileConfig::read_from_toml(toml_string);
+   
+    let mut fluxes = FluxOfSpectra::new(&profile_config);
+
+   //---------------------------------------- 
+   //----Parsing rasterized_star.parquet-----
+   //----------------------------------------
+    let lf = star_df.lazy();
+    let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
+    let extract_time_series = tf.column("time").unwrap();
+    let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();
+   // Obtain the lazy frame of the parquet file, Obtain the time points, obtain the theta points
+   let (
+        mut spectral_grid,
+        mut hypercube3d,
+        mut hypercube4d,
+    )= loading_intensity_grids(lf.clone(), & profile_config);
+    //----------------------------------------------------------------
+    //-------------- Collect fluxes for each time point  -------------
+    //----------------------------------------------------------------
+
+    //time loop    
+    for (time_point_number,pulsation_phase) in time_points.iter().enumerate() {
+        fluxes.integrate(
+            lf.clone(),
+            *pulsation_phase,
+            & mut spectral_grid,
+            & mut hypercube3d,
+            & mut hypercube4d);
+        println!("done computing flux");
+
+        println!("finished collecting fluxes {}",pulsation_phase);
+        
+        fluxes.write_output(time_point_number as u16).expect(&format!("Unable to write parquet file for {} time point",*pulsation_phase));
+
+    }
+    println!("finished computation for a star's pulsation");
+}
