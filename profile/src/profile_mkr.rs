@@ -99,8 +99,11 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame){
    // |--> Check if the Profile_input.toml is well written.
    // |--> Check if the Intensity Grid files exist.
    // |--> Initialize the profile parameters.
-    let profile_config = ProfileConfig::read_from_toml(toml_string);
-   
+    //let profile_config = ProfileConfig::read_from_toml(toml_string);
+    let profile_config:ProfileConfig=match toml::from_str(toml_string){
+        Ok(config)=>{config}
+        _=>{panic!("error parsing toml for profile config")}
+    };
     let mut fluxes = FluxOfSpectra::new(&profile_config);
 
    //---------------------------------------- 
