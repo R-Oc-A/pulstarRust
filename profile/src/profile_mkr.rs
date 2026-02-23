@@ -1,3 +1,7 @@
+use core::time;
+
+use crate::utils::IntensityFlux;
+
 use super::*;
 use temp_name_lib::interpolation::ParameterSpaceHypercube;
 
@@ -105,7 +109,7 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame){
         _=>{panic!("error parsing toml for profile config")}
     };
     let mut fluxes = FluxOfSpectra::new(&profile_config);
-
+    let mut intensity_collection = IntensityFlux::new();
    //---------------------------------------- 
    //----Parsing rasterized_star.parquet-----
    //----------------------------------------
@@ -124,6 +128,7 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame){
     //----------------------------------------------------------------
 
     //time loop    
+    let mut last_timepoint= 0u16;
     for (time_point_number,pulsation_phase) in time_points.iter().enumerate() {
         fluxes.integrate(
             lf.clone(),
@@ -134,9 +139,11 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame){
         println!("done computing flux");
 
         println!("finished collecting fluxes {}",pulsation_phase);
-        
-        fluxes.write_output(time_point_number as u16).expect(&format!("Unable to write parquet file for {} time point",*pulsation_phase));
-
+        //fluxes.write_output(time_point_number as u16).expect(&format!("Unable to write parquet file for {} time point",*pulsation_phase));
+        intensity_collection = intensity_collection.append_fluxes(fluxes.clone());
+        last_timepoint=time_point_number as u16;
     }
-    println!("finished computation for a star's pulsation");
+    if let Ok(_)= intensity_collection.write_output(last_timepoint){
+    println!("finished computation for a star's pulsation")}
+    else{panic!("unable to write parquetfile")};
 }

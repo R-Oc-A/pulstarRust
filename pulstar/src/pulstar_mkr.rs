@@ -17,6 +17,11 @@ pub fn pulstar_main(path:&str)->Option<DataFrame>{
 
     //let path = String::from("pulstar_input.toml");
     let mut pulse_config = PulstarConfig::read_from_toml(path);
+    /*let mut pulse_config:PulstarConfig = match toml::from_str(path){
+        Ok(config)=>{config}
+        _=>{panic!("error loading pulstar config toml file")}
+    };
+    */
     let time_points = pulse_config.get_time_points(); 
 
     

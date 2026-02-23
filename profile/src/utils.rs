@@ -4,6 +4,71 @@ use crate::FluxOfSpectra;
 pub mod csv_to_ndarray;
 
 
+
+pub struct IntensityFlux{
+    pub data_frame:DataFrame,
+}
+
+impl IntensityFlux{
+    pub fn new()->Self{
+        Self{data_frame: df!(
+            "time"=>Vec::<f64>::new(),
+            "wave length" => Vec::<f64>::new(),
+            "flux" => Vec::<f64>::new(),
+            "continuum" => Vec::<f64>::new(),
+            "normalized flux" => Vec::<f64>::new()
+        ).unwrap(),}
+    }
+
+    pub fn append_fluxes(self,fluxes:FluxOfSpectra)->Self{
+        let flux_df=df!(
+            "time" => fluxes.time,
+            "wave length" => fluxes.wavelengths,
+            "flux" => fluxes.flux,
+            "continuum" => fluxes.continuum
+        ).unwrap();
+
+        // construct the mean flux expresion for the lazy data frame flux/cont
+        let expr = (col("flux") / col("continuum")).alias("normalized flux");
+        let flux_lf=flux_df.lazy().with_column(expr);
+        let result_lf=append_current_lf_into_collection_lf(flux_lf, self.data_frame.lazy()).unwrap();
+
+        IntensityFlux { data_frame:result_lf.collect().unwrap()}
+    }
+
+    pub fn write_output(self, time_points:u16)->PolarsResult<()>{
+        // write lazy frame into parquet
+        let new_path = PathBuf::from(
+            format!("wavelengths_tp{}.parquet",time_points)
+        );
+        let lf_to_write = self.data_frame.lazy();
+
+        if let Ok(lf) = lf_to_write.sink_parquet(
+            SinkTarget::Path(Arc::new(new_path.clone())),
+            ParquetWriteOptions::default(),
+            None,
+            SinkOptions::default()){
+                lf.collect()?;
+            }else {eprint!("unable to sink to a parket in {} time_point",time_points)};
+    
+        // print 5 rows of the parquet output
+        let llf = LazyFrame::scan_parquet(new_path,
+        ScanArgsParquet::default()).unwrap();
+    
+        println!("---------------------------------------");
+        println!("DataFrame for  Profile output  opened ");
+        println!("First 5 rows:");
+        println!("{}", llf.filter(col("time").eq(lit(time_points))).collect()
+        .unwrap().head(Some(5usize)));
+    
+        Ok(())
+        
+    }
+
+}
+
+
+
 /// This function opens the parquet file and creates a lazyframe out of the handle.
 /// ### Arguments: 
 /// * `path to parquet` - a [std::path::PathBuf] that indicates the path and name to the parquet file.

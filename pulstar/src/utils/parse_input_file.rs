@@ -58,14 +58,10 @@ impl ParsingFromToml for InputParameters {
     /// This function is used to read the parameters required for the pulstar program to run out of the toml configuration file.
     /// #### Arguments:
     /// * `path_to_file` - this is a string that indicates the path to the `profile_input.toml` file
-    fn read_from_toml(path_to_file:&str)->Self {
-        let contents = match fs::read_to_string(path_to_file){
-            Ok(c)=>c,
-             Err(_) => { panic!("Could not read file {}",path_to_file)}
-            };
-        let params: Self = match toml::from_str(&contents){
+    fn read_from_toml(contents:&str)->Self {
+        let params: Self = match toml::from_str(contents){
             Ok(d) => d,
-            Err(e) => {println!("Unable to load data from {}",path_to_file);
+            Err(e) => {println!("Unable to load data from {}",contents);
                 panic!("error {}",e)}
         }; 
         params

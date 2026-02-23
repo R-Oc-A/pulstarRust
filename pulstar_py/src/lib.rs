@@ -13,7 +13,7 @@ mod make_pulstar_input;
 mod pulstar_py {
     use pyo3::prelude::*;
 
-    #[pyclass]
+/*    #[pyclass]
     #[derive(FromPyObject)]
     struct StarData{
         mass:f64,
@@ -132,13 +132,29 @@ mod pulstar_py {
             Ok(Self{collection:collection})
         }
     }
-
-
+*/
+    fn fix_string(python_string:&str)->String{
+        python_string.replace("\\n", "\n")
+    }
     #[pyfunction]
-    fn propulse(profile_input:String,pulstar_input:String)->PyResult<()>{
-        match pulstar::pulstar_mkr::pulstar_main(&pulstar_input){
+    fn propulse(profile_input:&str,pulstar_input:&str)->PyResult<()>{
+
+
+        println!("---------------------------");
+        println!("---------------------------");
+        let profile_input_rs=profile_input.replace("\\n", "\n");
+        let pulstar_input_rs=pulstar_input.replace("\n",&format!("\n"));
+
+        println!("{}",pulstar_input_rs);
+
+        println!("---------------------------");
+        println!("---------------------------");
+
+        println!("{}",profile_input_rs);
+
+        match pulstar::pulstar_mkr::pulstar_main(&pulstar_input_rs){
             Some(star_df)=>{
-                profile::profile_mkr::profile_main(&profile_input,star_df);
+                profile::profile_mkr::profile_main(&profile_input_rs,star_df);
             }
             None => {println!("unable to create rasterized star")}
         };

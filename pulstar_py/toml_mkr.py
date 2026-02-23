@@ -2,7 +2,7 @@
 ##rust program. 
 from pydantic import BaseModel,Field
 from typing import Union,Optional,List
-
+import polars as pl
 
 #----------------------------------------
 #----------Pulstar input-----------------
@@ -158,7 +158,23 @@ prof_config_dict=prof_config.model_dump(exclude_none=True)
 
 prof_toml_string=tomli_w.dumps(prof_config_dict)
 
-print(puls_toml_string)
-print("and then")
+#print(puls_toml_string)
+#print("and then")
 
-print(prof_toml_string)
+#print(prof_toml_string)
+
+
+print("-----------")
+print("-----------")
+print("now for the real test")
+
+print("-----------")
+print("-----------")
+
+import pulstar_py as pls_py
+pls_py.propulse(prof_toml_string,puls_toml_string)
+
+df = pl.read_parquet("wavelengths_tp10.parquet")
+df_old = pl.read_parquet("wave_old.parquet")
+print(df.head(5))
+print(df.head(5))
