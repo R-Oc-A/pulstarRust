@@ -172,9 +172,10 @@ print("-----------")
 print("-----------")
 
 import pulstar_py as pls_py
-pls_py.propulse(prof_toml_string,puls_toml_string)
+df3=pls_py.propulse(prof_toml_string,puls_toml_string)
 
 df = pl.read_parquet("wavelengths_tp10.parquet")
 df_old = pl.read_parquet("wave_old.parquet")
+print(df3.head(5))
 print(df.head(5))
-print(df.head(5))
+print(df_old.head(5))

@@ -95,7 +95,7 @@ impl FluxOfSpectra {
     }
 }
 
-pub fn profile_main(toml_string:&str,star_df:DataFrame){
+pub fn profile_main(toml_string:&str,star_df:DataFrame)->DataFrame{
    //---------------------------------------- 
    //------Parsing profile_input.toml--------
    //----------------------------------------
@@ -143,7 +143,8 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame){
         intensity_collection = intensity_collection.append_fluxes(fluxes.clone());
         last_timepoint=time_point_number as u16;
     }
-    if let Ok(_)= intensity_collection.write_output(last_timepoint){
-    println!("finished computation for a star's pulsation")}
-    else{panic!("unable to write parquetfile")};
+    intensity_collection.data_frame
+    //if let Ok(_)= intensity_collection.write_output(last_timepoint){
+    //println!("finished computation for a star's pulsation")}
+    //else{panic!("unable to write parquetfile")};
 }

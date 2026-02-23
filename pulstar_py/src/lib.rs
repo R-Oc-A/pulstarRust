@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+
 /*use pulstar::*;
 use profile::*;
 use temp_name_lib::*;
@@ -12,6 +13,50 @@ mod make_pulstar_input;
 #[pymodule]
 mod pulstar_py {
     use pyo3::prelude::*;
+    use pyo3_polars::PyDataFrame;
+    
+
+    #[pyfunction]
+    fn propulse(profile_input:&str,pulstar_input:&str)->PyResult<PyDataFrame>{
+
+
+        println!("---------------------------");
+        println!("---------------------------");
+        let profile_input_rs=profile_input.replace("\\n", "\n");
+        let pulstar_input_rs=pulstar_input.replace("\n",&format!("\n"));
+        //println!("{}",pulstar_input_rs);
+
+        println!("---------------------------");
+        println!("---------------------------");
+
+//        println!("{}",profile_input_rs);
+
+        let df =match pulstar::pulstar_mkr::pulstar_main(&pulstar_input_rs){
+            Some(star_df)=>{
+                profile::profile_mkr::profile_main(&profile_input_rs,star_df)
+            }
+            None => {panic!("Unable to create rasterized star")}};
+        
+
+        let pydf = PyDataFrame(df);
+
+        Ok(pydf)
+
+    }        
+}
+
+
+
+
+
+// create pulstar_input.toml (both file and string)
+/* */
+
+
+// create profile_input.toml (both file and string)
+// run pulstar from pulstar_py-> done
+// run profile from pulstar_py->Done
+
 
 /*    #[pyclass]
     #[derive(FromPyObject)]
@@ -133,40 +178,3 @@ mod pulstar_py {
         }
     }
 */
-    fn fix_string(python_string:&str)->String{
-        python_string.replace("\\n", "\n")
-    }
-    #[pyfunction]
-    fn propulse(profile_input:&str,pulstar_input:&str)->PyResult<()>{
-
-
-        println!("---------------------------");
-        println!("---------------------------");
-        let profile_input_rs=profile_input.replace("\\n", "\n");
-        let pulstar_input_rs=pulstar_input.replace("\n",&format!("\n"));
-
-        println!("{}",pulstar_input_rs);
-
-        println!("---------------------------");
-        println!("---------------------------");
-
-        println!("{}",profile_input_rs);
-
-        match pulstar::pulstar_mkr::pulstar_main(&pulstar_input_rs){
-            Some(star_df)=>{
-                profile::profile_mkr::profile_main(&profile_input_rs,star_df);
-            }
-            None => {println!("unable to create rasterized star")}
-        };
-        Ok(())        
-    }
-
-}
-
-// create pulstar_input.toml (both file and string)
-/* */
-
-
-// create profile_input.toml (both file and string)
-// run pulstar from pulstar_py-> done
-// run profile from pulstar_py->Done
