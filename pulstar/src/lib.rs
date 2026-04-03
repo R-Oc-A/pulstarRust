@@ -55,7 +55,7 @@ pub struct PulstarConfig{
 }
 
 /// This structure parameterizes a pulsation mode
-#[derive(Deserialize,Debug,PartialEq)]
+#[derive(Deserialize,Debug,PartialEq, Clone, Copy)]
 pub struct PulsationMode{
     /// The degree of the mode
     pub l: u16, 
@@ -93,9 +93,24 @@ pub struct PulsationMode{
     /// Current phase of the Temperature variation
     pub phase_temp:f64,
 
-    ///Current phase of the log g variation
+    /// Current phase of the log g variation
     pub phase_logg:f64,
+
+    /// Scheme to include the effects of rotation into the pulsation.
+    pub rotation_effects:RotationRegime,
 }   
+
+/// The pulsational displacement depends on how the effects of rotation 
+#[derive(Deserialize,Debug,PartialEq,Clone,Copy)]
+pub enum RotationRegime{
+    NonRotating,
+    PerturbativeCoriolis,
+    Tar,
+    CentrifugalDeformation,
+}
+
+
+
 
 /// This structure parameterizes the star
 #[derive(Deserialize,Debug,PartialEq)]

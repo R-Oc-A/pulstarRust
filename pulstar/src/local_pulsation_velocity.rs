@@ -1,3 +1,5 @@
+use crate::local_pulsation_velocity::non_rotating::v_non_rotating;
+
 use super::PulstarConfig;
 use super::reference_frames::Coordinates;
 use super::na;
@@ -8,6 +10,11 @@ use temp_name_lib::math_module::spherical_harmonics::d_plmcos_dtheta::deriv1_plm
 use temp_name_lib::math_module::spherical_harmonics::norm_factor::ylmnorm;
 
 use super::*;
+
+pub mod non_rotating;
+pub mod perturbative_coriolis;
+pub mod centrifugal_deformation;
+pub mod tar;
 
 impl PulstarConfig {
     /// This method calculates the amplitudes of the pulsation velocities per mode in km/s
@@ -53,29 +60,15 @@ pub fn v_pulse_single_mode(
     phi_rad:f64,
     velocity_amplitude:f64,
 )->Result<Coordinates,MathErrors>{
-    match sintheta.abs() <= MACHINE_PRECISION{
-        true => { Err(MathErrors::DivisionByZero)}
-
-        false => {
-            let l=mode.l;
-            let m = mode.m;
-            let phase = mode.phase_offset;
-            let k = mode.k;
-            let v_r = velocity_amplitude * ylmnorm(l, m)
-                * plmcos(l, m.abs() as u16, sintheta, costheta)
-                * (phase + (m as f64) * phi_rad).sin();
-            let v_theta = velocity_amplitude * k
-                   * ylmnorm(l, m)
-                   * deriv1_plmcos_dtheta(l, m.abs() as u16, sintheta, costheta)
-                   * (phase + (m as f64) * phi_rad).sin();
-            let v_phi = velocity_amplitude * k
-                   * ylmnorm(l, m)
-                   * (-(m as f64))
-                   * plmcos(l, m.abs() as u16, sintheta, costheta)
-                   * (phase * (m as f64) * phi_rad).cos()
-                   / sintheta;
-        Ok(Coordinates::Spherical(na::Vector3::new(v_r,v_theta,v_phi)))
-        }
+    match mode.rotation_effects{
+        RotationRegime::NonRotating => {v_non_rotating(mode,
+            sintheta,
+            costheta,
+            phi_rad,
+            velocity_amplitude)},
+        RotationRegime::PerturbativeCoriolis=>{v_non_rotating(mode, sintheta, costheta, phi_rad, velocity_amplitude)},
+        RotationRegime::Tar =>{v_non_rotating(mode, sintheta, costheta, phi_rad, velocity_amplitude)},
+        RotationRegime::CentrifugalDeformation => {v_non_rotating(mode, sintheta, costheta, phi_rad, velocity_amplitude)},        
     }
 }
 

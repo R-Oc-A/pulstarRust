@@ -94,10 +94,11 @@ fn local_variable_pulsation_displacement(
     )->Coordinates{
     
     //[Ricardo:] There's a shorter version of this, namely 
-    // let mut mode_with_dif_phase = *mode.clone();
-    // mode_with_dif_phase.phase_offset += dif_phase;
+    let mut mode_with_dif_phase = mode.clone();
+     mode_with_dif_phase.phase_offset += dif_phase;//<-- Here is where we ad the phase difference
     // However I'm not quite sure I want to implement the Clone and Copy traits on the PulsationMode structure. 
     //
+    /*
     let mode_with_dif_phase = PulsationMode { 
         l: mode.l,
         m: mode.m,
@@ -113,6 +114,7 @@ fn local_variable_pulsation_displacement(
         phase_temp:mode.phase_temp,
         phase_logg:mode.phase_logg
     };
+    */
 
     displacement(
         &mode_with_dif_phase,

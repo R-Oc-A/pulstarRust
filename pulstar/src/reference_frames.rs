@@ -46,36 +46,48 @@ pub fn displacement(
     phi:f64,
     radial_amplitude:f64,
     tangential_amplitude:f64)->Result<Coordinates,MathErrors>{
-        match sintheta.abs() <= f64::EPSILON.sqrt(){
-            true => {Err(MathErrors::DivisionByZero)}
-            false => {
-                let phase = mode.phase;
-                let l = mode.l;
-                let m =  mode.m;
-                
-                let plmcostheta = plmcos(l, m.abs() as u16, sintheta, costheta); 
-                let dplmcostheta_dtheta = (- f64::from(l+1) * costheta * plmcostheta  // First derivative
-                                        + f64::from((l as i16) - m + 1) 
-                                        * plmcos(l+1, m.abs() as u16, sintheta, costheta))  
-                                        / sintheta;
-
-                let delta_r     = radial_amplitude * plmcostheta 
-                                    * f64::cos(phase + f64::from(m)*phi);
-                let delta_theta = tangential_amplitude * dplmcostheta_dtheta 
-                                    * f64::cos(phase + f64::from(m)*phi);
-                let delta_phi   = tangential_amplitude * f64::from(-m) * plmcostheta 
-                                    * f64::sin(phase + f64::from(m)*phi) 
-                                    / (sintheta.abs().powi(2));
-
-                Ok(Coordinates::Spherical(na::Vector3::new(delta_r, delta_theta, delta_phi)))
+            match mode.rotation_effects{
+                RotationRegime::NonRotating =>{rotation_treatment::non_rotating::non_rotating_displacement(
+                    mode,
+                    sintheta,
+                    costheta,
+                    phi,
+                    radial_amplitude,
+                    tangential_amplitude,
+                )},
+                RotationRegime::PerturbativeCoriolis =>{rotation_treatment::non_rotating::non_rotating_displacement(
+                    mode,
+                    sintheta,
+                    costheta,
+                    phi,
+                    radial_amplitude,
+                    tangential_amplitude,
+                )},
+                RotationRegime::Tar =>{rotation_treatment::non_rotating::non_rotating_displacement(
+                    mode,
+                    sintheta,
+                    costheta,
+                    phi,
+                    radial_amplitude,
+                    tangential_amplitude,
+                )},
+                RotationRegime::CentrifugalDeformation =>{rotation_treatment::non_rotating::non_rotating_displacement(
+                    mode,
+                    sintheta,
+                    costheta,
+                    phi,
+                    radial_amplitude,
+                    tangential_amplitude,
+                )},
             }
-        }
     }
 
 /// This module contains the functions to calculate the derivatives of the lagrangian displacement vector over 
 /// the surface of a star using spherical coordinates.
 mod displacement_derivatives;
 
+
+pub mod rotation_treatment;
 
 /// This function computes the spherical components of the surface normal vector on a reference frame where the z-axis 
 /// coincides with the rotation axis. A surface normal is a vector which stands locally perpendicular to the surfaces and

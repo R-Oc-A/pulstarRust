@@ -1,7 +1,6 @@
 use serde::Deserialize;
 use crate::{MeshConfig, ParsingFromToml, PulsationMode, StarData, TimeType};
-use crate::PI;
-use std::fs;
+use crate::{PI,RotationRegime};
 #[derive(Deserialize,Debug,PartialEq)]
 pub struct InputParameters{
     /// A vector collection of all of the modes that will be analyzed, No phases for velocity, temperatuer and gravity are added.
@@ -49,6 +48,10 @@ pub struct PulsationModeNoPhases{
 
     /// The phase offset of gravity
     pub phase_rel_dg: f64,
+
+    /// Scheme to include the effects of rotation into the pulsation.
+    pub rotation_effects:RotationRegime,
+
 }   
 
 
@@ -85,7 +88,9 @@ impl PulsationModeNoPhases{
                     phase_rel_dg:mode.phase_rel_dg,
                     phase:mode.phase_offset * 2.0 * PI,
                     phase_temp: mode.phase_offset * 2.0 *PI + mode.phase_rel_dtemp.to_radians(),
-                    phase_logg: mode.phase_offset * 2.0 *PI + mode.phase_rel_dg.to_radians()}
+                    phase_logg: mode.phase_offset * 2.0 *PI + mode.phase_rel_dg.to_radians(),
+                    rotation_effects: mode.rotation_effects
+                }
             )
         }
         mode_data

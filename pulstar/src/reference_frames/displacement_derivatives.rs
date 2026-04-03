@@ -1,11 +1,11 @@
-use crate::PulsationMode;
+use crate::{PulsationMode, RotationRegime};
 use super::{MathErrors,MACHINE_PRECISION};
 use super::spherical_harmonics::{
     d_plmcos_dtheta::{
         deriv1_plmcos_dtheta as d_plmcos_dtheta,
         deriv2_plmcos_dtheta as d2_plmcos_dtheta}, norm_factor::ylmnorm, plmcos::plmcos
     }; 
-
+use super::rotation_treatment;
 //? This module contains the functions to calculate the derivatives of the lagrangian displacement vector over 
 //? the surface of a star using spherical coordinates. 
 
@@ -27,14 +27,16 @@ pub fn d_dr_rdtheta(
 	costheta: f64,
 	phi: f64) -> f64{
 
-    let r_dr = mode.rel_dr;
-    let phase= mode.phase;
-    let l = mode.l;
-    let m= mode.m;
-                            
-    r_dr*ylmnorm(l,m)
-    * d_plmcos_dtheta(l,m.abs() as u16,sintheta,costheta)
-    * (phase + (m as f64) * phi).cos()
+    match mode.rotation_effects{
+        RotationRegime::NonRotating =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dr_rdtheta(mode, sintheta, costheta, phi)}
+        RotationRegime::PerturbativeCoriolis =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dr_rdtheta(mode, sintheta, costheta, phi)}
+        RotationRegime::Tar =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dr_rdtheta(mode, sintheta, costheta, phi)}
+        RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dr_rdtheta(mode, sintheta, costheta, phi)}
+    }
 }
 
 ///Computes the derivatives of Δθ with respect to θ in the point with spherical
@@ -52,15 +54,16 @@ pub fn d_dtheta_dtheta(
 	costheta: f64,
 	phi: f64) -> f64{
 
-    let r_dr = mode.rel_dr;
-    let phase= mode.phase;
-    let k = mode.k;
-    let l = mode.l;
-    let m= mode.m;
-
-    r_dr*ylmnorm(l,m)*k
-    * d2_plmcos_dtheta(l,m.abs() as u16,sintheta,costheta)
-    * (phase + (m as f64) * phi).cos()
+    match mode.rotation_effects{
+        RotationRegime::NonRotating =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dtheta_dtheta(mode, sintheta, costheta, phi)}
+        RotationRegime::PerturbativeCoriolis =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dtheta_dtheta(mode, sintheta, costheta, phi)}
+        RotationRegime::Tar =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dtheta_dtheta(mode, sintheta, costheta, phi)}
+        RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dtheta_dtheta(mode, sintheta, costheta, phi)}
+    }
 }
 
 ///Computes the derivatives of Δr/r0 with respect to φ in the point with spherical
@@ -78,14 +81,16 @@ pub fn d_dr_rdphi(
 	costheta: f64,
 	phi: f64) -> f64{
 
-    let r_dr = mode.rel_dr;
-    let phase= mode.phase;
-    let l = mode.l;
-    let m= mode.m;
-    
-    r_dr * ylmnorm(l,m) * (-m as f64)
-    * plmcos(l, m.abs() as u16,sintheta,costheta)
-    * (phase + (m as f64) * phi).sin()
+    match mode.rotation_effects{
+        RotationRegime::NonRotating =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dr_rdphi(mode, sintheta, costheta, phi)}
+        RotationRegime::PerturbativeCoriolis =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dr_rdphi(mode, sintheta, costheta, phi)}
+        RotationRegime::Tar =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dr_rdphi(mode, sintheta, costheta, phi)}
+        RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dr_rdphi(mode, sintheta, costheta, phi)}
+    }
 }
 
 ///Computes the derivatives of Δϕ with respect to ϕ in the point with spherical
@@ -105,22 +110,14 @@ pub fn d_dphi_dphi(
 	costheta: f64,
 	phi: f64) -> Result<f64,MathErrors>{
 
-    match sintheta < MACHINE_PRECISION{  
-        false => {
-        let r_dr = mode.rel_dr;
-        let phase= mode.phase;
-        let k= mode.k;
-        let l = mode.l;
-        let m= mode.m;
-
-        Ok(r_dr * k * ylmnorm(l, m) * (-(m as f64).powi(2))
-        * plmcos(l, m.abs() as u16, sintheta, costheta)
-        * (phase + (m as f64) * phi).cos()
-        /(sintheta.abs().powi(2)) )
-        }
-
-        true =>{
-        Err(MathErrors::DivisionByZero) //will pass the error in order for the calling function to do something
-        }
+    match mode.rotation_effects{
+        RotationRegime::NonRotating =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dphi_dphi(mode, sintheta, costheta, phi)}
+        RotationRegime::PerturbativeCoriolis =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dphi_dphi(mode, sintheta, costheta, phi)}
+        RotationRegime::Tar =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dphi_dphi(mode, sintheta, costheta, phi)}
+        RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
+            non_rotating::non_rotating_d_dphi_dphi(mode, sintheta, costheta, phi)}
     }
 }
