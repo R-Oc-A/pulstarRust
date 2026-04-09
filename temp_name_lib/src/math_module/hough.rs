@@ -5,10 +5,23 @@ use crate::type_def::PI;
 use itertools::Itertools;
 
 
-/// This function calculates Hough functions. It wont give them in the usual function that depends on cos(θ) but rather an equally spaced array of colatitude angles.
+/// This function calculates Hough functions. 
 ///
-/// it is left to compute how to get the proper index. I think I will likely initialize the matrix that contains colatitude values and associated hough function values. 
-/// This function also calculates the derivatives, which will be useful to compute the velocities. 
+/// ### Arguments:
+/// * `q` - Spin parameter
+/// * `l` - Degree of the pulsation
+/// * `m` - Azimuthal order 
+/// * `npts` - number of theta points, in this case they will be equally spaced. 
+/// * `lmbd` - estimated eigenvalue of the Laplace Tidal differential operator
+/// * `extra` - indicates whether to calculate de derivatives or Hough functions or not. 
+/// ### Returns:
+/// * `μ` - An [Array1<f64>] that contains all of the equally spaced μ=cos(θ) values in the range [-1,1]
+/// * `Hough_r` - An [Array1<f64>] that contains the radial  hough function 𝚯_r
+/// * `Hough_θ` - An [Array1<f64>] that contains the colatitudinal  hough function 𝚯_θ
+/// * `Hough_ɸ` - An [Array1<f64>] that contains the   azimuthal function 𝚯_ɸ
+/// * `d Hough_r/dμ`- An [Array1<f64>] that contains  the derivative with respect to μ of the radial  hough function 𝚯_r
+/// * `d Hough_θ/dμ`- An [Array1<f64>] that contains  the derivative with respect to μ of the colatitudinal hough function 𝚯_θ
+/// * `d Hough_ɸ/dμ`- An [Array1<f64>] that contains  the derivative with respect to μ of the azimuthal hough function 𝚯_ɸ
 pub fn hough(
     q:f64,
     l:u16,
@@ -17,7 +30,7 @@ pub fn hough(
     lmbd:f64,
     extra:bool,
 )->(f64,//lambda eigenvalue
-    Array1<f64>,// mu = cos(θ) values in the [-1,1] range
+    Array1<f64>,// μ = cos(θ) values in the [-1,1] range
     Array1<f64>,// hough_radial(mu)
     Array1<f64>,// hough_latitudinal(mu)
     Array1<f64>,// hough_azimuthal(mu)

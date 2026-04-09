@@ -1,3 +1,5 @@
 [workspace]
 resolver = "3"
 members = [ "profile","pulstar", "temp_name_lib","pulstar_py"]
+
+rustdocflags = [ "--html-in-header", "./src/docs-header.html" ]
