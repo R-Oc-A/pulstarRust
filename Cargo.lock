@@ -2195,6 +2195,7 @@ name = "pulstar"
 version = "0.1.0"
 dependencies = [
  "nalgebra",
+ "ndarray 0.16.1",
  "polars",
  "serde",
  "temp_name_lib",

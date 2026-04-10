@@ -15,6 +15,7 @@ use itertools::Itertools;
 /// * `lmbd` - estimated eigenvalue of the Laplace Tidal differential operator
 /// * `extra` - indicates whether to calculate de derivatives or Hough functions or not. 
 /// ### Returns:
+/// * `λ` - the calculated eigenvalue of the Laplace Tidal Differential Operator.
 /// * `μ` - An [Array1<f64>] that contains all of the equally spaced μ=cos(θ) values in the range [-1,1]
 /// * `Hough_r` - An [Array1<f64>] that contains the radial  hough function 𝚯_r
 /// * `Hough_θ` - An [Array1<f64>] that contains the colatitudinal  hough function 𝚯_θ
@@ -30,13 +31,13 @@ pub fn hough(
     lmbd:f64,
     extra:bool,
 )->(f64,//lambda eigenvalue
-    Array1<f64>,// μ = cos(θ) values in the [-1,1] range
-    Array1<f64>,// hough_radial(mu)
-    Array1<f64>,// hough_latitudinal(mu)
-    Array1<f64>,// hough_azimuthal(mu)
-    Array1<f64>,// d hough_radial(mu)/d mu
-    Array1<f64>,// d hough_latitudinal(mu)/d mu
-    Array1<f64>,// d hough_azimuthal(mu)/d mu
+    Vec<f64>,// μ = cos(θ) values in the [-1,1] range
+    Vec<f64>,// hough_radial(mu)
+    Vec<f64>,// hough_latitudinal(mu)
+    Vec<f64>,// hough_azimuthal(mu)
+    Vec<f64>,// d hough_radial(mu)/d mu
+    Vec<f64>,// d hough_latitudinal(mu)/d mu
+    Vec<f64>,// d hough_azimuthal(mu)/d mu
     )
 {
 
@@ -308,13 +309,13 @@ pub fn hough(
     }
     (
         eigenval,
-        mu,
-        hough_r,
-        hough_t,
-        hough_p,
-        hough_rp,
-        hough_tp,
-        hough_pp
+        mu.to_vec(),
+        hough_r.to_vec(),
+        hough_t.to_vec(),
+        hough_p.to_vec(),
+        hough_rp.to_vec(),
+        hough_tp.to_vec(),
+        hough_pp.to_vec()
     )        
 }
 

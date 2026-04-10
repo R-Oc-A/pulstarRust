@@ -1,10 +1,12 @@
 //! Pulstar program is a binary that rasterizes a star and produces a polars DataFrame that contains
 //! the (linear) variations on surface temperature, log g, and also the pulsation velocity components.
 //! for each of the surface cells. 
+use core::f64;
+
 use serde::Deserialize;
 use temp_name_lib::math_module::spherical_harmonics;
 use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
-use temp_name_lib::type_def::PI;
+use temp_name_lib::type_def::{PI, RADIUSSUN};
 use nalgebra as na;
 
 use crate::local_pulsation_velocity::observed_pulsation_velocity;
@@ -181,7 +183,6 @@ pub struct RasterizedStar{
 //----------------------------------------
 
 impl PulstarConfig {
-
     /// This function extracts the time points from the configuration file of the pulstar code as a vector with elements of `f64` type
     pub fn get_time_points(&self)->Vec<f64>{
         match self.time_points.clone() {
@@ -237,6 +238,14 @@ impl PulstarConfig {
         rasterized_star.t_eff = self.star_data.effective_temperature;
 
         rasterized_star
+    }
+
+    ///This method gives the rotation frequency in cycles per day
+    pub fn get_rotation_frequency(&self)->f64{
+        let rot_freq_in_rad_sec = self.star_data.v_omega / (self.star_data.radius * RADIUSSUN*1.0e-3);
+
+        rot_freq_in_rad_sec/(2.0*f64::consts::PI) * 3.6e3
+
     }
 }
 
