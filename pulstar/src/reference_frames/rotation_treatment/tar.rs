@@ -75,10 +75,10 @@ impl PulsationMode{
 /// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
 /// * `theta` - The Colatitude coordinate (θ in rads)
 /// * `dtheta` - 
-/// * `phi`   - azimuthal coordinate (ɸ  in rads)
+/// * `phi`   - azimuthal coordinate (φ  in rads)
 /// * `radial_amplitude`     - amplitude in the radial direction times the normalization factor `Y_l^m`(see [temp_name_lib::math_module::spherical_harmonics::norm_factors])
 /// * `tangential_amplitude` - amplitude in the tangential direction times the normalization factor  'Y_l^m' (see [temp_name_lib::math_module::spherical_harmonics::norm_factors])
-/// 
+/// * `hough_functions` - a call by reference to an instance of [TARCollection] that contains the hough functions and derivatives for all theta angles. 
 /// ### Returns:
 /// This function can return an [Ok] or [Err] variants of [Result] that will have the following values binded to them:
 /// * `Ok(Coordinates::Spherical)` - an Ok  variant that has binded the spherical components of the displacement vector in the`r,θ,φ` order.
@@ -95,7 +95,7 @@ pub fn tar_displacement(
         match sintheta.abs()<=f64::EPSILON.sqrt(){
             true => {Err(MathErrors::DivisionByZero)}
             false =>{
-                let index:usize = (theta/dtheta) as usize;
+                let index = construct_index(theta, dtheta);
 
                 let H_r = houghs_functions.H_r[index];
                 let H_p= houghs_functions.H_p[index];
@@ -121,7 +121,7 @@ pub fn tar_displacement(
 /// * `phi` - azimuthal coordinate in rads
 /// * `hough_functions` - a call by reference to an instance of [TARCollection] that contains the hough functions and derivatives for all theta angles. 
 /// ### Returns:
-/// * an `f64` - This value is the derivative of the relative radial displacement with respect to θ
+/// * a [f64] value of the derivative with respect of θ of the radial component of the lagrangian displacement. 
 pub fn tar_d_dr_rdtheta(
     mode: &PulsationMode,
 	theta: f64,
@@ -129,7 +129,7 @@ pub fn tar_d_dr_rdtheta(
 	phi: f64,
     houghs_functions:&TARCollection
     ) -> f64{
-    let index = (theta/dtheta) as usize;
+    let index = construct_index(theta, dtheta);
 
     let dh_r = -houghs_functions.dH_r[index]*theta.sin();// dH_r is the derivative of H_r with respect to μ=cos(θ), so here I applied the chain rule.
 
@@ -147,7 +147,9 @@ pub fn tar_d_dr_rdtheta(
 /// * `phi` - azimuthal coordinate in rads
 /// * `hough_functions` - a call by reference to an instance of [TARCollection] that contains the hough functions and derivatives for all theta angles. 
 /// ### Returns:
-/// * an `f64` - This value is the derivative of the displacement in θ with respect to θ
+/// This function can return an [Ok] or [Err] variants of [Result] that will have the following values binded to them:
+/// * `Ok(f64)` - an [Ok]  variant that has binded the derivative of the theta displacement with respect to θ.
+/// * `Err(DivisionByZero)` - an Err variant that has binded the error produced if the colatitude  coordinate (theta) is too small.
 pub fn tar_d_dtheta_dtheta(
     mode: &PulsationMode,
 	theta: f64,
@@ -159,7 +161,7 @@ pub fn tar_d_dtheta_dtheta(
     match sintheta.abs() <= f64::EPSILON.sqrt(){
         true => { Err(MathErrors::DivisionByZero)}
         false => {
-            let index = (theta/dtheta) as usize;
+            let index = construct_index(theta, dtheta);
             let dh_t= - houghs_functions.dH_t[index]*sintheta;
             let h_t = houghs_functions.H_t[index];
             Ok(mode.rel_dr*mode.k
@@ -174,60 +176,66 @@ pub fn tar_d_dtheta_dtheta(
 ///coordinates θ,φ
 /// ### Arguments: 
 /// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
-/// * `sintheta` - sine of the colatitude angle (theta in rads)
-/// * `costheta` - cosine of the colatitude angle (theta in rads)
+/// * `theta` - sine of the colatitude angle (theta in rads)
+/// * `dtheta` - cosine of the colatitude angle (theta in rads)
 /// * `phi` - azimuthal coordinate in rads
+/// * `hough_functions` - a call by reference to an instance of [TARCollection] that contains the hough functions and derivatives for all theta angles. 
 /// ### Returns:
 /// * an `f64` - This value is the derivative of the relative radial displacement with respect to φ 
 pub fn tar_d_dr_rdphi(
     mode: &PulsationMode,
-	sintheta: f64,
-	costheta: f64,
-	phi: f64) -> f64{
+    theta: f64,
+    dtheta: f64,
+	phi: f64,
+    houghs_functions:&TARCollection) -> f64{
+        let index = construct_index(theta, dtheta);
+        let h_r = houghs_functions.H_r[index];
+        - mode.rel_dr * h_r * mode.m as f64
+            *(mode.phase + (mode.m as f64)*phi).sin()
 
-    let r_dr = mode.rel_dr;
-    let phase= mode.phase;
-    let l = mode.l;
-    let m= mode.m;
-    
-    r_dr * ylmnorm(l,m) * (-m as f64)
-    * plmcos(l, m.abs() as u16,sintheta,costheta)
-    * (phase + (m as f64) * phi).sin()
 }
-
-///Computes the derivatives of Δϕ with respect to ϕ in the point with spherical
-///coordinates θ,ϕ
+   
+///Computes the derivatives of Δφ with respect to φ in the point with spherical
+///coordinates θ,φ
 /// ### Arguments: 
 /// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
-/// * `sintheta` - sine of the colatitude angle (theta in rads)
-/// * `costheta` - cosine of the colatitude angle (theta in rads)
+/// * `theta` - sine of the colatitude angle (theta in rads)
+/// * `dtheta` - cosine of the colatitude angle (theta in rads)
 /// * `phi` - azimuthal coordinate in rads
+/// * `hough_functions` - a call by reference to an instance of [TARCollection] that contains the hough functions and derivatives for all theta angles. 
 /// ### Returns:
 /// This function returns a [Result] with the following variants:
 /// * `Ok(f64)` - Where the binded value is the derivative of the displacement in φ with respect to φ 
 /// * `Err(DivisionByZero)` - Where the binded error is returned to the calling function and indicates that the theta value was too small.
 pub fn tar_d_dphi_dphi(
     mode: &PulsationMode,
-	sintheta: f64,
-	costheta: f64,
-	phi: f64) -> Result<f64,MathErrors>{
-
-    match sintheta < MACHINE_PRECISION{  
+    theta: f64,
+    dtheta: f64,
+	phi: f64,
+    houghs_functions:&TARCollection) -> Result<f64,MathErrors>{
+    let sintheta = theta.sin();
+    match sintheta < f64::EPSILON.sqrt(){  
         false => {
-        let r_dr = mode.rel_dr;
-        let phase= mode.phase;
-        let k= mode.k;
-        let l = mode.l;
-        let m= mode.m;
-
-        Ok(r_dr * k * ylmnorm(l, m) * (-(m as f64).powi(2))
-        * plmcos(l, m.abs() as u16, sintheta, costheta)
-        * (phase + (m as f64) * phi).cos()
-        /(sintheta.abs().powi(2)) )
+            let index = construct_index(theta, dtheta);
+            let h_p = houghs_functions.H_p[index];
+        
+            Ok(mode.rel_dr * mode.k * (-(mode.m.pow(2) as f64))
+            * h_p
+            * (mode.phase + (mode.m as f64) * phi).cos()
+            /(sintheta.abs().powi(2)) )
         }
 
-        true =>{
-        Err(MathErrors::DivisionByZero) //will pass the error in order for the calling function to do something
-        }
+        true =>{Err(MathErrors::DivisionByZero)}
     }
+}
+
+/// Houghs functions are computed simultaneously on an array of theta values, thus it's necessary to provide an index to get the expected value for a given theta. 
+/// This is the function that does that. 
+/// ### Arguments:
+/// * `theta` - the colatitude coordinate
+/// * `dtheta` - The difference between anytwo consecutive theta values of the theta array. It must have the same units as theta (radians, degrees)
+/// ### Returns:
+/// * `index` - a [usize] value that indicates the position of a given theta in the theta array
+fn construct_index(theta:f64,dtheta:f64)->usize{
+    (theta/dtheta) as usize
 }
