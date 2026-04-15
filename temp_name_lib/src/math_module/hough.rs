@@ -31,11 +31,7 @@ pub fn hough(
     lmbd:f64,
     extra:bool,
 )->(f64,//lambda eigenvalue
-<<<<<<< HEAD
     Vec<f64>,// μ = cos(θ) values in the [-1,1] range
-=======
-    Vec<f64>,// mu = cos(θ) values in the [-1,1] range
->>>>>>> 65f7da4 (TAR: corrected values on the implementation of houghs functions)
     Vec<f64>,// hough_radial(mu)
     Vec<f64>,// hough_latitudinal(mu)
     Vec<f64>,// hough_azimuthal(mu)
