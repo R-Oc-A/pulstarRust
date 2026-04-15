@@ -11,6 +11,7 @@ use nalgebra as na;
 
 use crate::local_pulsation_velocity::observed_pulsation_velocity;
 use crate::local_temperature_and_gravity::local_surface_temperature_logg;
+use crate::reference_frames::rotation_treatment::tar::TARCollection;
 use crate::reference_frames::{surface_normal, Coordinates};
 
 pub mod pulstar_mkr;
@@ -61,43 +62,30 @@ pub struct PulstarConfig{
 pub struct PulsationMode{
     /// The degree of the mode
     pub l: u16, 
-
     /// The azimuthal order of the mode
     pub m: i16,
-
     /// The relative radial displacement Δr/r_0
     pub rel_dr: f64,
-    
-    /// The correction factor k
+    /// The factor that relates radial vs horizontal displacement amplitudes. 
     pub k: f64,
-
     /// The frequency of oscillation in cycles per day
     pub frequency: f64,
-
     /// The phase offset
     pub phase_offset: f64,
-
     /// The relative temperature difference ΔT/T_0
     pub rel_dtemp: f64,
-
     /// The phase offset of temperature
     pub phase_rel_dtemp: f64,
-
     /// The relative gravity difference Δg/g0
     pub rel_dg: f64,
-
     /// The phase offset of gravity
     pub phase_rel_dg: f64,
-
     /// Current phase of the displacement pulsation
     pub phase: f64,
-
     /// Current phase of the Temperature variation
     pub phase_temp:f64,
-
     /// Current phase of the log g variation
     pub phase_logg:f64,
-
     /// Scheme to include the effects of rotation into the pulsation.
     pub rotation_effects:RotationRegime,
 }   
@@ -119,28 +107,28 @@ pub enum RotationRegime{
 pub struct StarData{
     /// The mass of the star in solar units
     pub mass: f64,
-
     /// The radius of the star in solar units
     pub radius: f64,
-
     /// The effective temperature in K
     pub effective_temperature: f64,
-
     /// The equatorial rotational velocity
     pub v_omega: f64,
-
     /// The inclination angle in degrees
     pub inclination_angle: f64,
 }
 
+/// There are two types of inputing the points in the phases of a pulsation's variability.
+///  By defining a explicit collection of time points that matches observations or by providing the start, end, and timestep  of a time interval. 
 #[derive(Deserialize,Debug,PartialEq,Clone)]
 pub enum  TimeType{
     Explicit{collection:Vec<f64>},
     Uniform{ start:f64, end:f64, step:f64}
 }
 
+/// This is the rasterization scheme used for the star. 
 #[derive(Deserialize,Debug,PartialEq)]
 pub enum MeshConfig{
+    /// A sphere variant uses a regular angular spacing on the surface of a star, thus is only parameterized by Δθ Δφ.
     Sphere{theta_step:f64,
            phi_step:f64},
     //[Ricardo:]Here maybe some other geometries may rise
@@ -247,6 +235,19 @@ impl PulstarConfig {
         rot_freq_in_rad_sec/(2.0*f64::consts::PI) * 3.6e3
 
     }
+
+    pub fn get_tar_collections(&self)->Vec<Option<TARCollection>>{
+        let mut tar_collections:Vec<Option<TARCollection>> = Vec::new();
+        for mode in self.mode_data.iter(){
+            match mode.rotation_effects{
+                RotationRegime::Tar => {
+                    tar_collections.push(Some(mode.new_tar_collection(self)))
+                }
+                _ => { tar_collections.push(None)}
+            }
+        }
+        tar_collections
+    }
 }
 
 impl RasterizedStar{
@@ -257,11 +258,13 @@ impl RasterizedStar{
 
     pub fn compute_local_quantities(&mut self,
         parameters:&PulstarConfig,
-        k: &Coordinates){
+        k: &Coordinates,
+        tar_collections: &[Option<TARCollection>]){
         for cell in self.cells.iter_mut(){
             cell.update_local_quantities(parameters, k,
-                 self.t_eff,
-                  self.g_0);
+                self.t_eff,
+                self.g_0,
+                tar_collections);
         }
     }
 
@@ -300,15 +303,26 @@ impl SurfaceCell{
     /// ### Returns: 
     /// * This method updates a mutable instance of a [SurfaceCell].
     /// 
-    fn update_local_quantities(&mut self,parameters:& PulstarConfig, k:& Coordinates, temperature_0:f64, g0:f64){
+    fn update_local_quantities(
+        &mut self,
+        parameters:& PulstarConfig,
+        k:& Coordinates,
+        temperature_0:f64,
+        g0:f64,
+        tar_collections:&[Option<TARCollection>]){
         //Select the type of geometry
         match parameters.mesh{
-            MeshConfig::Sphere {..} => {
+            MeshConfig::Sphere {theta_step,
+                ..} => {
                 let theta = self.coord_1;
                 let phi = self.coord_2;
+                let dtheta = theta_step.to_radians();
                 let k_spherical = k.transform(theta, phi);
+                
                 let s_normal = surface_normal(parameters,
-                     theta, phi).unwrap();
+                     theta, dtheta,phi,tar_collections).unwrap();
+
+            
                 let cos_chi = reference_frames::cos_chi(
                     &s_normal,
                    &k_spherical,
@@ -316,12 +330,9 @@ impl SurfaceCell{
                 if cos_chi <= 0.0 { self.set_local_values_to_zero()}
                 else {
                     self.coschi = cos_chi;
-                    self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k).unwrap();
-                    let local_values = local_surface_temperature_logg(parameters, theta, phi, g0, temperature_0);
-                    self.t_eff = local_values.0;
-                    self.log_g = local_values.1;
+                    self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap();
+                    (self.t_eff,self.log_g) = local_surface_temperature_logg(parameters, theta, dtheta, phi, g0, temperature_0, tar_collections);
                     self.area = s_normal.project_vector(&k_spherical).unwrap();
-
                 }
             }   
         }

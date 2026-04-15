@@ -29,6 +29,7 @@ pub fn pulstar_main(path:&str)->Option<DataFrame>{
     //---Initialize some useful parameters.---
     //----------------------------------------
     let mut star = pulse_config.rasterize_star();
+    let tar_collections = pulse_config.get_tar_collections();
 
     //--The components of a unit vector pointing towards the observer
     let k = Coordinates::unit_vector_k(
@@ -48,7 +49,7 @@ pub fn pulstar_main(path:&str)->Option<DataFrame>{
         //--Initialize the minimum and maximum arrays
         
         //--Computes effective temperature, log gravity, radial component of total velocity, cosχ, etc. on all surface cells avoiding the poles.  
-        star.compute_local_quantities(&pulse_config, &k);
+        star.compute_local_quantities(&pulse_config, &k, &tar_collections);
         
         //--Save the data of the current phase.
         collection_df=Some(write_output(&star,collection_df).unwrap());

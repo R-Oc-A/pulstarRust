@@ -39,7 +39,7 @@ fn main() {
     //---Initialize some useful parameters.---
     //----------------------------------------
     let mut star = pulse_config.rasterize_star();
-
+    let tar_collections = pulse_config.get_tar_collections();
     //--The components of a unit vector pointing towards the observer
     let k = Coordinates::unit_vector_k(
         pulse_config.star_data.inclination_angle.to_radians());
@@ -57,7 +57,7 @@ fn main() {
         //--Initialize the minimum and maximum arrays
         
         //--Computes effective temperature, log gravity, radial component of total velocity, cosχ, etc. on all surface cells avoiding the poles.  
-        star.compute_local_quantities(&pulse_config, &k);
+        star.compute_local_quantities(&pulse_config, &k,&tar_collections);
         
         //--Save the data of the current phase.
         write_output_to_parquet(&star, n as u16 +1).unwrap();

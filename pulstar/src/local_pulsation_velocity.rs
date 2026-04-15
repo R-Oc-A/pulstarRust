@@ -1,13 +1,10 @@
 use crate::local_pulsation_velocity::non_rotating::v_non_rotating;
-
+use crate::local_pulsation_velocity::tar::v_tar;
 use super::PulstarConfig;
 use super::reference_frames::Coordinates;
 use super::na;
 use temp_name_lib::type_def::{CYCLI2RAD, RADIUSSUN};
-use temp_name_lib::utils::{MACHINE_PRECISION,MathErrors};
-use temp_name_lib::math_module::spherical_harmonics::plmcos::plmcos;
-use temp_name_lib::math_module::spherical_harmonics::d_plmcos_dtheta::deriv1_plmcos_dtheta;
-use temp_name_lib::math_module::spherical_harmonics::norm_factor::ylmnorm;
+use temp_name_lib::utils::MathErrors;
 
 use super::*;
 
@@ -44,10 +41,11 @@ impl PulstarConfig {
 /// 
 /// ### Arguments:
 /// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
-/// * `sintheta` - sine of the colatitude coordinate (theta in rads)
-/// * 'costheta' - cosine of the colatitude coordinate (theta in rads)
-/// * `phi_rad`   - azimuthal coordinate  in rads
+/// * `theta` - sine of the colatitude coordinate (theta in rads)
+/// * 'dtheta' - cosine of the colatitude coordinate (theta in rads)
+/// * `phi`   - azimuthal coordinate  in rads
 /// * `velocity_amplitude`     - Amplitude in the radial direction times the normalization factor `Y_l^m`(see [temp_name_lib::math_module::spherical_harmonics::norm_factors]) in km/s
+/// 
 /// 
 /// ### Returns:
 /// This function returns [Ok] or [Err] variants of [Result]
@@ -55,20 +53,25 @@ impl PulstarConfig {
 /// * Err(DivisionByZero) - Where the error is pased to the calling function if the colatitude angle θ is too small. 
 pub fn v_pulse_single_mode(
     mode: &PulsationMode,
-    sintheta:f64,
-    costheta:f64,
-    phi_rad:f64,
+    theta:f64,
+    dtheta:f64,
+    phi:f64,
     velocity_amplitude:f64,
+    tar_functions:&Option<TARCollection>,
 )->Result<Coordinates,MathErrors>{
     match mode.rotation_effects{
-        RotationRegime::NonRotating => {v_non_rotating(mode,
-            sintheta,
-            costheta,
-            phi_rad,
-            velocity_amplitude)},
-        RotationRegime::PerturbativeCoriolis=>{v_non_rotating(mode, sintheta, costheta, phi_rad, velocity_amplitude)},
-        RotationRegime::Tar =>{v_non_rotating(mode, sintheta, costheta, phi_rad, velocity_amplitude)},
-        RotationRegime::CentrifugalDeformation => {v_non_rotating(mode, sintheta, costheta, phi_rad, velocity_amplitude)},        
+        RotationRegime::NonRotating => {
+            let (sintheta,costheta) = (theta.sin(),theta.cos());
+            v_non_rotating(mode, sintheta, costheta, phi, velocity_amplitude)},
+        RotationRegime::PerturbativeCoriolis=>{
+            let (sintheta,costheta) = (theta.sin(),theta.cos());
+            v_non_rotating(mode, sintheta, costheta, phi, velocity_amplitude)},
+        RotationRegime::Tar =>{
+            v_tar(mode, theta, dtheta, phi, velocity_amplitude, tar_functions)
+        },
+        RotationRegime::CentrifugalDeformation => {
+            let (sintheta,costheta) = (theta.sin(),theta.cos());
+            v_non_rotating(mode, sintheta, costheta, phi, velocity_amplitude)},        
     }
 }
 
@@ -87,26 +90,27 @@ pub fn v_pulse_single_mode(
 /// * 'Err(DivisionByZero)` - Where the error is pased to the calling function in case that the colatitude angle θ is too small;
 pub fn observed_pulsation_velocity(
     parameters:&PulstarConfig,
-    theta_rad:f64,
-    phi_rad:f64,
+    theta:f64,
+    phi:f64,
     k:&Coordinates,
+    tar_collections:&[Option<TARCollection>],
     )->Result<f64,MathErrors>{
     
 // * `velocity_amplitudes` - A [Vec] collection of the expected velocity amplitudes (with `f64` values) per mode. This collection is ordered in a way that there's a match with the pulsation mode in km/s.
-    let sintheta = theta_rad.sin();
-    let costheta = theta_rad.cos();
-
     let mut collection_velocities:Vec<Coordinates>=Vec::new();
-
+    let dtheta = match parameters.mesh{
+        MeshConfig::Sphere { theta_step,.. } =>{theta_step.to_radians()}
+    };
     let velocity_amplitudes = parameters.get_velocity_amplitudes();
     
     for (index,mode) in parameters.mode_data.iter().enumerate(){
         collection_velocities.push(v_pulse_single_mode(
             mode,
-            sintheta,
-            costheta,
-            phi_rad,
-            velocity_amplitudes[index])?);
+            theta,
+            dtheta,
+            phi,
+            velocity_amplitudes[index],
+            &tar_collections[index])?);
     }
     let sum_velocities = collection_velocities.iter()
         .fold(collection_velocities[0],
@@ -117,7 +121,7 @@ pub fn observed_pulsation_velocity(
             Ok(sum_velocities.project_vector(&k)?)
         }
         Coordinates::Cartesian(_)=>{
-            let k_spherical = k.transform(theta_rad, phi_rad);
+            let k_spherical = k.transform(theta, phi);
             Ok(sum_velocities.project_vector(&k_spherical)?)
         }
     }
@@ -136,21 +140,21 @@ pub fn observed_pulsation_velocity(
 /// `projected_velocity` - Where the projected_velocity is a f64 value and which has the same units as v_sini
 pub fn project_vrot(
     parameters:&PulstarConfig,
-    theta_rad:f64,
-    phi_rad:f64,
+    theta:f64,
+    phi:f64,
     k:&Coordinates
     )->f64 {
         let v_rot = Coordinates::Cartesian(
             parameters.star_data.v_omega *  na::Vector3::new(
-                theta_rad.sin() * phi_rad.sin(),
-                theta_rad.sin() * phi_rad.cos(),
+                theta.sin() * phi.sin(),
+                theta.sin() * phi.cos(),
                 0.0
             )
         );
         match k{
             Coordinates::Cartesian(_)=>{ v_rot.project_vector(k).unwrap()}
             Coordinates::Spherical(_)=>{
-                let k_cartesian = k.transform(theta_rad, phi_rad);
+                let k_cartesian = k.transform(theta, phi);
                 v_rot.project_vector(&k_cartesian).unwrap()
         }
     }

@@ -1,6 +1,7 @@
 
+use crate::reference_frames::rotation_treatment::tar::TARCollection;
+
 use super::{*,na};
-use spherical_harmonics::{self,plmcos::plmcos};
 use temp_name_lib::math_module::{spherical_harmonics::norm_factor::ylmnorm};
 
 
@@ -29,52 +30,59 @@ mod implementations_for_coordinates;
 /// 
 /// ### Arguments:
 /// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
-/// * `sintheta` - sine of the colatitude coordinate (theta in rads)
-/// * 'costheta' - cosine of the colatitude coordinate (theta in rads)
-/// * `phi`   - azimuthal coordinate  in rads
-/// * `radial_amplitude`     - amplitude in the radial direction times the normalization factor `Y_l^m`(see [temp_name_lib::math_module::spherical_harmonics::norm_factors])
-/// * `tangential_amplitude` - amplitude in the tangential direction times the normalization factor  'Y_l^m' (see [temp_name_lib::math_module::spherical_harmonics::norm_factors])
-/// 
+/// * `theta` - The colatitude coordinate θ in radians
+/// * 'dtheta' - difference between two colatitud coordinates between two neighbouring [SurfaceCell]s, it has the same units as θ and it assumes a regular mesh of the sphere in the colatitude coordinate.
+/// * `phi`   - azimuthal coordinate  in radians
+/// * `radial_amplitude`     - amplitude in the radial direction 
+/// * `tangential_amplitude` - amplitude in the tangential direction 
+/// * `tar_functions` - An [Option] enum that has the following variants:
+///     - [Some] variant that has binded a reference to a [TARCollection]
+///     - [None] in case tar functions are not needed.
 /// ### Returns:
 /// This function can return an [Ok] or [Err] variants of [Result] that will have the following values binded to them:
 /// * `Ok(Coordinates::Spherical)` - an Ok  variant that has binded the spherical components of the displacement vector in the`r,θ,φ` order.
 /// * `Err(DivisionByZero)` - an Err variant that has binded the error produced if the colatitude  coordinate (theta) is too small.
 pub fn displacement(
     mode: &PulsationMode,
-    sintheta:f64,
-    costheta:f64,
+    theta:f64,
+    dtheta:f64,
     phi:f64,
     radial_amplitude:f64,
-    tangential_amplitude:f64)->Result<Coordinates,MathErrors>{
+    tangential_amplitude:f64,
+    tar_functions:&Option<TARCollection>)->Result<Coordinates,MathErrors>{
             match mode.rotation_effects{
                 RotationRegime::NonRotating =>{rotation_treatment::non_rotating::non_rotating_displacement(
                     mode,
-                    sintheta,
-                    costheta,
+                    theta.sin(),
+                    theta.cos(),
                     phi,
                     radial_amplitude,
                     tangential_amplitude,
                 )},
                 RotationRegime::PerturbativeCoriolis =>{rotation_treatment::non_rotating::non_rotating_displacement(
                     mode,
-                    sintheta,
-                    costheta,
+                    theta.sin(),
+                    theta.cos(),
                     phi,
                     radial_amplitude,
                     tangential_amplitude,
                 )},
-                RotationRegime::Tar =>{rotation_treatment::non_rotating::non_rotating_displacement(
-                    mode,
-                    sintheta,
-                    costheta,
-                    phi,
-                    radial_amplitude,
-                    tangential_amplitude,
-                )},
+                RotationRegime::Tar =>{
+                    if let Some(tar_collection) = tar_functions{
+                        rotation_treatment::tar::tar_displacement(
+                        mode,
+                        theta,
+                        dtheta,
+                        phi,
+                        radial_amplitude,
+                        tangential_amplitude,
+                        tar_collection)}
+                    else{panic!("hough's functions were not properly loaded")}
+                },
                 RotationRegime::CentrifugalDeformation =>{rotation_treatment::non_rotating::non_rotating_displacement(
                     mode,
-                    sintheta,
-                    costheta,
+                    theta.sin(),
+                    theta.cos(),
                     phi,
                     radial_amplitude,
                     tangential_amplitude,
@@ -86,7 +94,12 @@ pub fn displacement(
 /// the surface of a star using spherical coordinates.
 mod displacement_derivatives;
 
-
+/// This module contains the functions used to implement rotational effects into the modelling of the pulsation equations. 
+/// Currently these are the included mechanisms:
+/// * `Non rotating` - in a non rotating case treatment of rotation, the rotation effects are only included in a frequency shift. 
+/// * `TAR` - The traditional approximation of rotation includes the effects by disregarding the horizontal components of the coriolis force.\
+/// * `Perturbative coriolis` - 
+/// * `Centrifugal deformation`
 pub mod rotation_treatment;
 
 /// This function computes the spherical components of the surface normal vector on a reference frame where the z-axis 
@@ -98,57 +111,73 @@ pub mod rotation_treatment;
 /// 
 /// ### Arguments:
 /// * `parameters` - The data contained in [PulstarConfig], here you find the parameters that describe the pulsation modes and the star.
-/// * `theta_rad` - The colatitude angle in rads, must not be too small in order to avoid the poles.
-/// * `phi_rad` - The azimuthal angle in rads
+/// * `theta` - The colatitude angle θ in rads, must not be too small in order to avoid the poles.
+/// * 'dtheta' - difference between two colatitud coordinates between two neighbouring [SurfaceCell]s, it has the same units as θ and it assumes a regular mesh of the sphere in the colatitude coordinate.
+/// * `phi` - The azimuthal angle in rads
+/// * `tar_functions` - An [Option] enum that has the following variants:
+///     - [Some] variant that has binded a reference to a [TARCollection]
+///     - [None] in case tar functions are not needed.
+/// ### Returns: 
+/// This function returns [Ok] or [Err] variants of [Result]
+/// * Ok(`Coordinates::Spherical(surface_normal_coords)`) - Where surface_normal_coords  is a [na::Vector3]
+/// * Err(DivisionByZero) - Where the error is pased to the calling function if the colatitude angle θ is too small. 
 pub fn surface_normal(
 parameters: &PulstarConfig,
-theta_rad: f64,
-phi_rad: f64
+theta: f64,
+dtheta: f64,
+phi: f64,
+tar_collections:&[Option<TARCollection>],
 )->Result<Coordinates,MathErrors>{
-    let sintheta = theta_rad.sin();
-    let costheta = theta_rad.cos();
+    let sintheta = theta.sin();
+    let costheta = theta.cos();
 
     let mut total_p_ds = Coordinates::Spherical(na::Vector3::new(0.0,0.0,0.0));
 	let mut total_dev1=0.0;
 	let mut total_dev2=0.0;
 	let mut total_dev3=0.0;
 	let mut total_dev4=0.0;
-    for mode in parameters.mode_data.iter(){
+
+    for (index,mode) in parameters.mode_data.iter().enumerate(){
 
         let radial_amplitude = ampl_r(mode);
         let tangential_amplitude = ampl_t(mode);
         
         let pulsation_displacement = displacement(
             mode,
-            sintheta,
-            costheta, 
-            phi_rad, 
+            theta,
+            dtheta, 
+            phi, 
             radial_amplitude, 
-            tangential_amplitude)?;
+            tangential_amplitude,
+            &tar_collections[index])?;
         
         let drdtheta = displacement_derivatives::d_dr_rdtheta(
             mode,
-            sintheta, 
-            costheta, 
-            phi_rad);
+            theta, 
+            dtheta, 
+            phi,
+            &tar_collections[index]);
         
         let drdphi = displacement_derivatives::d_dr_rdphi(
             mode,
-            sintheta,
-            costheta,
-            phi_rad);
+            theta,
+            dtheta,
+            phi,
+            &tar_collections[index]);
         
         let dtdtheta = displacement_derivatives::d_dtheta_dtheta(
             mode,
-            sintheta,
-            costheta,
-            phi_rad);
+            theta,
+            dtheta,
+            phi,
+            &tar_collections[index]);
         
         let dpdphi = displacement_derivatives::d_dphi_dphi(
             mode,
-            sintheta,
-            costheta,
-            phi_rad)?;//<- the ? is necesary to pas to the calling function if the colatitude angle theta is too close to the poles.
+            theta,
+            dtheta,
+            phi,
+            &tar_collections[index])?;//<- the ? is necesary to pas to the calling function if the colatitude angle theta is too close to the poles.
         
         
         total_p_ds += pulsation_displacement;
@@ -186,16 +215,19 @@ phi_rad: f64
 /// ### Arguments:
 /// * `surface_normal` - a spherical [Coordinates] vector normal to a surface cell that has as length the (normalized) area of the cell. See [surface_normal]
 /// * `k` - a unit vector pointing towards the observer on a frame of reference where the z-axis coincides with the rotation axis.
-/// * `theta_rad` - the colatitude angle on the star in radians. This angle should not be too small. 
-/// * `phi_rad` - the azimuthal angle on the star in radians.
+/// * `theta` - the colatitude angle on the star in radians. This angle should not be too small. 
+/// * `phi` - the azimuthal angle on the star in radians.
 /// 
 /// ### Returns:
 /// * `cos_chi` - a `f64` value that is the cosine of the angle between `surface_normal` and `k`
-pub fn cos_chi(surface_normal:&Coordinates,
-    k: &Coordinates,theta_rad: f64,phi_rad:f64)->f64{
+pub fn cos_chi(
+    surface_normal:&Coordinates,
+    k: &Coordinates,
+    theta: f64,
+    phi:f64)->f64{
     match k {
         Coordinates::Cartesian(_)=>{
-            let k_spherical = k.transform(theta_rad, phi_rad);
+            let k_spherical = k.transform(theta, phi);
             k_spherical.project_vector(surface_normal).unwrap()
             /(k_spherical.vector_length()*surface_normal.vector_length())
         }
@@ -208,23 +240,32 @@ pub fn cos_chi(surface_normal:&Coordinates,
 
 
 /// This function calculates the amplitude of the relative radial displacement multiplied by the normalization factor `Y_l^m`
-/// 
 /// ### Arguments:
 /// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
-/// 
 /// ### Returns:
 /// * `radial_amplitude` - A `f64` value that contains the amplitude of relative radial displacement (thus without units) caused by the pulsations of a given mode. 
 pub fn ampl_r(mode:&PulsationMode)->f64{
-    mode.rel_dr * ylmnorm(mode.l, mode.m)
+    match mode.rotation_effects{
+        RotationRegime::NonRotating => {mode.rel_dr * ylmnorm(mode.l, mode.m)},
+        RotationRegime::CentrifugalDeformation => {mode.rel_dr 
+            * ylmnorm(mode.l,mode.m)},
+        RotationRegime::PerturbativeCoriolis => {
+            mode.rel_dr * ylmnorm(mode.l, mode.m)
+        },
+        RotationRegime::Tar => {mode.rel_dr}
+    }
 }
 
 /// This function calculates the amplitude of the relative tangential displacement multiplied by the normalization factor `Y_l^m`
-/// 
 /// ### Arguments:
 /// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
-/// 
 /// ### Returns:
-/// * `tangential_amplitude` - A `f64` value that contains the amplitude of relative tangential displacement (thus without units) caused by the pulsations of a given mode. 
+/// * `tangential_amplitude` - amplitude in the tangential direction times the normalization factor  'Y_l^m' (see [temp_name_lib::math_module::spherical_harmonics::norm_factors])
 pub fn ampl_t(mode:&PulsationMode)->f64{
-    mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k
+    match mode.rotation_effects{
+        RotationRegime::NonRotating => {mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k}
+        RotationRegime::PerturbativeCoriolis => {mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k}
+        RotationRegime::CentrifugalDeformation=> {mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k}
+        RotationRegime::Tar => {mode.rel_dr*mode.k}
+    }
 }

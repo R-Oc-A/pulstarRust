@@ -12,17 +12,17 @@ pub struct TARCollection{
 /// the calculated eigenvalue of the Laplace Tidal Differential Operator.
     lambda:f64,
 /// An [Array1<f64>] that contains the radial  hough function 𝚯_r
-    H_r:Array1<f64>,
+    h_r:Array1<f64>,
 /// An [Array1<f64>] that contains the colatitudinal  hough function 𝚯_θ
-    H_t:Array1<f64>,
+    h_t:Array1<f64>,
 /// An [Array1<f64>] that contains the   azimuthal function 𝚯_ɸ
-    H_p:Array1<f64>,
+    h_p:Array1<f64>,
 /// An [Array1<f64>] that contains  the derivative with respect to μ of the radial  hough function 𝚯_r
-    dH_r:Array1<f64>,
+    dh_r:Array1<f64>,
 /// An [Array1<f64>] that contains  the derivative with respect to μ of the colatitudinal hough function 𝚯_θ
-    dH_t:Array1<f64>,
+    dh_t:Array1<f64>,
 /// An [Array1<f64>] that contains  the derivative with respect to μ of the azimuthal hough function 𝚯_ɸ
-    dH_p:Array1<f64>,
+    dh_p:Array1<f64>,
 /// a [usize] that contains the number of points in each of the [TARCollection] members
     npts:usize,
 }
@@ -36,33 +36,33 @@ impl PulsationMode{
     }
 
     /// This method returns an instance of the [TARCollection] for a given pulsation mode. 
-    fn new_tar_collection(&self, pulsconfig: &PulstarConfig)->TARCollection{
+    pub fn new_tar_collection(&self, pulsconfig: &PulstarConfig)->TARCollection{
         let q = self.get_spin_parameter(pulsconfig);
-        
+        println!("spin parameter is {}",q);
         let npts = (180.0/ match pulsconfig.mesh{
             MeshConfig::Sphere { theta_step, phi_step:_ }=>{theta_step}
         })as usize;
         
         let (lambda,
             mu_values,
-            H_r,
-            H_t,
-            H_p,
-            dH_r,
-            dH_t,
-            dH_p,
+            h_r,
+            h_t,
+            h_p,
+            dh_r,
+            dh_t,
+            dh_p,
             )
             =temp_name_lib::math_module::hough::hough(q, self.l, self.m, npts, (self.l*(self.l+1)) as f64, true);
-        
-        //Because of Macro values, this doesn't work. I'm going to pass arround [vectors f64] from hough.
+            //=temp_name_lib::math_module::hough::hough(q, self.l, self.m, npts, -(self.m.pow(2)) as f64, true);
+        println!("lambda is {}, and l*(l+1) is {}",lambda, self.l*(self.l + 1));
         TARCollection { mu_values: Array1::from_vec(mu_values),
             lambda: lambda,
-            H_r: Array1::from_vec(H_r),
-            H_t: Array1::from_vec(H_t),
-            H_p: Array1::from_vec(H_p),
-            dH_r: Array1::from_vec(dH_r),
-            dH_t: Array1::from_vec(dH_t),
-            dH_p: Array1::from_vec(dH_p),
+            h_r: Array1::from_vec(h_r),
+            h_t: Array1::from_vec(h_t),
+            h_p: Array1::from_vec(h_p),
+            dh_r: Array1::from_vec(dh_r),
+            dh_t: Array1::from_vec(dh_t),
+            dh_p: Array1::from_vec(dh_p),
             npts:npts}
     }
 
@@ -96,17 +96,17 @@ pub fn tar_displacement(
             true => {Err(MathErrors::DivisionByZero)}
             false =>{
                 let index = construct_index(theta, dtheta);
-
-                let H_r = houghs_functions.H_r[index];
-                let H_p= houghs_functions.H_p[index];
-                let H_t = houghs_functions.H_t[index];
-
+                
+                let h_r = houghs_functions.h_r[index];
+                let h_p= houghs_functions.h_p[index];
+                let h_t = houghs_functions.h_t[index];
+                
                 // Im taking this expressions from Townsend 2020.
-                let delta_r = radial_amplitude * H_r * (-mode.phase + phi * mode.m as f64).cos();
-                let delta_theta = tangential_amplitude * H_t * (-mode.phase + phi * mode.m as f64).cos()/sintheta;
-                let delta_phi = tangential_amplitude * H_p * (-mode.phase + phi * mode.m as f64).sin()/sintheta;
+                let delta_r = radial_amplitude * h_r * (-mode.phase + phi * mode.m as f64).cos();
+                let delta_theta = tangential_amplitude * h_t * (-mode.phase + phi * mode.m as f64).cos()/sintheta;
+                let delta_phi = tangential_amplitude * h_p * (-mode.phase + phi * mode.m as f64).sin()/sintheta;
 
-                Ok(Coordinates::Spherical(na::Vector3::new(delta_r, delta_theta, delta_phi)))
+                Ok(Coordinates::Spherical( (na::Vector3::new(delta_r, delta_theta, delta_phi)) ))
             }
         }
     }
@@ -131,7 +131,7 @@ pub fn tar_d_dr_rdtheta(
     ) -> f64{
     let index = construct_index(theta, dtheta);
 
-    let dh_r = -houghs_functions.dH_r[index]*theta.sin();// dH_r is the derivative of H_r with respect to μ=cos(θ), so here I applied the chain rule.
+    let dh_r = -houghs_functions.dh_r[index]*theta.sin();// dH_r is the derivative of H_r with respect to μ=cos(θ), so here I applied the chain rule.
 
     mode.rel_dr*dh_r
     * (mode.phase + (mode.m as f64) * phi).cos()
@@ -162,8 +162,8 @@ pub fn tar_d_dtheta_dtheta(
         true => { Err(MathErrors::DivisionByZero)}
         false => {
             let index = construct_index(theta, dtheta);
-            let dh_t= - houghs_functions.dH_t[index]*sintheta;
-            let h_t = houghs_functions.H_t[index];
+            let dh_t= - houghs_functions.dh_t[index]*sintheta;
+            let h_t = houghs_functions.h_t[index];
             Ok(mode.rel_dr*mode.k
             * (dh_t/sintheta - h_t/sintheta.powi(2)*theta.cos())
             * (mode.phase + (mode.m as f64) * phi).cos()
@@ -189,7 +189,7 @@ pub fn tar_d_dr_rdphi(
 	phi: f64,
     houghs_functions:&TARCollection) -> f64{
         let index = construct_index(theta, dtheta);
-        let h_r = houghs_functions.H_r[index];
+        let h_r = houghs_functions.h_r[index];
         - mode.rel_dr * h_r * mode.m as f64
             *(mode.phase + (mode.m as f64)*phi).sin()
 
@@ -217,7 +217,7 @@ pub fn tar_d_dphi_dphi(
     match sintheta < f64::EPSILON.sqrt(){  
         false => {
             let index = construct_index(theta, dtheta);
-            let h_p = houghs_functions.H_p[index];
+            let h_p = houghs_functions.h_p[index];
         
             Ok(mode.rel_dr * mode.k * (-(mode.m.pow(2) as f64))
             * h_p
@@ -237,5 +237,5 @@ pub fn tar_d_dphi_dphi(
 /// ### Returns:
 /// * `index` - a [usize] value that indicates the position of a given theta in the theta array
 fn construct_index(theta:f64,dtheta:f64)->usize{
-    (theta/dtheta) as usize
+    (theta/dtheta).floor() as usize * 10usize
 }
