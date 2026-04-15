@@ -31,7 +31,11 @@ pub fn hough(
     lmbd:f64,
     extra:bool,
 )->(f64,//lambda eigenvalue
+<<<<<<< HEAD
     Vec<f64>,// μ = cos(θ) values in the [-1,1] range
+=======
+    Vec<f64>,// mu = cos(θ) values in the [-1,1] range
+>>>>>>> 65f7da4 (TAR: corrected values on the implementation of houghs functions)
     Vec<f64>,// hough_radial(mu)
     Vec<f64>,// hough_latitudinal(mu)
     Vec<f64>,// hough_azimuthal(mu)
@@ -48,7 +52,6 @@ pub fn hough(
     // define parity
     let parity = (l as i16-m)%2;
 
-    // Calculate the interior/root points (mu_i = Cos((2i-1)Pi/2N)
     // Calculate the interior/root points (mu_i = cos(((2i-1)Pi)/2N)), where i = 1,...,N , N=total number of collocation points.
     //let n = na::Vector1::new(vec![0.0;m_size]);
     //Define the coefficients of the differential equation for the radial Hough function. 
@@ -62,16 +65,18 @@ pub fn hough(
     for index in 0..m_size{
         mu_vec.push((PI/(npts as f64) * (index as f64 + 0.5)).cos());//by defining the cosine here this way, you avoid the singular points.
         s_vec.push( (1.0-mu_vec[index].powi(2)).sqrt() );
+    }
+    
+    for index in 0..m_size{
         denom_vec.push( 1.0 - q_sqrd * mu_vec[index].powi(2) );
-        coeffs2_vec.push( s_vec[index].powi(2) );
-        coeffs1_vec.push( -2.0 * mu_vec[index] * (1.0-q_sqrd)/(denom_vec[index].powi(2)) );
-        coeffs0_vec.push(
-            q*(m as f64)*(1.0+q_sqrd*mu_vec[index].powi(2))/denom_vec[index].powi(2)
-            -(m.pow(2) as f64)/s_vec[index] );
+        coeffs2_vec.push( s_vec[index].powi(2) / denom_vec[index] );
+        coeffs1_vec.push( -2.0 * mu_vec[index] * (1.0 - q_sqrd) / denom_vec[index].powi(2) );
+        coeffs0_vec.push( q * (m as f64) * (1.0 + q_sqrd * mu_vec[index].powi(2)) / denom_vec[index].powi(2)
+         - (m.pow(2) as f64 ) / (s_vec[index].powi(2) * denom_vec[index]) );
     }
 
     let mut mu = Array1::from_vec(mu_vec);
-    let mut s = Array1::from_vec(s_vec);
+    let s = Array1::from_vec(s_vec);
     let denom = Array1::from_vec(denom_vec);
     let coeffs2 = Array1::from_vec(coeffs2_vec);
     let coeffs1 = Array1::from_vec(coeffs1_vec);
@@ -90,10 +95,9 @@ pub fn hough(
     for i in 0..m_size{
         for j in 0..m_size{
             
-            let j_index = (if extra {2 * j as i16 + parity}
-                else{2 * j as i16 +1 - parity}) as f64;
+            let j_index = (2 * j as i16 + parity) as f64;
             let cij =(PI*j_index/(npts as f64) * 
-            ((npts+i) as f64 + 0.5 )).cos();
+            ((npts+i) as f64 + 0.5) ).cos();
             let sij =(PI*j_index/(npts as f64) * 
             ((npts+i) as f64 + 0.5) ).sin();
             
@@ -110,6 +114,7 @@ pub fn hough(
                 ) / s[i].powi(3);
             }
             if extra {
+                let j_index = (2 * j as i16 + 1 - parity) as f64;
                 let cij = (PI* j_index/(npts as f64) * ((npts + i) as f64 + 0.5 )).cos();
                 let sij = (PI* j_index/(npts as f64) * ((npts + i) as f64 + 0.5 )).sin();
 
