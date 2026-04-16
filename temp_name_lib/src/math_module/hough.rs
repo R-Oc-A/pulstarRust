@@ -84,9 +84,9 @@ pub fn hough(
     let mut d2 = Array2::<f64>::zeros((m_size,m_size));
     let mut d1= Array2::<f64>::zeros((m_size,m_size));
     let mut d0 = Array2::<f64>::zeros((m_size,m_size));
-    //This are for the other parity
-    let mut d1_other= Array2::<f64>::zeros((m_size,m_size));
-    let mut d0_other = Array2::<f64>::zeros((m_size,m_size));
+    //This are for the other parity, apparently they are not needed.
+    /*let mut d1_other= Array2::<f64>::zeros((m_size,m_size));
+    let mut d0_other = Array2::<f64>::zeros((m_size,m_size));*/
 
     for i in 0..m_size{
         for j in 0..m_size{
@@ -109,7 +109,7 @@ pub fn hough(
                     mu[i] * sij - j_index * cij * s[i]
                 ) / s[i].powi(3);
             }
-            if extra {
+            /*if extra {
                 let j_index = (2 * j as i16 + 1 - parity) as f64;
                 let cij = (PI* j_index/(npts as f64) * ((npts + i) as f64 + 0.5 )).cos();
                 let sij = (PI* j_index/(npts as f64) * ((npts + i) as f64 + 0.5 )).sin();
@@ -121,7 +121,7 @@ pub fn hough(
                     d0_other[[i,j]]=cij * s[i];
                     d1_other[[i,j]]=j_index * sij - cij * mu[i] / s[i]
                 };
-            }
+            }*/
         }         
     }   
 
@@ -129,10 +129,10 @@ pub fn hough(
     d1 = d1.dot(&d0);
     d2 = d2.dot(&d0);
 
-    if extra{
+    /*if extra{
         d0_other = d0_other.inv().unwrap();
         d1_other = d1_other.dot(&d0_other);
-    }
+    }*/
 
     let full = 
         Array2::from_diag(&coeffs2).dot(&d2) +
@@ -170,33 +170,48 @@ pub fn hough(
                     a.1.re().partial_cmp(&b.1.re()).unwrap())//For each iterator orders the items by making a partial comparison. The fact that this works seems like magic to me because it smells like it's doing bubble sort.
                 .map(|x|x.0).collect();//Maps the result of the comparison by given the permutation of the indices to get an ordered array.
     
-    let mut eigenvals = sifted_vals.select(Axis(0),&idx);
-    let mut eigenvecs = sifted_vecs.select(Axis(1),&idx);
+    let eigenvals = sifted_vals.select(Axis(0),&idx);
+    let eigenvecs = sifted_vecs.select(Axis(1),&idx);
     
+    //println!("eigs vals {:#?}",eigenvals);
     let ind_pos = eigenvals.slice(s![..])
             .iter()
             .enumerate()
             .fold(0usize, |x,b|{
-                if (eigenvals[x].re() - lmbd).abs() < (b.1.re()-lmbd).abs(){x}
+                if (eigenvals[x].re().abs() - lmbd.abs()).abs() < (b.1.re().abs()-lmbd.abs()).abs(){x}
                 else{b.0}
             });
     
     //Eigenvalue for the radial Hough function differential equation
     let eigenval = eigenvals[ind_pos].re();
     let mut hough_r = eigenvecs.column(ind_pos).map(|x|x.re());
-    let norm = hough_r.norm();
+    /*let norm = hough_r.norm();
     if (1.0-norm).abs()>std::f64::EPSILON{
         hough_r = hough_r.map(|x|x/norm);        
-    }        
+    }*/        
 
     //last point should be positive...
     if let Some(val) = hough_r.last_mut(){
-        *val= val.abs()};
-    
+        *val= val.abs()
+    };
+
+    //This was commented in Vincent Prat's implementation. It makes the hough functions non dependant on the number of collocation points so I leave it uncommented. 
+    //This makes the hough_r "normalized".
+    //After some numerical experiments I found the reason of why the two following coding lines exist.
+    // Hough functions are composed numerically with the collocation method. This method returns a number of components equal to the 
+    // number of collocation points. By definition of the method, the function is normalized, this means that regardles of using 20 or 2000 collocation points, the 
+    // L2 norm of this vector must be one. This in turn maks the overall greatest amplitude of the function decrease witht the number of points. 
+    // By dividing all of the components with respect to the maximum value, we make the computed hough function independent of the number of points. 
+    // This shares the same behavior as associated legendre polinomials, in the sense that they remain independent on the mesh of the domain where they are defined. 
+    // Still more numerical test should be carried, on the other hand I believe the more rigorous approach of expanding the hough functions as a sum of 
+    // associated legendre polinomials, while way more difficult to implement, it has an easier to understand mathematical background. 
+    let hr_max = hough_r.iter().fold(hough_r[0].abs(),|acc,x| {if x.abs() > acc {x.abs()}else{acc} });
+    hough_r *= 1.0/hr_max;
+
 
     // Compute latitudinal hough function
-    let mut coeffs1_ht:Array1<f64> = Array1::zeros((m_size));
-    let mut coeffs0_ht:Array1<f64> = Array1::zeros((m_size));
+    let mut coeffs1_ht:Array1<f64> = Array1::zeros(m_size);
+    let mut coeffs0_ht:Array1<f64> = Array1::zeros(m_size);
     for (index,denom_item) in denom.slice(s![..]).into_iter().enumerate(){
         coeffs1_ht[index] = - s[index].powi(2) / denom_item;
         coeffs0_ht[index] = - m as f64 * q * mu[index]/ denom_item;
@@ -210,8 +225,8 @@ pub fn hough(
     }
 
     // Compute azimuthal hough function
-    let mut coeffs1_hp:Array1<f64> = Array1::zeros((m_size));
-    let mut coeffs0_hp:Array1<f64> = Array1::zeros((m_size));
+    let mut coeffs1_hp:Array1<f64> = Array1::zeros(m_size);
+    let mut coeffs0_hp:Array1<f64> = Array1::zeros(m_size);
     for (index,denom_item) in denom.slice(s![..]).into_iter().enumerate(){
         coeffs1_hp[index] = q * mu[index] * s[index].powi(2) / denom_item;
         coeffs0_hp[index] = m as f64 * q * mu[index]/ denom_item;
