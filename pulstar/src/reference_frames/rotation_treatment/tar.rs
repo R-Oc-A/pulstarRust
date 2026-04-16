@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use ndarray::prelude::Array1;
 use temp_name_lib::utils::MathErrors;
 use crate::{MeshConfig, PulsationMode, PulstarConfig, reference_frames::Coordinates};
@@ -39,10 +41,12 @@ impl PulsationMode{
     pub fn new_tar_collection(&self, pulsconfig: &PulstarConfig)->TARCollection{
         let q = self.get_spin_parameter(pulsconfig);
         println!("spin parameter is {}",q);
-        let npts = (180.0/ match pulsconfig.mesh{
+        let mut npts = (180.0/ match pulsconfig.mesh{
             MeshConfig::Sphere { theta_step, phi_step:_ }=>{theta_step}
         })as usize;
-        
+        if npts < 400usize{
+            npts = 400usize;
+        }
         let (lambda,
             mu_values,
             h_r,
@@ -237,5 +241,10 @@ pub fn tar_d_dphi_dphi(
 /// ### Returns:
 /// * `index` - a [usize] value that indicates the position of a given theta in the theta array
 fn construct_index(theta:f64,dtheta:f64)->usize{
-    (theta/dtheta).floor() as usize * 10usize
+    let mut npts = (PI/dtheta).floor() as usize;
+        if npts < 400usize{
+            npts = 400usize;
+        }
+    
+    (theta/dtheta).floor() as usize * npts/((PI/dtheta).floor() as usize)
 }
