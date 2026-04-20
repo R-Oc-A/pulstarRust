@@ -141,7 +141,7 @@ pub fn hough(
 
     let (vals,vecs) = full.eig().unwrap();
 
-    println!("Here are the eigenvalues homie");
+
     println!("eigs structure {:?}",vals.shape());
     println!("eigvecs structure {:?}",vecs.shape());
 
@@ -153,7 +153,7 @@ pub fn hough(
     }
     let sifted_vals = vals.select(Axis(0),&whatev);
     let sifted_vecs = vecs.select(Axis(1),&whatev);
-    println!("Here are the real eigenvalues homie");
+
     println!("eigs structure {:?}",sifted_vals.shape());
     println!("eigvecs structure {:?}",sifted_vecs.shape());
 
@@ -195,18 +195,6 @@ pub fn hough(
         *val= val.abs()
     };
 
-    //This was commented in Vincent Prat's implementation. It makes the hough functions non dependant on the number of collocation points so I leave it uncommented. 
-    //This makes the hough_r "normalized".
-    //After some numerical experiments I found the reason of why the two following coding lines exist.
-    // Hough functions are composed numerically with the collocation method. This method returns a number of components equal to the 
-    // number of collocation points. By definition of the method, the function is normalized, this means that regardles of using 20 or 2000 collocation points, the 
-    // L2 norm of this vector must be one. This in turn maks the overall greatest amplitude of the function decrease witht the number of points. 
-    // By dividing all of the components with respect to the maximum value, we make the computed hough function independent of the number of points. 
-    // This shares the same behavior as associated legendre polinomials, in the sense that they remain independent on the mesh of the domain where they are defined. 
-    // Still more numerical test should be carried, on the other hand I believe the more rigorous approach of expanding the hough functions as a sum of 
-    // associated legendre polinomials, while way more difficult to implement, it has an easier to understand mathematical background. 
-    let hr_max = hough_r.iter().fold(hough_r[0].abs(),|acc,x| {if x.abs() > acc {x.abs()}else{acc} });
-    hough_r *= 1.0/hr_max;
 
 
     // Compute latitudinal hough function
@@ -323,6 +311,25 @@ pub fn hough(
             append_reflection(& mut hough_pp,false);       
         }
     }
+
+    //This was commented in Vincent Prat's implementation. It makes the hough functions non dependant on the number of collocation points so I leave it uncommented. 
+    //This makes the hough_r "normalized".
+    //After some numerical experiments I found the reason of why the two following coding lines exist.
+    // Hough functions are composed numerically with the collocation method. This method returns a number of components equal to the 
+    // number of collocation points. By definition of the method, the function is normalized, this means that regardles of using 20 or 2000 collocation points, the 
+    // L2 norm of this vector must be one. This in turn maks the overall greatest amplitude of the function decrease witht the number of points. 
+    // By dividing all of the components with respect to the maximum value, we make the computed hough function independent of the number of points. 
+    // This shares the same behavior as associated legendre polinomials, in the sense that they remain independent on the mesh of the domain where they are defined. 
+    // Still more numerical test should be carried, on the other hand I believe the more rigorous approach of expanding the hough functions as a sum of 
+    // associated legendre polinomials, while way more difficult to implement, it has an easier to understand mathematical background. 
+    let norm_factor_hr = 1.0/ hough_r.iter().fold(hough_r[0].abs(),|acc,x| {if x.abs() > acc {x.abs()}else{acc} });
+
+    hough_r *= norm_factor_hr;
+    hough_t *= norm_factor_hr;
+    hough_p *= norm_factor_hr;
+    hough_rp *= norm_factor_hr;
+    hough_tp *= norm_factor_hr;
+    hough_pp *= norm_factor_hr;
     (
         eigenval,
         mu.to_vec(),
