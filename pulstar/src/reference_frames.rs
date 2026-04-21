@@ -49,6 +49,7 @@ pub fn displacement(
     phi:f64,
     radial_amplitude:f64,
     tangential_amplitude:f64,
+    spin_parameter:f64,
     tar_functions:&Option<TARCollection>)->Result<Coordinates,MathErrors>{
             match mode.rotation_effects{
                 RotationRegime::NonRotating =>{rotation_treatment::non_rotating::non_rotating_displacement(
@@ -59,13 +60,14 @@ pub fn displacement(
                     radial_amplitude,
                     tangential_amplitude,
                 )},
-                RotationRegime::PerturbativeCoriolis =>{rotation_treatment::non_rotating::non_rotating_displacement(
+                RotationRegime::PerturbativeCoriolis =>{rotation_treatment::perturbative_coriolis::perturbative_displacement(
                     mode,
                     theta.sin(),
                     theta.cos(),
                     phi,
                     radial_amplitude,
                     tangential_amplitude,
+                    spin_parameter,
                 )},
                 RotationRegime::Tar =>{
                     if let Some(tar_collection) = tar_functions{
@@ -77,7 +79,7 @@ pub fn displacement(
                         radial_amplitude,
                         tangential_amplitude,
                         tar_collection)}
-                    else{panic!("hough's functions were not properly loaded")}
+                    else{Err(MathErrors::FunctionNotFound)}
                 },
                 RotationRegime::CentrifugalDeformation =>{rotation_treatment::non_rotating::non_rotating_displacement(
                     mode,
@@ -149,6 +151,7 @@ tar_collections:&[Option<TARCollection>],
             phi, 
             radial_amplitude, 
             tangential_amplitude,
+            mode.get_spin_parameter(parameters),
             &tar_collections[index])?;
         
         let drdtheta = displacement_derivatives::d_dr_rdtheta(
@@ -170,6 +173,7 @@ tar_collections:&[Option<TARCollection>],
             theta,
             dtheta,
             phi,
+            mode.get_spin_parameter(parameters),
             &tar_collections[index]);
         
         let dpdphi = displacement_derivatives::d_dphi_dphi(
@@ -177,6 +181,7 @@ tar_collections:&[Option<TARCollection>],
             theta,
             dtheta,
             phi,
+            mode.get_spin_parameter(parameters),
             &tar_collections[index])?;//<- the ? is necesary to pas to the calling function if the colatitude angle theta is too close to the poles.
         
         

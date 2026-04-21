@@ -1,5 +1,4 @@
 use super::reference_frames::Coordinates;
-use crate::reference_frames::displacement;
 use crate::reference_frames::rotation_treatment::tar::TARCollection;
 use temp_name_lib::utils::MathErrors;
 
@@ -33,8 +32,23 @@ pub fn v_tar(
     match sintheta.abs() <= f64::EPSILON.sqrt(){
         true => { Err(MathErrors::DivisionByZero)}
         false => {
-            let v_tangential = mode.k * velocity_amplitude;
-            displacement(mode, theta, dtheta, phi, velocity_amplitude, v_tangential, tar_functions)
+            if let Some(hough_functions) = tar_functions{
+                let index = reference_frames::rotation_treatment::tar::construct_index(theta, dtheta);
+                let h_r = hough_functions.h_r[index];
+                let h_p = hough_functions.h_p[index];
+                let h_t = hough_functions.h_t[index];
+
+                let radial_velocity = velocity_amplitude;
+                let tangential_velocity = mode.k*radial_velocity;
+
+                let v_r = -radial_velocity * h_r * (mode.phase + phi * mode.m as f64).sin();
+                let v_theta = -tangential_velocity * h_t/sintheta *(mode.phase + phi * mode.m as f64).sin();
+                let v_phi = tangential_velocity * h_p/sintheta * (mode.phase + phi * mode.m as f64).cos();
+
+                Ok(Coordinates::Spherical(na::Vector3::new(v_r,v_theta, v_phi)))
+            }else{
+                Err(MathErrors::FunctionNotFound)
+            }
         }
     }
 }

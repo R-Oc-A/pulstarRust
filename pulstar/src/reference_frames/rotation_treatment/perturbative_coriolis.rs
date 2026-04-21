@@ -148,7 +148,7 @@ pub fn perturbative_d_dtheta_dtheta(
             let spheroidal_part = non_rotating_d_dtheta_dtheta(mode, sintheta, costheta, phi);
         
             // Computations of the toroidal parts.
-            let r_dr = mode.rel_dr;
+            let r_dr = ampl_r(mode);
             let phase= mode.phase;
             let k = mode.k;
             let l = mode.l;
@@ -224,7 +224,7 @@ pub fn perturbative_d_dphi_dphi(
         let spheroidal_part = non_rotating_d_dphi_dphi(mode, sintheta, costheta, phi)?;
 
         // Computations of the toroidal parts.
-        let r_dr = mode.rel_dr;
+        let r_dr = ampl_r(mode);
         let phase= mode.phase;
         let k = mode.k;
         let l = mode.l;

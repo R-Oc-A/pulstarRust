@@ -14,11 +14,11 @@ pub struct TARCollection{
 /// the calculated eigenvalue of the Laplace Tidal Differential Operator.
     lambda:f64,
 /// An [Array1<f64>] that contains the radial  hough function 𝚯_r
-    h_r:Array1<f64>,
+    pub h_r:Array1<f64>,
 /// An [Array1<f64>] that contains the colatitudinal  hough function 𝚯_θ
-    h_t:Array1<f64>,
+    pub h_t:Array1<f64>,
 /// An [Array1<f64>] that contains the   azimuthal function 𝚯_ɸ
-    h_p:Array1<f64>,
+    pub h_p:Array1<f64>,
 /// An [Array1<f64>] that contains  the derivative with respect to μ of the radial  hough function 𝚯_r
     dh_r:Array1<f64>,
 /// An [Array1<f64>] that contains  the derivative with respect to μ of the colatitudinal hough function 𝚯_θ
@@ -101,9 +101,9 @@ pub fn tar_displacement(
                 let h_t = houghs_functions.h_t[index];
                 
                 // Im taking this expressions from Townsend 2020.
-                let delta_r = radial_amplitude * h_r * (-mode.phase + phi * mode.m as f64).cos();
-                let delta_theta = tangential_amplitude * h_t * (-mode.phase + phi * mode.m as f64).cos()/sintheta;
-                let delta_phi = tangential_amplitude * h_p * (-mode.phase + phi * mode.m as f64).sin()/sintheta;
+                let delta_r = radial_amplitude * h_r * (mode.phase + phi * mode.m as f64).cos();
+                let delta_theta = tangential_amplitude * h_t/sintheta * (mode.phase + phi * mode.m as f64).cos();
+                let delta_phi = tangential_amplitude * h_p/sintheta * (mode.phase + phi * mode.m as f64).sin();
 
                 Ok(Coordinates::Spherical( (na::Vector3::new(delta_r, delta_theta, delta_phi)) ))
             }

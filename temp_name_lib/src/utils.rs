@@ -6,7 +6,8 @@ pub enum MathErrors{
     DifferentVectorBase,
     OutOfBounds,
     NotAdequateNumberOfElements,
-    NotDefinedForRadialOrSectorialPulsations
+    NotDefinedForRadialOrSectorialPulsations,
+    FunctionNotFound,
 }
 
 pub const MACHINE_PRECISION:f64 = 1.0e-8;

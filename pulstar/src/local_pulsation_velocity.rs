@@ -1,4 +1,5 @@
 use crate::local_pulsation_velocity::non_rotating::v_non_rotating;
+use crate::local_pulsation_velocity::perturbative_coriolis::v_perturbative;
 use crate::local_pulsation_velocity::tar::v_tar;
 use super::PulstarConfig;
 use super::reference_frames::Coordinates;
@@ -57,6 +58,7 @@ pub fn v_pulse_single_mode(
     dtheta:f64,
     phi:f64,
     velocity_amplitude:f64,
+    spin_parameter:f64,
     tar_functions:&Option<TARCollection>,
 )->Result<Coordinates,MathErrors>{
     match mode.rotation_effects{
@@ -65,7 +67,7 @@ pub fn v_pulse_single_mode(
             v_non_rotating(mode, sintheta, costheta, phi, velocity_amplitude)},
         RotationRegime::PerturbativeCoriolis=>{
             let (sintheta,costheta) = (theta.sin(),theta.cos());
-            v_non_rotating(mode, sintheta, costheta, phi, velocity_amplitude)},
+            v_perturbative(mode, sintheta, costheta, phi, velocity_amplitude, spin_parameter)},
         RotationRegime::Tar =>{
             v_tar(mode, theta, dtheta, phi, velocity_amplitude, tar_functions)
         },
@@ -110,6 +112,7 @@ pub fn observed_pulsation_velocity(
             dtheta,
             phi,
             velocity_amplitudes[index],
+            mode.get_spin_parameter(parameters),
             &tar_collections[index])?);
     }
     let sum_velocities = collection_velocities.iter()

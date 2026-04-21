@@ -31,7 +31,7 @@ pub fn d_dr_rdtheta(
             rotation_treatment::
             non_rotating::non_rotating_d_dr_rdtheta(mode, sintheta, costheta, phi)}
         RotationRegime::PerturbativeCoriolis =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dr_rdtheta(mode, theta, dtheta, phi)}
+            perturbative_coriolis::perturbative_d_dr_rdtheta(mode, theta, dtheta, phi)}
         RotationRegime::Tar =>{ if let Some(houghs_functions) = tar_functions{
             rotation_treatment::
             tar::tar_d_dr_rdtheta(mode, theta, dtheta, phi,houghs_functions)}
@@ -55,6 +55,7 @@ pub fn d_dtheta_dtheta(
 	theta: f64,
 	dtheta: f64,
 	phi: f64,
+    spin_parameter:f64,
     tar_functions:&Option<TARCollection>) -> f64{
 
     match mode.rotation_effects{
@@ -63,12 +64,18 @@ pub fn d_dtheta_dtheta(
             let costheta = theta.cos(); 
             rotation_treatment::
             non_rotating::non_rotating_d_dtheta_dtheta(mode, sintheta, costheta, phi)}
-        RotationRegime::PerturbativeCoriolis =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dtheta_dtheta(mode, theta, dtheta, phi)}
+
+        RotationRegime::PerturbativeCoriolis =>{ 
+            let sintheta = theta.sin();
+            let costheta = theta.cos();
+            rotation_treatment::
+            perturbative_coriolis::perturbative_d_dtheta_dtheta(mode, sintheta, costheta, phi,spin_parameter).unwrap()}
+
         RotationRegime::Tar =>{ if let Some(houghs_functions) = tar_functions{
             rotation_treatment::
             tar::tar_d_dtheta_dtheta(mode, theta, dtheta, phi,houghs_functions).unwrap()}
             else{panic!("hough functions where not properly loaded.")}},
+
         RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
             non_rotating::non_rotating_d_dtheta_dtheta(mode, theta, dtheta, phi)}
     }
@@ -96,12 +103,18 @@ pub fn d_dr_rdphi(
             let costheta = theta.cos(); 
         rotation_treatment::
             non_rotating::non_rotating_d_dr_rdphi(mode, sintheta,costheta, phi)}
-        RotationRegime::PerturbativeCoriolis =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dr_rdphi(mode, theta, dtheta, phi)}
+
+        RotationRegime::PerturbativeCoriolis =>{ 
+            let sintheta = theta.sin();
+            let costheta = theta.cos();
+            rotation_treatment::
+            perturbative_coriolis::perturbative_d_dr_rdphi(mode, sintheta, costheta, phi)}
+
         RotationRegime::Tar =>{ if let Some(houghs_functions) = tar_functions{
             rotation_treatment::
             tar::tar_d_dr_rdphi(mode, theta, dtheta, phi,houghs_functions)}
             else{panic!("hough functions where not properly loaded.")}},
+
         RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
             non_rotating::non_rotating_d_dr_rdphi(mode, theta, dtheta, phi)}
     }
@@ -123,6 +136,7 @@ pub fn d_dphi_dphi(
 	theta: f64,
 	dtheta: f64,
 	phi: f64,
+    spin_parameter:f64,
     tar_functions:&Option<TARCollection>) -> Result<f64,MathErrors>{
 
     match mode.rotation_effects{
@@ -131,12 +145,17 @@ pub fn d_dphi_dphi(
             let costheta = theta.cos(); 
             rotation_treatment::
             non_rotating::non_rotating_d_dphi_dphi(mode,sintheta, costheta, phi)}
-        RotationRegime::PerturbativeCoriolis =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dphi_dphi(mode, theta, dtheta, phi)}
+        RotationRegime::PerturbativeCoriolis =>{
+            let sintheta =theta.sin();
+            let costheta = theta.cos();
+            rotation_treatment::
+            perturbative_coriolis::perturbative_d_dphi_dphi(mode, sintheta, costheta, phi,spin_parameter)}
+
         RotationRegime::Tar =>{ if let Some(houghs_functions) = tar_functions{
             rotation_treatment::
             tar::tar_d_dphi_dphi(mode, theta, dtheta, phi,houghs_functions)}
             else{panic!("hough functions where not properly loaded.")}},
+            
         RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
             non_rotating::non_rotating_d_dphi_dphi(mode, theta, dtheta, phi)}
     }

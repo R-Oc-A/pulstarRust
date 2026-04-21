@@ -43,6 +43,7 @@ pub fn local_surface_temperature_logg(
             radial_amplitude, 
             tangential_amplitude, 
             mode.phase_temp,
+            mode.get_spin_parameter(parameters),
             &tar_collections[index]);
             if let Some(ds_r) = ds.r_component(){
             local_temperature += mode.rel_dtemp * ds_r;
@@ -56,8 +57,9 @@ pub fn local_surface_temperature_logg(
             dtheta, 
             phi, 
             radial_amplitude, 
-            tangential_amplitude, 
+            tangential_amplitude,
             mode.phase_logg,
+            mode.get_spin_parameter(parameters),
             &tar_collections[index]);
             
             if let Some(ds_r) = ds.r_component(){
@@ -97,6 +99,7 @@ fn local_variable_pulsation_displacement(
     radial_amplitude:f64,
     tangential_amplitude:f64,
     dif_phase:f64,
+    spin_parameter:f64,
     tar_functions:&Option<TARCollection>
     )->Coordinates{
     
@@ -111,6 +114,7 @@ fn local_variable_pulsation_displacement(
         phi, 
         radial_amplitude, 
         tangential_amplitude,
+        spin_parameter,
         tar_functions).unwrap()
 
 }
