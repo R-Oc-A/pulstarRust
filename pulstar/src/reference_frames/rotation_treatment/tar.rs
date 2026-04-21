@@ -31,11 +31,6 @@ pub struct TARCollection{
 
 
 impl PulsationMode{
-    /// This method returns the spin parameter defined as 2Ω/ω where Ω is the rotation frequency and ω is the pulsation frequency. Both in cycles per day. 
-    fn get_spin_parameter(&self,pulsconfig: &PulstarConfig)->f64{
-        let rotation_frequency = pulsconfig.get_rotation_frequency();//in cycles per day
-        2.0*rotation_frequency/self.frequency
-    }
 
     /// This method returns an instance of the [TARCollection] for a given pulsation mode. 
     pub fn new_tar_collection(&self, pulsconfig: &PulstarConfig)->TARCollection{
@@ -240,7 +235,7 @@ pub fn tar_d_dphi_dphi(
 /// * `dtheta` - The difference between anytwo consecutive theta values of the theta array. It must have the same units as theta (radians, degrees)
 /// ### Returns:
 /// * `index` - a [usize] value that indicates the position of a given theta in the theta array
-fn construct_index(theta:f64,dtheta:f64)->usize{
+pub fn construct_index(theta:f64,dtheta:f64)->usize{
     let mut npts = (PI/dtheta).floor() as usize;
         if npts < 400usize{
             npts = 400usize;

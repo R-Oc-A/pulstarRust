@@ -1,8 +1,5 @@
-
-use super::PulstarConfig;
 use super::reference_frames::Coordinates;
 use super::na;
-use temp_name_lib::type_def::{CYCLI2RAD, RADIUSSUN};
 use temp_name_lib::utils::{MACHINE_PRECISION,MathErrors};
 use temp_name_lib::math_module::spherical_harmonics::plmcos::plmcos;
 use temp_name_lib::math_module::spherical_harmonics::d_plmcos_dtheta::deriv1_plmcos_dtheta;

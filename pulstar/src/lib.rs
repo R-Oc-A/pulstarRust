@@ -340,6 +340,17 @@ impl SurfaceCell{
     }
 }
 
+impl PulsationMode{
+    /// This method returns the spin parameter defined as 2Ω/ω where Ω is the rotation frequency and ω is the pulsation frequency. Both in cycles per day. 
+    /// ### Arguments:
+    /// * `pulsconfig` - A call by reference to an instance of the configuration data [PulstarConfig] that contains the rotation frequency of the star.
+    /// ### Returns:
+    /// * a [f64] value of the spin parameter.
+    pub fn get_spin_parameter(&self,pulsconfig: &PulstarConfig)->f64{
+        let rotation_frequency = pulsconfig.get_rotation_frequency();//in cycles per day
+        2.0*rotation_frequency/self.frequency
+    }
+}
 /// This module contains the functions and methods used for input/output
 pub mod utils;
 
