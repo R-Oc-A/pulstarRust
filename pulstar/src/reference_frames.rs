@@ -257,7 +257,7 @@ pub fn ampl_r(mode:&PulsationMode)->f64{
         RotationRegime::PerturbativeCoriolis => {
             mode.rel_dr * ylmnorm(mode.l, mode.m)
         },
-        RotationRegime::Tar => {mode.rel_dr}
+        RotationRegime::Tar => {mode.rel_dr*ylmnorm(mode.l, mode.m)}
     }
 }
 
@@ -271,6 +271,6 @@ pub fn ampl_t(mode:&PulsationMode)->f64{
         RotationRegime::NonRotating => {mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k}
         RotationRegime::PerturbativeCoriolis => {mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k}
         RotationRegime::CentrifugalDeformation=> {mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k}
-        RotationRegime::Tar => {mode.rel_dr*mode.k}
+        RotationRegime::Tar => {mode.rel_dr*mode.k*ylmnorm(mode.l, mode.m)}
     }
 }

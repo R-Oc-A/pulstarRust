@@ -201,15 +201,16 @@ pub fn hough(
     let mut coeffs1_ht:Array1<f64> = Array1::zeros(m_size);
     let mut coeffs0_ht:Array1<f64> = Array1::zeros(m_size);
     for (index,denom_item) in denom.slice(s![..]).into_iter().enumerate(){
-        coeffs1_ht[index] = - s[index].powi(2) / denom_item;
-        coeffs0_ht[index] = - m as f64 * q * mu[index]/ denom_item;
+        coeffs1_ht[index] = - s[index] * s[index] / denom_item;
+        coeffs0_ht[index] = - (m as f64 * q * mu[index] )/ denom_item;
     }
     let full_ht:Array2<f64> = Array2::from_diag(&coeffs1_ht).dot(&d1)+
         Array2::from_diag(&coeffs0_ht);
     
     let mut hough_t = full_ht.dot(&hough_r);
+
     for (index,ht) in hough_t.slice_mut(s![..]).into_iter().enumerate(){
-        *ht = *ht/s[index];
+        *ht = *ht / s[index];
     }
 
     // Compute azimuthal hough function
@@ -217,7 +218,7 @@ pub fn hough(
     let mut coeffs0_hp:Array1<f64> = Array1::zeros(m_size);
     for (index,denom_item) in denom.slice(s![..]).into_iter().enumerate(){
         coeffs1_hp[index] = q * mu[index] * s[index].powi(2) / denom_item;
-        coeffs0_hp[index] = m as f64 * q * mu[index]/ denom_item;
+        coeffs0_hp[index] = m as f64 / denom_item;
     }
     let full_hp:Array2<f64> = Array2::from_diag(&coeffs1_hp).dot(&d1)+
         Array2::from_diag(&coeffs0_hp);
@@ -244,10 +245,10 @@ pub fn hough(
             coeffs2_htp[index] = - s[index].powi(4)/denom_item;
             coeffs1_htp[index] = s[index].powi(2) * (-m as f64 * q * mu[index] * denom_item 
                 + mu[index] + mu[index].powi(3)*q.powi(2)
-                - 2.0 * mu[index] * q.powi(2))/denom_item.powi(2);
+                - 2.0 * mu[index] * q.powi(2)) / denom_item.powi(2);
             coeffs0_htp[index] = m as f64 * q 
                 * ( 2.0 * mu[index].powi(4) * q.powi(2)
-                - mu[index].powi(2) * q.powi(2) -1.0)/denom_item;
+                - mu[index].powi(2) * q.powi(2) -1.0)/ denom_item.powi(2);
         }
         
         let full_htp = 
@@ -257,21 +258,26 @@ pub fn hough(
         
         hough_tp = full_htp.dot(&hough_r);
 
+        for (index,htp) in hough_tp.slice_mut(s![..]).into_iter().enumerate(){
+            *htp = *htp / s[index].powi(3);
+        }
+        
+
         let mut coeffs2_hpp:Array1<f64>=Array1::zeros(m_size);
         let mut coeffs1_hpp:Array1<f64>=Array1::zeros(m_size);
         let mut coeffs0_hpp:Array1<f64>=Array1::zeros(m_size);
 
         for (index,denom_item) in denom.slice(s![..]).into_iter().enumerate(){
-            coeffs2_hpp[index] = q * mu[index] * s[index].powi(4)/denom_item;
+            coeffs2_hpp[index] = q * mu[index] * s[index].powi(4) / denom_item;
             coeffs1_hpp[index] = s[index].powi(2) * ( m as f64 * denom_item + q
                     + q.powi(3) * mu[index].powi(2)
                     - 2.0 * mu[index].powi(2) * q
-                )/ denom_item.powi(2);
+                ) / denom_item.powi(2);
             coeffs0_hpp[index] = m as f64 * mu[index] * (
                     1.0 
                     - q.powi(2) * mu[index].powi(2) 
                     + 2.0 * q.powi(2) 
-                    - 2.0 * q.powi(2) * mu[index].powi(2) )/ denom_item.powi(2);
+                    - 2.0 * q.powi(2) * mu[index].powi(2) ) / denom_item.powi(2);
         }
         
         let full_hpp = 
@@ -280,6 +286,10 @@ pub fn hough(
             Array2::from_diag(&coeffs0_hpp);
         
         hough_pp = full_hpp.dot(&hough_r);
+        for (index,hpp) in hough_pp.slice_mut(s![..]).into_iter().enumerate(){
+            *hpp = *hpp / s[index].powi(3);
+        }
+        
     }
 
     // Append the symmetric terms.
@@ -302,13 +312,13 @@ pub fn hough(
 
     if extra{
         if parity.abs() == 1 {
-            append_reflection(& mut hough_rp, true);
-            append_reflection(& mut hough_tp, false);       
-            append_reflection(& mut hough_pp, true);       
-        }else{
-            append_reflection(& mut hough_rp,false); 
+            append_reflection(& mut hough_rp, false);
             append_reflection(& mut hough_tp, true);       
-            append_reflection(& mut hough_pp,false);       
+            append_reflection(& mut hough_pp, false);       
+        }else{
+            append_reflection(& mut hough_rp,true); 
+            append_reflection(& mut hough_tp, false);       
+            append_reflection(& mut hough_pp,true);       
         }
     }
 
@@ -322,7 +332,7 @@ pub fn hough(
     // This shares the same behavior as associated legendre polinomials, in the sense that they remain independent on the mesh of the domain where they are defined. 
     // Still more numerical test should be carried, on the other hand I believe the more rigorous approach of expanding the hough functions as a sum of 
     // associated legendre polinomials, while way more difficult to implement, it has an easier to understand mathematical background. 
-    let norm_factor_hr = 1.0/ hough_r.iter().fold(hough_r[0].abs(),|acc,x| {if x.abs() > acc {x.abs()}else{acc} });
+    let norm_factor_hr = 1.0 / hough_r.iter().fold(hough_r[0].abs(),|acc,x| {if x.abs() > acc {x.abs()}else{acc} });
 
     hough_r *= norm_factor_hr;
     hough_t *= norm_factor_hr;

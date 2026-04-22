@@ -2,8 +2,10 @@ use std::f64::consts::PI;
 
 use ndarray::prelude::Array1;
 use temp_name_lib::utils::MathErrors;
-use crate::{MeshConfig, PulsationMode, PulstarConfig, reference_frames::Coordinates};
+use crate::{MeshConfig, PulsationMode, PulstarConfig, reference_frames::{Coordinates, ampl_r, ampl_t}};
 use nalgebra as na;
+
+pub const NPTS:usize = 1000usize; 
 
 
 /// Contains the quantities obtained by solving the eigenvalue problem of the Laplace Tidal Differential equation,
@@ -39,8 +41,8 @@ impl PulsationMode{
         let mut npts = (180.0/ match pulsconfig.mesh{
             MeshConfig::Sphere { theta_step, phi_step:_ }=>{theta_step}
         })as usize;
-        if npts < 400usize{
-            npts = 400usize;
+        if npts < NPTS{
+            npts = NPTS;
         }
         let (lambda,
             mu_values,
@@ -132,7 +134,7 @@ pub fn tar_d_dr_rdtheta(
 
     let dh_r = -houghs_functions.dh_r[index]*theta.sin();// dH_r is the derivative of H_r with respect to μ=cos(θ), so here I applied the chain rule.
 
-    mode.rel_dr*dh_r
+    ampl_r(mode)*dh_r
     * (mode.phase + (mode.m as f64) * phi).cos()
 }
 
@@ -163,7 +165,7 @@ pub fn tar_d_dtheta_dtheta(
             let index = construct_index(theta, dtheta);
             let dh_t= - houghs_functions.dh_t[index]*sintheta;
             let h_t = houghs_functions.h_t[index];
-            Ok(mode.rel_dr*mode.k
+            Ok(ampl_t(mode)
             * (dh_t/sintheta - h_t/sintheta.powi(2)*theta.cos())
             * (mode.phase + (mode.m as f64) * phi).cos()
         )
@@ -189,7 +191,7 @@ pub fn tar_d_dr_rdphi(
     houghs_functions:&TARCollection) -> f64{
         let index = construct_index(theta, dtheta);
         let h_r = houghs_functions.h_r[index];
-        - mode.rel_dr * h_r * mode.m as f64
+        - ampl_r(mode) * h_r * mode.m as f64
             *(mode.phase + (mode.m as f64)*phi).sin()
 
 }
@@ -218,7 +220,7 @@ pub fn tar_d_dphi_dphi(
             let index = construct_index(theta, dtheta);
             let h_p = houghs_functions.h_p[index];
         
-            Ok(mode.rel_dr * mode.k * (-(mode.m.pow(2) as f64))
+            Ok(ampl_t(mode)* (-(mode.m.pow(2) as f64))
             * h_p
             * (mode.phase + (mode.m as f64) * phi).cos()
             /(sintheta.abs().powi(2)) )
@@ -237,8 +239,8 @@ pub fn tar_d_dphi_dphi(
 /// * `index` - a [usize] value that indicates the position of a given theta in the theta array
 pub fn construct_index(theta:f64,dtheta:f64)->usize{
     let mut npts = (PI/dtheta).floor() as usize;
-        if npts < 400usize{
-            npts = 400usize;
+        if npts < NPTS{
+            npts = NPTS;
         }
     
     (theta/dtheta).floor() as usize * npts/((PI/dtheta).floor() as usize)

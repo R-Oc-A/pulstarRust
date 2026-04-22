@@ -103,6 +103,7 @@ pub fn observed_pulsation_velocity(
     let dtheta = match parameters.mesh{
         MeshConfig::Sphere { theta_step,.. } =>{theta_step.to_radians()}
     };
+    
     let velocity_amplitudes = parameters.get_velocity_amplitudes();
     
     for (index,mode) in parameters.mode_data.iter().enumerate(){
