@@ -1,7 +1,7 @@
-use std::f64::consts::PI;
+use std::{f64::consts::PI};
 
 use ndarray::prelude::Array1;
-use temp_name_lib::utils::MathErrors;
+use temp_name_lib::{math_module::spherical_harmonics::{norm_factor::ylmnorm, plmcos::plmcos}, utils::MathErrors};
 use crate::{MeshConfig, PulsationMode, PulstarConfig, reference_frames::{Coordinates, ampl_r, ampl_t}};
 use nalgebra as na;
 
@@ -56,14 +56,30 @@ impl PulsationMode{
             =temp_name_lib::math_module::hough::hough(q, self.l, self.m, npts, (self.l*(self.l+1)) as f64, true);
             //=temp_name_lib::math_module::hough::hough(q, self.l, self.m, npts, -(self.m.pow(2)) as f64, true);
         println!("lambda is {}, and l*(l+1) is {}",lambda, self.l*(self.l + 1));
+
+
+        //----------------------------------------"
+        //    Renormalizing Hough functions"
+        //----------------------------------------"
+        //Calculate the maximum of the associated Legendre polynomial evaluated in the mu=cos(θ) array;
+        let max_plm = mu_values.iter().fold(
+            plmcos(self.l, self.m.abs() as u16, (1.0-mu_values[0].powi(2)).sqrt(), mu_values[0]).abs(),
+            |acc,x|{
+                let plmcostheta = plmcos(self.l, self.m.abs() as u16, (1.0-x.powi(2)).sqrt(), *x).abs();
+                if plmcostheta > acc{plmcostheta} else{acc}
+            }
+        );
+
+
+
         TARCollection { mu_values: Array1::from_vec(mu_values),
             lambda: lambda,
-            h_r: Array1::from_vec(h_r),
-            h_t: Array1::from_vec(h_t),
-            h_p: Array1::from_vec(h_p),
-            dh_r: Array1::from_vec(dh_r),
-            dh_t: Array1::from_vec(dh_t),
-            dh_p: Array1::from_vec(dh_p),
+            h_r: Array1::from_vec(h_r)*1.0/max_plm,
+            h_t: Array1::from_vec(h_t)*1.0/max_plm,
+            h_p: Array1::from_vec(h_p)*1.0/max_plm,
+            dh_r: Array1::from_vec(dh_r)*1.0/max_plm,
+            dh_t: Array1::from_vec(dh_t)*1.0/max_plm,
+            dh_p: Array1::from_vec(dh_p)*1.0/max_plm,
             npts:npts}
     }
 

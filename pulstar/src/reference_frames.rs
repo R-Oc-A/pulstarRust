@@ -15,7 +15,7 @@ use temp_name_lib::math_module::{spherical_harmonics::norm_factor::ylmnorm};
 /// * 'Cartesian' - The component order of this variant is `(x,y,z)`
 #[derive(Debug,PartialEq,Clone,Copy)]
 pub enum Coordinates{
-    Spherical(na::Vector3<f64>),//<-[Ricardo:]  I'll be using the nalgebra crate as it's well suited for linear algebra operation on small fixed size arrays
+    Spherical(na::Vector3<f64>),
     Cartesian(na::Vector3<f64>),
 }
 
@@ -250,7 +250,8 @@ pub fn cos_chi(
 /// ### Returns:
 /// * `radial_amplitude` - A `f64` value that contains the amplitude of relative radial displacement (thus without units) caused by the pulsations of a given mode. 
 pub fn ampl_r(mode:&PulsationMode)->f64{
-    match mode.rotation_effects{
+    mode.rel_dr * ylmnorm(mode.l, mode.m)
+    /*match mode.rotation_effects{
         RotationRegime::NonRotating => {mode.rel_dr * ylmnorm(mode.l, mode.m)},
         RotationRegime::CentrifugalDeformation => {mode.rel_dr 
             * ylmnorm(mode.l,mode.m)},
@@ -258,7 +259,7 @@ pub fn ampl_r(mode:&PulsationMode)->f64{
             mode.rel_dr * ylmnorm(mode.l, mode.m)
         },
         RotationRegime::Tar => {mode.rel_dr*ylmnorm(mode.l, mode.m)}
-    }
+    }*/
 }
 
 /// This function calculates the amplitude of the relative tangential displacement multiplied by the normalization factor `Y_l^m`
@@ -267,10 +268,12 @@ pub fn ampl_r(mode:&PulsationMode)->f64{
 /// ### Returns:
 /// * `tangential_amplitude` - amplitude in the tangential direction times the normalization factor  'Y_l^m' (see [temp_name_lib::math_module::spherical_harmonics::norm_factors])
 pub fn ampl_t(mode:&PulsationMode)->f64{
+    mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k
+    /*
     match mode.rotation_effects{
         RotationRegime::NonRotating => {mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k}
         RotationRegime::PerturbativeCoriolis => {mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k}
         RotationRegime::CentrifugalDeformation=> {mode.rel_dr * ylmnorm(mode.l, mode.m)*mode.k}
         RotationRegime::Tar => {mode.rel_dr*mode.k*ylmnorm(mode.l, mode.m)}
-    }
+    }*/
 }
