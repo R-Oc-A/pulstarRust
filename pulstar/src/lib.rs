@@ -204,8 +204,19 @@ impl PulstarConfig {
         match self.mesh {
             // On the spherical case we will be using equally spaced cells on (θ,φ)
             MeshConfig::Sphere { theta_step, phi_step } =>{
-                let mut theta:f64=1.0;
                 let mut phi:f64 =1.0;
+                let npts_theta = ((180.0/theta_step).floor() as usize) / 2 * 2;
+                for index in 0..npts_theta{
+                    let theta = 180.0/(npts_theta as f64) * (index as f64 +0.5);
+                    if theta<178.5{
+                        while phi < 360.0{
+                            rasterized_star.cells.push(SurfaceCell::new(theta.to_radians(), phi.to_radians()));
+                            phi += phi_step;
+                        }                    
+                    phi =1.0
+                    }
+                }
+/*
                 while theta < 180.0{
                     while phi < 360.0{                        
                         rasterized_star.cells.push(SurfaceCell::new(theta.to_radians(), phi.to_radians()));
@@ -213,7 +224,7 @@ impl PulstarConfig {
                     }
                     phi = 1.0;
                     theta += theta_step;
-                }
+                }*/
             }   
         }
 

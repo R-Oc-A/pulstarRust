@@ -258,6 +258,6 @@ pub fn construct_index(theta:f64,dtheta:f64)->usize{
         if npts < NPTS{
             npts = NPTS;
         }
-    
-    (theta/dtheta).floor() as usize * npts/((PI/dtheta).floor() as usize)
+    let index =(theta/dtheta).floor() as usize * npts/((PI/dtheta).floor() as usize);
+    index
 }
