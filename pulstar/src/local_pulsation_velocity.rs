@@ -65,12 +65,15 @@ pub fn v_pulse_single_mode(
         RotationRegime::NonRotating => {
             let (sintheta,costheta) = (theta.sin(),theta.cos());
             v_non_rotating(mode, sintheta, costheta, phi, velocity_amplitude)},
+
         RotationRegime::PerturbativeCoriolis=>{
             let (sintheta,costheta) = (theta.sin(),theta.cos());
             v_perturbative(mode, sintheta, costheta, phi, velocity_amplitude, spin_parameter)},
+
         RotationRegime::Tar =>{
             v_tar(mode, theta, dtheta, phi, velocity_amplitude, tar_functions)
         },
+        
         RotationRegime::CentrifugalDeformation => {
             let (sintheta,costheta) = (theta.sin(),theta.cos());
             v_non_rotating(mode, sintheta, costheta, phi, velocity_amplitude)},        

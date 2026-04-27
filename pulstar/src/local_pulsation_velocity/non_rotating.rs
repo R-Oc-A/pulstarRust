@@ -1,3 +1,5 @@
+use crate::reference_frames::ampl_r;
+
 use super::reference_frames::Coordinates;
 use super::na;
 use temp_name_lib::utils::{MACHINE_PRECISION,MathErrors};
@@ -14,7 +16,7 @@ use super::*;
 /// * `mode` - This is a struct that contains the parameters of a pulsation mode in the star. See [crate::PulstarConfig]
 /// * `sintheta` - sine of the colatitude coordinate (theta in rads)
 /// * 'costheta' - cosine of the colatitude coordinate (theta in rads)
-/// * `phi_rad`   - azimuthal coordinate  in rads
+/// * `phi`   - azimuthal coordinate  in rads
 /// * `velocity_amplitude`     - Amplitude in the radial direction times the normalization factor `Y_l^m`(see [temp_name_lib::math_module::spherical_harmonics::norm_factors]) in km/s
 /// 
 /// ### Returns:
@@ -25,7 +27,7 @@ pub fn v_non_rotating(
     mode: &PulsationMode,
     sintheta:f64,
     costheta:f64,
-    phi_rad:f64,
+    phi:f64,
     velocity_amplitude:f64,
 )->Result<Coordinates,MathErrors>{
     match sintheta.abs() <= MACHINE_PRECISION{
@@ -33,21 +35,23 @@ pub fn v_non_rotating(
         false => {
             let l=mode.l;
             let m = mode.m;
-            let phase = mode.phase_offset;
+            let phase = mode.phase;
             let k = mode.k;
-            let v_r = velocity_amplitude * ylmnorm(l, m)
+            let radial_velocity = velocity_amplitude * ylmnorm(l, m);
+            let tangential_velocity = radial_velocity * k;
+            let sin_phase = (phase + (m as f64) * phi).sin();
+            let cos_phase = (phase + (m as f64) * phi).cos();
+
+            let v_r = -radial_velocity
                 * plmcos(l, m.abs() as u16, sintheta, costheta)
-                * (phase + (m as f64) * phi_rad).sin();
-            let v_theta = velocity_amplitude * k
-                   * ylmnorm(l, m)
+                *sin_phase; 
+            let v_theta = - tangential_velocity
                    * deriv1_plmcos_dtheta(l, m.abs() as u16, sintheta, costheta)
-                   * (phase + (m as f64) * phi_rad).sin();
-            let v_phi = velocity_amplitude * k
-                   * ylmnorm(l, m)
-                   * (-(m as f64))
+                   * sin_phase;
+            let v_phi = - tangential_velocity/sintheta
+                   * (m as f64)
                    * plmcos(l, m.abs() as u16, sintheta, costheta)
-                   * (phase * (m as f64) * phi_rad).cos()
-                   / sintheta;
+                   * cos_phase;
         Ok(Coordinates::Spherical(na::Vector3::new(v_r,v_theta,v_phi)))
         }
     }

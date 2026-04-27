@@ -105,7 +105,7 @@ fn local_variable_pulsation_displacement(
     
     //[Ricardo:] There's a shorter version of this, namely 
     let mut mode_with_dif_phase = mode.clone();
-     mode_with_dif_phase.phase_offset += dif_phase;//<-- Here is where we ad the phase difference
+     mode_with_dif_phase.phase += dif_phase;//<-- Here is where we ad the phase difference
 
     displacement(
         &mode_with_dif_phase,

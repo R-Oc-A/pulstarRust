@@ -124,8 +124,7 @@ pub fn perturbative_d_dr_rdtheta(
 	sintheta: f64,
 	costheta: f64,
 	phi: f64) -> f64{
-    
-    rotation_treatment::non_rotating::non_rotating_d_dr_rdphi(mode, sintheta, costheta, phi)
+    rotation_treatment::non_rotating::non_rotating_d_dr_rdtheta(mode, sintheta, costheta, phi)
 }
 
 ///Computes the derivatives of Δθ with respect to θ in the point with spherical

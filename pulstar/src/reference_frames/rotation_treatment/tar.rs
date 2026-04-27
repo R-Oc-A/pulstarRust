@@ -121,7 +121,7 @@ pub fn tar_displacement(
                 // Im taking this expressions from Townsend 2020.
                 let delta_r = radial_amplitude * h_r * (mode.phase + phi * mode.m as f64).cos();
                 let delta_theta = tangential_amplitude * h_t/sintheta * (mode.phase + phi * mode.m as f64).cos();
-                let delta_phi = tangential_amplitude * h_p/sintheta * (mode.phase + phi * mode.m as f64).sin();
+                let delta_phi = -(mode.m as f64) * tangential_amplitude * h_p / sintheta.powi(2) * (mode.phase + phi * mode.m as f64).sin();
 
                 Ok(Coordinates::Spherical( (na::Vector3::new(delta_r, delta_theta, delta_phi)) ))
             }
