@@ -77,7 +77,6 @@ pub fn v_perturbative(
     let second_toroidal_part = Coordinates::Spherical(
         na::Vector3::new(v_r,v_theta,v_phi));
 
-    
     Ok( ((spheroidal_part + first_toroidal_part)?
         + second_toroidal_part)? )
 

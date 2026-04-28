@@ -1,5 +1,3 @@
-use crate::reference_frames::ampl_r;
-
 use super::reference_frames::Coordinates;
 use super::na;
 use temp_name_lib::utils::{MACHINE_PRECISION,MathErrors};

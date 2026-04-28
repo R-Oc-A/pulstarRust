@@ -15,7 +15,7 @@ pub fn amplitude_lp1(radial_amplitude:f64,
     k:f64,)->f64{    
     let lp1 = l+1.0;
 
-    radial_amplitude * 2.0 * spin_parameter
+    radial_amplitude * ylmnorm(lp1 as u16, m as i16) * 2.0 * spin_parameter
     * (lp1 - m)/lp1 * 2.0/(2.0 * l + 1.0)
     * (1.0 - l as f64 * k)
 }
@@ -26,7 +26,7 @@ pub fn amplitude_lm1(radial_amplitude:f64,
     m:f64,
     k:f64,)->f64{    
 
-    radial_amplitude * 2.0 * spin_parameter
+    radial_amplitude * ylmnorm(l as u16 -1, m as i16) *2.0 * spin_parameter
     * (l + m)/l * 2.0/(2.0*l + 1.0)
     * (1.0 + (l + 1.0)* k)
 }
@@ -74,7 +74,7 @@ pub fn perturbative_displacement(
                 let dplm1m = d_plmcos_dtheta(lm1, m, sintheta, costheta);
                 
                 //First toroidal term. Taken from Zima 2008 and FAMIAS user manual. 
-                let amplitude = amplitude_lp1(radial_amplitude,
+                let amplitude = amplitude_lp1(mode.rel_dr,
                     spin_parameter, l as f64, m as f64, k as f64);
 
                 let delta_r     = 0.0;
@@ -87,7 +87,7 @@ pub fn perturbative_displacement(
                     na::Vector3::new(delta_r,delta_theta,delta_phi));
                 
                 //Second toroidal term. Taken from Zima 2008 and FAMIAS user manual. 
-                let amplitude = amplitude_lm1(radial_amplitude,
+                let amplitude = amplitude_lm1(mode.rel_dr,
                     spin_parameter, l as f64, m as f64, k as f64);
 
                 let delta_r     = 0.0;
@@ -147,7 +147,7 @@ pub fn perturbative_d_dtheta_dtheta(
             let spheroidal_part = non_rotating_d_dtheta_dtheta(mode, sintheta, costheta, phi);
         
             // Computations of the toroidal parts.
-            let r_dr = ampl_r(mode);
+            let r_dr = mode.rel_dr;
             let phase= mode.phase;
             let k = mode.k;
             let l = mode.l;
@@ -160,21 +160,27 @@ pub fn perturbative_d_dtheta_dtheta(
             let dplp1m = d_plmcos_dtheta(lp1, m.abs() as u16, sintheta, costheta);
             let plm1m = plmcos(lm1, m.abs() as u16, sintheta, costheta); 
             let dplm1m = d_plmcos_dtheta(lm1, m.abs() as u16, sintheta, costheta);
-            
-            // derivative of the first toroidal part
+            let sin_overall_phase = (phase + 0.5*PI + (mode.m as f64)*phi).sin();
+            let cos_overall_phase = (phase + 0.5*PI + (mode.m as f64)*phi).cos();
+
+            // derivative of the first toroidal part which is the unwrapped expression of 4.10 from FAMIAS user manual.     
             let amplitude = amplitude_lp1(r_dr,
                  spin_parameter, l as f64, m as f64, k);
         
-            let first_toroidal_part = -amplitude * (mode.m as f64) * (phase + 0.5*PI + (mode.m as f64)*phi).sin()*
-                (-costheta/(sintheta.powi(2)) * plp1m + 1.0/sintheta * dplp1m);
+            let first_toroidal_part = -amplitude * (
+                1.0/sintheta * dplp1m * cos_overall_phase
+                - costheta/sintheta.powi(2) * plp1m * sin_overall_phase
+            );
         
             // derivative of the second toroidal part
             let amplitude = amplitude_lm1(r_dr, 
                 spin_parameter, 
                 l as f64, m as f64, k);
             
-            let second_toroidal_part = amplitude * (mode.m as f64) * (phase + 0.5*PI + (mode.m as f64)*phi).sin()*
-                (-costheta/sintheta.powi(2) * plm1m + 1.0/sintheta * dplm1m);
+            let second_toroidal_part = -amplitude * (
+                1.0/sintheta * dplm1m * cos_overall_phase
+                - costheta/sintheta.powi(2) * plm1m * sin_overall_phase
+            );
         
             Ok(spheroidal_part + first_toroidal_part + second_toroidal_part)
         }
@@ -223,7 +229,7 @@ pub fn perturbative_d_dphi_dphi(
         let spheroidal_part = non_rotating_d_dphi_dphi(mode, sintheta, costheta, phi)?;
 
         // Computations of the toroidal parts.
-        let r_dr = ampl_r(mode);
+        let r_dr = mode.rel_dr;
         let phase= mode.phase;
         let k = mode.k;
         let l = mode.l;
@@ -231,24 +237,24 @@ pub fn perturbative_d_dphi_dphi(
         
         let lp1 = l+1;
         let lm1 = l-1;
-    
         let dplp1m = d_plmcos_dtheta(lp1, m.abs() as u16, sintheta, costheta);
         let dplm1m = d_plmcos_dtheta(lm1, m.abs() as u16, sintheta, costheta);
-        
-        
+        let sin_overall_phase = phase + 0.5*PI + (mode.m as f64)*phi;
+
+
         // derivative of the first toroidal part
         let amplitude = amplitude_lp1(r_dr,
              spin_parameter, l as f64, m as f64, k);
     
-        let first_toroidal_part = amplitude *dplp1m 
-        * (mode.m as f64) * (phase + 0.5*PI + (mode.m as f64)*phi).sin();
+        let first_toroidal_part = amplitude *dplp1m / sintheta 
+            * sin_overall_phase;
         
         // derivative of the second toroidal part
         let amplitude = amplitude_lm1(r_dr,
              spin_parameter, l as f64, m as f64, k);
     
-        let second_toroidal_part = amplitude *dplm1m 
-        * (mode.m as f64) * (phase + 0.5*PI + (mode.m as f64)*phi).sin();
+        let second_toroidal_part = amplitude * dplm1m / sintheta
+            * sin_overall_phase;
         
         Ok(spheroidal_part + first_toroidal_part + second_toroidal_part)
 
