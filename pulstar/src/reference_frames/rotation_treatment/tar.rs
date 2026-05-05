@@ -117,11 +117,13 @@ pub fn tar_displacement(
                 let h_r = houghs_functions.h_r[index];
                 let h_p= houghs_functions.h_p[index];
                 let h_t = houghs_functions.h_t[index];
+                let cos_overall_phase =  (mode.phase + phi * mode.m as f64).cos();
+                let sin_overall_phase =  (mode.phase + phi * mode.m as f64).sin();
                 
                 // Im taking this expressions from Townsend 2020.
-                let delta_r = radial_amplitude * h_r * (mode.phase + phi * mode.m as f64).cos();
-                let delta_theta = tangential_amplitude * h_t/sintheta * (mode.phase + phi * mode.m as f64).cos();
-                let delta_phi = -(mode.m as f64) * tangential_amplitude * h_p / sintheta.powi(2) * (mode.phase + phi * mode.m as f64).sin();
+                let delta_r = radial_amplitude * h_r * cos_overall_phase; 
+                let delta_theta = tangential_amplitude * h_t/sintheta * cos_overall_phase; 
+                let delta_phi = -(mode.m as f64) * tangential_amplitude * h_p / sintheta.powi(2) * sin_overall_phase; 
 
                 Ok(Coordinates::Spherical( (na::Vector3::new(delta_r, delta_theta, delta_phi)) ))
             }
@@ -182,7 +184,7 @@ pub fn tar_d_dtheta_dtheta(
             let dh_t= - houghs_functions.dh_t[index]*sintheta;
             let h_t = houghs_functions.h_t[index];
             Ok(ampl_t(mode)
-            * (dh_t/sintheta - h_t/sintheta.powi(2)*theta.cos())
+            * (dh_t/sintheta - h_t/ sintheta.powi(2) * theta.cos())
             * (mode.phase + (mode.m as f64) * phi).cos()
         )
         }
