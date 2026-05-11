@@ -13,7 +13,7 @@ impl IntensityFlux{
     pub fn new()->Self{
         Self{data_frame: df!(
             "time"=>Vec::<f64>::new(),
-            "wave length" => Vec::<f64>::new(),
+            "wavelength" => Vec::<f64>::new(),
             "flux" => Vec::<f64>::new(),
             "continuum" => Vec::<f64>::new(),
             "normalized flux" => Vec::<f64>::new()
@@ -23,7 +23,7 @@ impl IntensityFlux{
     pub fn append_fluxes(self,fluxes:FluxOfSpectra)->Self{
         let flux_df=df!(
             "time" => fluxes.time,
-            "wave length" => fluxes.wavelengths,
+            "wavelength" => fluxes.wavelengths,
             "flux" => fluxes.flux,
             "continuum" => fluxes.continuum
         ).unwrap();
@@ -125,7 +125,7 @@ fn create_spectra_dataframe(fluxes: FluxOfSpectra)->PolarsResult<DataFrame>{
     // The df! macro creates a new dataframe with the columns ("column header"=>values) ordered from left to right
     df!(
         "time" => fluxes.time,
-        "wave length" => fluxes.wavelengths,
+        "wavelength" => fluxes.wavelengths,
         "flux" => fluxes.flux,
         "continuum" => fluxes.continuum
     )
@@ -161,7 +161,7 @@ fn lazyframe_to_be_written (time_points:u16,flux_lf:LazyFrame)->PolarsResult<Laz
 /// * `all_time` - a borrowed vector that contains the time points repeated on a redundant way. This redundancy is handle by the parquet file.
 /// ### Returns: 
 /// This function doesn't return a value however, it creates an output_file.parquet that has the information stored as columns with the headers 
-/// * `|time|wave length|flux|continuum|mean flux|`
+/// * `|time|wavelength|flux|continuum|normalized flux|`
 /// where `mean flux` is `flux / continuum`.
 pub fn write_into_parquet(
     time_points:u16,
@@ -172,9 +172,9 @@ pub fn write_into_parquet(
     let output_df = create_spectra_dataframe(fluxes).expect("something went very wrong while creating output");
     let lf = output_df.lazy();
     
-    // construct the mean flux expresion for the lazy data frame flux/cont
+    // construct the normalized flux expresion for the lazy data frame flux/cont
     let expr = (col("flux") / col("continuum")).alias("normalized flux");
-    let flux_lf = lf.with_column(expr);//<--Here's an error, it should be something like select... let's see How I fix it. However it's weird That it functions when I just present the fluxes...
+    let flux_lf = lf.with_column(expr);
 
     // write lazy frame into parquet
     let new_path = PathBuf::from(
