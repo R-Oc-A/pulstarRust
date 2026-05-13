@@ -3288,6 +3288,7 @@ dependencies = [
  "nalgebra",
  "ndarray 0.17.2",
  "ndarray-linalg",
+ "polars",
 ]
 
 [[package]]

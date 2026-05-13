@@ -10,3 +10,4 @@ nalgebra = "0.33.2"
 ndarray = "0.17.2"
 ndarray-linalg = {version = "*" , features = ["openblas-static"]}
 itertools = "*"
+polars = {version = "*", features = ["lazy"]}
