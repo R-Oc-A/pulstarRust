@@ -1,31 +1,35 @@
 use super::*;
+use temp_name_lib::interpolation::polars_lazyframe;
 use temp_name_lib::interpolation::ParameterSpaceHypercube;
+
 impl SpectralGrid{
-    pub fn new_hypercube(& self,dimension:usize)->ParameterSpaceHypercube{
-        //let dimension = 4usize;//T_eff,Log_g,mu,lambda
-        let mut cube = ParameterSpaceHypercube::new(dimension);
+    pub fn new_hypercube(& self,dimension:usize)->ParameterSpaceHypercube<LazyFrame>{
+        //let dimension = 2usize;//T_eff,Log_g
+        let mut cube = ParameterSpaceHypercube::<LazyFrame>::new(dimension);
         let (temps,log_g) = (self.t_eff.clone(),self.log_g.clone());
-        let wavelength:[f64;2]=[0.0,0.0];
-        let mu_vals:[f64;2]=[0.0,0.0];
         match dimension{
-            4usize => {cube.fill_coordinates(& vec![temps,log_g,wavelength,mu_vals]).unwrap();}
-            3usize => {cube.fill_coordinates(& vec![temps,log_g,mu_vals]).unwrap();}//This is for when mu>=0.9636
-            _ => {panic!("never thought of this case")}
+            2usize => {cube.fill_coordinates(&vec![temps,log_g]);}
+            _ => {panic!("there's no intensity grids for variable metalicity and chemical abundances.")}
         }
         cube
     }
 
-
-    fn return_mu_index(&self, mu:f64)->usize{
+    fn find_mu_index(&self, mu:f64)->(usize,f64){
         let mut index:usize =0;
         
         for (n,mu_val) in self.mu_values.iter().enumerate(){
             if mu<=*mu_val { index = n;
             break;}
         }
+        let fractional_distance_mu = if index == 7usize {//because there's only 8 mu values
+            0.0
+        }else{
+            (mu - self.mu_values[index-1])/(mu_values[index]-mu_values[index-1])
+        };
         //println!("mu = {}; between {} and {}",mu,index,index+1);
-        index-1
+        (index-1,fractional_distance_mu)
     }
+
     
     /// This function is used to store for the observed wavelength the indices of the wavelengths in [GridsData] that will be used for interpolation. 
     /// This function relies on the bisection algorithm to perform the query.
@@ -42,6 +46,18 @@ impl SpectralGrid{
 
 }
 impl FluxOfSpectra{
+
+
+pub fn collect_flux_from_cell_version2(& mut self,
+    cell: & SurfaceCell,
+    spectral_grid: &mut SpectralGrid,
+    hypercube: &mut ParameterSpaceHypercube<LazyFrame>){
+
+        spectral_grid.fill_corner_values_2d(wavelenght_index, mu_val, hypercube);
+
+    }
+
+
 
 /// This function that returns the intensity flux and the continuum flux interpolated from the intensity grids
 /// for each surface cell of the rasterized sphere.
@@ -98,32 +114,53 @@ impl FluxOfSpectra{
 }
 
 impl SpectralGrid{
-    
-    fn fill_corner_values_4d(&mut self,wavelength_index:usize,mu_index:usize,hypercube:&mut ParameterSpaceHypercube){
-        // Fill vertices values specific intensities
-        for i in 0..2usize{// effective temperature
+    /// This function fills in the corner values of the [ParameterSpaceHypercube] with [LazyFrame]s of the [SpectralGrid]s 
+    ///     
+    /// ### Arguments:
+    /// * `mu_val` - A [f64] variable that contains the Cos(θ) related to the point of view towards the observer
+    /// * `hypercube` - An instance of a parameter space hypercube.
+    fn fill_corner_values_2d(&mut self, mu_val:f64,hypercube:&mut ParameterSpaceHypercube<LazyFrame>){
+        let (mu_index,fractional_distance_mu) = self.find_mu_index(mu_val);
+        for i in 0..2usize{// Effective temperature
             for j in 0..2usize{// log gravity
-                let grid_number = 2*i+j;
-                for k in 0..2usize{//wavelength
-                    for l in 0..2usize{//mu value
-                        let corner_value_index = l+2*k+4*j+8*i;
-                        hypercube.corner_values[corner_value_index]=self.grid_values[[grid_number,wavelength_index+k,mu_index+l]].clone();
-                    }
+                let corner_value_index = 2*i + j;
+                hypercube.corner_values[corner_values_index] = 
+                    avg_mu_lazyframe(self.grid_values[corner_value_index].lazy().clone(),mu_index,fractional_distance_mu);
                 }
             }
-        }
+        } 
     }
 
-    fn fill_corner_values_3d(&mut self,wavelength_index:usize,hypercube:&mut ParameterSpaceHypercube){
-        // Fill vertices values specific intensities
-        for i in 0..2usize{// effective temperature
-            for j in 0..2usize{// log gravity
-                let grid_number = 2*i+j;
-                for k in 0..2usize{//wavelength
-                    let corner_value_index = k+2*j+4*i;
-                    hypercube.corner_values[corner_value_index]=self.grid_values[[grid_number,wavelength_index+k,6]].clone();
-                }
-            }
+
+    /// This function takes a [LazyFrame] of the wavelength spectrum intensities for a given temperature, log_g, and in the future another coordinates (such as metalicity and chemical abundances) and returns an
+    /// another [LazyFrame] with just 3 columns:
+    /// 
+    /// `|wavelength|mu_avg_s|mu_avg_c|`
+    /// 
+    /// With the purpose of interpolating only in wavelength at the very end. 
+    fn avg_mu_lazyframe(lf:LazyFrame,mu_index:usize,fractional_distance:f64)->LazyFrame{
+        if mu_index == 7usize {
+            let names = vec![
+                format!("wavelength"),
+                format!("mu{}_s",mu_index),
+                format!("mu{}_s",mu_index+1),
+                format!("mu{}_c",mu_index),
+                format!("mu{}_c",mu_index+1),
+            ];
+            
+            let cols:Vec<Expr> = names.iter().map(|x| col(x)).collect();
+
+            let expr_final:Vec<Expr> = vec![cols[0].clone(),//wavelength
+                (cols[1].clone() * lit(fractional_distance) + cols[2].clone() * lit(1.0 - fractional_distance)).alias("mu_avg_s"),//mu_average_s
+                (cols[3].clone() * lit(fractional_distance) + cols[4].clone() * lit(1.0 - fractional_distance)).alias("mu_avg_c")].clone();//mu_average_s
+            lf.clone().select(expr_final)
+        }else{
+            let expr_final = vec![
+                col("wavelength"),
+                col(format!("mu{}_s",mu_index)).alias("mu_avg_s"),
+                col(format!("mu{}_c",mu_index)).alias("mu_avg_c"),
+            ];
+            lf.clone().select(expr_final)
         }
     }
 
@@ -131,8 +168,8 @@ impl SpectralGrid{
         match hypercube.fractional_coordinates.len(){
             4usize=>{self.fill_corner_values_4d(wavelength_index, mu_index, hypercube);}
             3usize=>{self.fill_corner_values_3d(wavelength_index, hypercube);}
-            _=>{panic!("never thought of this case; in extract intensity fluxes\n 
-the dimension of the hypercube in the parameter space is {}",{hypercube.fractional_coordinates.len()})}
+            2usize=>{self.fill_corner_values_2d(wavelength_index, mu_val,hypercube)}
+            _=>{panic!("never thought of this case; in extract intensity fluxes the dimension of the hypercube in the parameter space is {}",{hypercube.fractional_coordinates.len()})}
         }
     }
 }

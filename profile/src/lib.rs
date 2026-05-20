@@ -57,7 +57,7 @@ pub struct SpectralGrid {
         /// Logarithm of the surface gravity of a plane parallel atmosphere. 
         log_g:[f64;2],
         /// Specific intensity and continuum intensity values dependant of the wavelength and χ.
-        grid_values:ndarray::Array3<f64>,
+        grid_values:Vec<DataFrame>,//ndarray::Array3<f64>,
         /// Array containing the wavelengths. 
         wavelengths: Vec<f64>,
         /// µ=sqrt(cos(χ)),
