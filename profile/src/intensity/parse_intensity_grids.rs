@@ -1,32 +1,30 @@
-use ndarray::Data;
-
 use super::*;
 
 pub mod joris_grids;
 
-
 fn add_padding_for_wavelength(wavelength:&[f64],
-    maxval_rel_dopplershift:f64
+    maxval_rel_dopplershift:f64,
+    minval_rel_dopplershift:f64,
 )->Vec<f64>{
 
     let mut padded_wavelength_vec:Vec<f64> = Vec::new();
     let min_wavelength = if let Some( start) = wavelength.get(0){
-        start * (1.0-maxval_rel_dopplershift)
+        start * (minval_rel_dopplershift)
     }else{
         panic!("What are you trying to do? Your wavelength array has length 0")
     };
     let max_wavelength = if let Some( end) = wavelength.last(){
-        end * (1.0+maxval_rel_dopplershift)
+        end * (maxval_rel_dopplershift)
     }else{
         panic!("What are you trying to do? Your wavelength array has length 0")
     };
     let last_wavelength = if let Some(value) = wavelength.last(){value}else{panic!()};
     
-    let d_lambda = (wavelength[1]-wavelength[0]);
+    let d_lambda = wavelength[1]-wavelength[0];
     
     let left_padding = {
         let mut index = 0usize;
-        while (min_wavelength < wavelength[0]-f64::from(index)*d_lambda ){
+        while min_wavelength < (wavelength[0]-(index as f64)*d_lambda){
             index += 1;
         }
         index
@@ -34,22 +32,22 @@ fn add_padding_for_wavelength(wavelength:&[f64],
     
     let right_padding = {
         let mut index = 0usize;
-        while (max_wavelength > last_wavelength + f64::from(index)*d_lambda ){
+        while max_wavelength > (last_wavelength + (index as f64)*d_lambda){
         index += 1;
         }
         index
     };
 
     for index in (1..=left_padding).rev(){
-        padded_wavelength_vec.push(wavelength[0] - f64::from(index)*d_lambda);
+        padded_wavelength_vec.push(wavelength[0] - (index as f64)*d_lambda);
     }
 
-    for lambda in wavelength.inter(){
-        padded_wavelength_vec.push(lambda);
+    for lambda in wavelength.iter(){
+        padded_wavelength_vec.push(*lambda);
     }
     
     for index in 1..=right_padding{
-        padded_wavelength_vec.push(last_wavelength + f64::from(index)*d_lambda);
+        padded_wavelength_vec.push(last_wavelength + (index as f64)*d_lambda);
     }
 
     padded_wavelength_vec
@@ -63,7 +61,10 @@ fn make_df_w0(wavelength:&[f64])->DataFrame{
     ).unwrap()
 }
 
-fn join_into_forward_backward(left:LazyFrame, right:LazyFrame, is_forward:bool)->LazyFrame{
+fn join_into_forward_backward(left:LazyFrame,
+    right:LazyFrame,
+    is_forward:bool,
+    is_global:bool)->LazyFrame{
     let (suffix,fillstrategy) = if is_forward{
         (format!("_forward"),FillNullStrategy::Forward(None))
     }else{
@@ -71,14 +72,20 @@ fn join_into_forward_backward(left:LazyFrame, right:LazyFrame, is_forward:bool)-
     };
 
     let mut names:Vec<String> = Vec::new();
-    for i in 1..=7 {names.push(format!("mu{}_s",i))}
-    for i in 1..=7 {names.push(format!("mu{}_c",i))}
-    let new_names:Vec<String> = names.iter().map(|x| format!("{}{}",*x.clone(),suffix)).collect();
+    if is_global{
+        for i in 1..=7 {names.push(format!("mu{}_s",i))}
+        for i in 1..=7 {names.push(format!("mu{}_c",i))}
+    }else{
+        names.push(format!("mu_avg_s"));
+        names.push(format!("mu_avg_c"));
+    }
+
+    let new_names:Vec<String> = names.iter().map(|x| format!("{}{}",x.clone(),suffix)).collect();
 
     let mut renamed:Vec<Expr> = vec![col("wavelength")];    
     renamed.push(col("wavelength"));
     for i in 1..names.len(){
-        renamed.push(col(names[i].clone()).alias(new_names[i]))
+        renamed.push(col(names[i].clone()).alias(new_names[i].clone()))
     }
     renamed.push(col("wavelength").alias(format!("original_wavelength{}",suffix)));
     let extra_lf = left.clone().select(renamed);
@@ -96,9 +103,9 @@ fn join_into_forward_backward(left:LazyFrame, right:LazyFrame, is_forward:bool)-
     last_exprs.push(col("wavelength"));
     
     for name in new_names.into_iter(){
-        last_expr.push(col(name).fill_null_with_strategy(strategy))
+        last_exprs.push(col(name).fill_null_with_strategy(fillstrategy))
     }
-    last_expr.push(col(format!("original_wavelength{}",suffix)));
+    last_exprs.push(col(format!("original_wavelength{}",suffix)));
     let filled_null_lf = include_lf.clone().select(last_exprs);
 
     filled_null_lf
@@ -114,7 +121,6 @@ fn select_only_df_w0(left:LazyFrame,right:LazyFrame)->LazyFrame{
 }
 
 fn append_fractional_distance(left:LazyFrame,right:LazyFrame)->LazyFrame{
-
     left.join(
         right.clone(),
         [col("wavelength")],
@@ -127,28 +133,114 @@ fn append_fractional_distance(left:LazyFrame,right:LazyFrame)->LazyFrame{
     ])
 }
 
-fn linear_interpolation_full(lf:LazyFrame)->LazyFrame{
-    let mut names:Vec<String> = Vec::new();
-    for i in 1..=7 {names.push(format!("mu{}_s",i))}
-    for i in 1..=7 {names.push(format!("mu{}_c",i))}
-    let mut exprs:Vec<Expr> = vec![col("wavelength")];
-    for index in 1..=7{
-        let expression:Expr = 
-        (col(format!("mu{}_s_forward"))*col("fractional_distance")
-        + col(format!("mu{}_s_backward")) * ( lit(1.0) - col("fractional_distance")))
-        .alias(format!("mu{}_s",index));
-        exprs.push(expression);
+fn linear_interpolation_full(lf:LazyFrame,is_global:bool)->LazyFrame{
+    let mut exprs:Vec<Expr> = Vec::new();
+    let expr = |forward:&str,backward:&str,name:&str|->Expr {
+        (col(forward) * col("fractional_distance")
+        + col(backward) * (lit(1.0) - col("fractional_distance") ) )
+        .alias(name)
+    };
+    
+    exprs.push(col("wavelength"));
+    if is_global{
+        for char in ["s","c"]{
+            for index in 1..=7{
+                let name = format!("mu{}_{}",index,char);
+                let forward = format!("mu{}_{}_forward",index,char);
+                let backward = format!("mu{}_{}_backward",index,char);
+                exprs.push(
+                    expr(&forward,&backward,&name)
+                )
+            }
+        }
+    }else{
+        for char in ["s","c"]{
+            let name  = format!("mu_avg_{}",char);
+            let forward = format!("mu_avg_{}_forward",char);
+            let backward = format!("mu_avg_{}_backward",char);
+            exprs.push(
+                expr(&forward,&backward,&name)
+            )
+        }
     }
-    for index in 1..=7{
-        let expression:Expr = 
-        (col(format!("mu{}_c_forward"))*col("fractional_distance")
-        + col(format!("mu{}_c_backward")) * ( lit(1.0) - col("fractional_distance")))
-        .alias(format!("mu{}_c",index));
-        exprs.push(expression);
-    }
+    lf.select( exprs)
 
-    lf.select(exprs)
 }
+
+
+/// This is the second filter, it's used so that the loaded grids can be linearly interpolated by bulk, 
+/// in the sense that no extra queries should be implemented to look for the appropriate grid values that encompas an observed wavelength.
+/// 
+/// ### Arguments: 
+/// * `wavelengths` - a [&[f64]] collection that holds the observed wavelengths.
+/// * `maxval_rel_dopplershift` - a [f64] value that stores the maximum value of the Doppler shift.
+/// * `minval_rel_dopplershift` - a [f64] value that stores the minimum value of the Doppler shift.
+/// ### Returns:
+/// * A [DataFrame] that has the structure
+/// 
+/// `|wavelength|mu1_s|..|mu7_s|mu1_c|..|mu7_c|`
+/// and that has the same resolving power of the observable wavelength. 
+pub fn sift_dataframe(
+    wavelengths:&[f64],
+    maxval_rel_dopplershift:f64,
+    minval_rel_dopplershift:f64,
+    grids_lf:LazyFrame,
+)->DataFrame{
+
+    let padded_wavelength = add_padding_for_wavelength(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift);
+
+    let df_w0 = make_df_w0(&padded_wavelength);
+    let lf_w0 = df_w0.lazy();
+    
+    let forward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), true,true);
+    let backward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), false,true);
+
+    let forward = select_only_df_w0(forward.clone(), lf_w0.clone());
+    let backward = select_only_df_w0(backward.clone(), lf_w0.clone());
+
+    let lf_fractional_distance = append_fractional_distance(forward.clone(), backward.clone());
+
+    let linear_lf = linear_interpolation_full(lf_fractional_distance.clone(),true);
+    
+    linear_lf.collect().unwrap()
+}
+
+
+
+pub fn wavelength_interpolation(
+    shifted_wavelengths:&[f64],
+    grids_lf: LazyFrame)->LazyFrame{
+
+    let df_w0 = make_df_w0(shifted_wavelengths);
+    let lf_w0 = df_w0.lazy();
+    let forward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), true,false);
+    let backward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), false,false);
+
+    let forward = select_only_df_w0(forward.clone(), lf_w0.clone());
+    let backward = select_only_df_w0(backward.clone(), lf_w0.clone());
+
+    let lf_fractional_distance = append_fractional_distance(forward.clone(), backward.clone());
+
+    let linear_lf = linear_interpolation_full(lf_fractional_distance.clone(),false);
+        
+    linear_lf
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /// This function constructs a polars expression [Expr] that filters out wavelengths that are greater than or less than
@@ -160,7 +252,7 @@ fn linear_interpolation_full(lf:LazyFrame)->LazyFrame{
 /// ### Returns:
 /// *`Option<Expr>` -  where `Expr` is polars expression  that filters out unrelevant wavelengths from the lazyframe of an intensity grid file.
 /// 
-pub fn filter1_if_contains_wavelenghts(
+fn filter1_if_contains_wavelenghts(
     wavelengths:&[f64],
     maxval_rel_dopplershift:f64,
     minval_rel_dopplershift:f64)->Option<Expr>{
@@ -188,31 +280,6 @@ pub fn filter1_if_contains_wavelenghts(
     Some(combined_filter_exp)
 }
 
-// There might be necessary to apply another filter of the kind 
-// Include wavelength only if observed_wavelength*min_rel_dopplershift - epsilon < wavelength <observed_wavelength * max_rel_dopplershift + epsilon
-pub fn filter2_sift_wavelengths(
-    wavelengths:&[f64],
-    maxval_rel_dopplershift:f64,
-    minval_rel_dopplershift:f64)->Option<Expr> {
-
-    let epsilon = 1.0e-3;    
-    let mut combined_expresion: Option<Expr> = None;
-    
-    for wavelength in wavelengths.iter(){
-        let lb_wavelength = col("wavelengths").gt(lit(wavelength*minval_rel_dopplershift - epsilon));
-        let ub_wavelength = col("wavelengths").lt(lit(wavelength*maxval_rel_dopplershift + epsilon));
-        
-        let current_mask = lb_wavelength.and(ub_wavelength);
-        combined_expresion = match combined_expresion{
-            Some(expression) => {Some(expression.or(current_mask))}
-            None => {Some(current_mask)}
-        }
-    }    
-    combined_expresion
-}
-
-
-
 ///  This function materializes all of the filtered intensity data frames that will be used throughout the full program. It 
 ///  also fills an instance of the [IntensityDataFrames] 
 /// 
@@ -232,61 +299,12 @@ pub fn filter_wavelength_range(
     minval_rel_dopplershift:f64,
 )->LazyFrame{
     
-    //Nadya's grids are in Angstroms while Joris's are in nm. To check if the requested wavelengths are low resolution i.e. dλ,1e-3nm, I need to specify that or use the same wavelenght units.
-    let is_low_resolution=false;
-    let combined_expresion=match is_low_resolution{
-        true => {filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift).or(
-            filter2_sift_wavelengths(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift)
-        )}
-        false => {filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift)}
-    };
+    let filter1 = filter1_if_contains_wavelenghts(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift);
 
-    match combined_expresion{
+    match filter1{
         Some(expresion)=>{grids_lf.filter(expresion)}
         None=>{panic!("unable to produce dataframe using the intensity grid files")}
         
     }
 }
 
-pub fn sift_data_frame(
-    grids_lf:LazyFrame,
-    wavelengths:&[f64],
-    maxval_rel_dopplershift:f64,
-    minval_rel_dopplershift:f64,
-)->LazyFrame{
-
-    let df_w0 = df!(
-        "wavelength"=>wavelengths.clone()
-    ).unwrap();
-
-    // a new lazyframe that's a copy of the original one but it has a forward and backward original wavelengths
-    let grids_lf_forward = grids_lf.clone().select(
-        [
-            col("wavelength"),
-            col("therest"),
-            col("wavelength").alias("original wavelength forward"),
-            col("wavelength").alias("original wavelength backward"),
-        ]
-    );
-
-    let mut join_args=JoinArgs::default();
-    join_args.how = JoinType::Full;
-
-    let step5_lf = grids_lf_forward.join(df_w0.lazy(),
-    col("wavelength"),
-    col(""),
-    join_args
-    );
-
-
-
-    let grids_lf_backward = grids_lf.clone();
-
-
-
-
-}
-
-
-
-//add interpolating profile test for each fractional coordinate.

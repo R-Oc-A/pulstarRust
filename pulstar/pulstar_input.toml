@@ -30,5 +30,5 @@ v_omega = 20.0 #Rotation velocity
 inclination_angle = 45.0
 
 [mesh.Sphere]
-theta_step = 4.0
-phi_step = 4.0
+theta_step = 1.0
+phi_step = 1.0

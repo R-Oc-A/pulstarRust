@@ -1,7 +1,7 @@
 use crate::IntensityGrid;
 use crate::ProfileConfig;
 use crate::SpectralGrid;
-use crate::extract_column_as_vectorf64;
+use crate::intensity::parse_intensity_grids::sift_dataframe;
 use crate::intensity::parse_intensity_grids::{
     filter_wavelength_range,
     joris_grids::convert_joris_grid_to_regular_grid};
@@ -81,14 +81,14 @@ impl IntensityGrid {
         Ok(lf)
     }
 
-
-    /// This function extracts all of the csv data binded to a [IntensityGrid] into a [Vec<f64>]
+    /// This function extracts all of the csv data binded to a [IntensityGrid] into a [DataFrame]
     fn extract_grid_into_df(& self, 
         wavelengths:&[f64],
         maxval_rel_dopplershift:f64,
         minval_rel_dopplershift:f64,
         path_to_grid: &str)->DataFrame{
-
+        
+        //This is the first filter, it's used so that not all of the intensity grid is loaded into memory. 
         let filtered_lf = filter_wavelength_range(
             self.read_intensity_grid_file(path_to_grid).unwrap(),
             wavelengths,
@@ -97,9 +97,12 @@ impl IntensityGrid {
         let grid_df = match self{
                 Self::Nadya { temperature:_, log_gravity:_, metalicity:_, filename:_ }=>{filtered_lf.collect().unwrap()}
                 Self::Joris { temperature:_, log_gravity:_, filename:_ }=>{convert_joris_grid_to_regular_grid(filtered_lf.clone()).collect().unwrap()}
-                _=>{panic!("this grid type {:?} hasn't been coded!",self)}
+                _=> unreachable!("this grid type {:?} hasn't been coded!",self)
         };
-        grid_df
+
+        let grid_lf = grid_df.lazy();
+        //This is the second filter, it's used so that the loaded grids can be linearly interpolated by bulk, in the sense that no extra queries should be implemented to look for the appropriate grid values that encompas an observed wavelength.
+        sift_dataframe(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift, grid_lf)
     }
 }
 
@@ -114,8 +117,9 @@ impl ProfileConfig{
         minval_rel_dopplershift:f64)->SpectralGrid{
 
         let intensity_grids = &self.intensity_grids;
-        
-        
+        let wavelengths = self.wavelength_range.get_wavelength_vector();
+
+
         let mut t_eff:[f64;2] = [0.0;2];
         let mut log_g:[f64;2] = [0.0;2];
 

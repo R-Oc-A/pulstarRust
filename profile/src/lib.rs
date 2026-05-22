@@ -1,7 +1,6 @@
 use polars::{error::ErrString, prelude::*};
 use serde::Deserialize;
 use temp_name_lib::type_def::{CLIGHT,N_FLUX_POINTS};//Velocity of light in m/s
-use ndarray;
 
 use std::fs;
 

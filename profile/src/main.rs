@@ -36,7 +36,7 @@ fn main() {
     let profile_config = ProfileConfig::read_from_toml(&profile_config_path);
    
     let mut fluxes = FluxOfSpectra::new(&profile_config);
-
+    //let mut intensity_collection = IntensityFlux::new();
    //---------------------------------------- 
    //----Parsing rasterized_star.parquet-----
    //----------------------------------------
@@ -44,8 +44,7 @@ fn main() {
    let (lf,time_points)=parsing_star(&env_args[2].clone());
    let (
         mut spectral_grid,
-        mut hypercube3d,
-        mut hypercube4d,
+        mut hypercube2d,
     )= loading_intensity_grids(lf.clone(), & profile_config);
     //----------------------------------------------------------------
     //-------------- Collect fluxes for each time point  -------------
@@ -57,8 +56,7 @@ fn main() {
             lf.clone(),
             *pulsation_phase,
             & mut spectral_grid,
-            & mut hypercube3d,
-            & mut hypercube4d);
+            & mut hypercube2d);
         println!("done computing flux");
 
         println!("finished collecting fluxes {}",pulsation_phase);

@@ -23,8 +23,7 @@ pub fn parsing_star(path_to_star:&str)->(LazyFrame,Vec<f64>){
 pub fn loading_intensity_grids(star_lf:LazyFrame,
 profile_config:& ProfileConfig)->(
 SpectralGrid,//SpectralGrid
-ParameterSpaceHypercube,//hypercube3d
-ParameterSpaceHypercube,//hypercube4d
+ParameterSpaceHypercube<LazyFrame>,//hypercube2d
 ){
     let max_vel = extremal_val_from_col(
         "velocity",
@@ -43,10 +42,11 @@ ParameterSpaceHypercube,//hypercube4d
     println!("creating the spectral grids data structures from csv files...or neural network regresor");
     let spectral_grids = profile_config.init_spectral_grid_from_csv(maxval_rel_dopplershift, minval_rel_dopplershift);
     println!("allocating memory for hypercube in the parameter space");
-    let hypercube4d= spectral_grids.new_hypercube(4usize);
-    let hypercube3d= spectral_grids.new_hypercube(3usize);
-
-    (spectral_grids,hypercube3d,hypercube4d)
+    if let Ok(hypercube2d)= spectral_grids.new_hypercube(2usize){
+        (spectral_grids,hypercube2d)
+    }else{
+        panic!("unable t load intensity grids")
+    }
 }
 
 impl FluxOfSpectra {
@@ -54,8 +54,8 @@ impl FluxOfSpectra {
         star_lf:LazyFrame,
         pulsation_phase:f64,
         spectral_grid:& mut SpectralGrid,
-        hypercube3d:& mut ParameterSpaceHypercube,
-        hypercube4d:& mut ParameterSpaceHypercube){
+        hypercube2d:& mut ParameterSpaceHypercube<LazyFrame>)
+        {
         let expr = col("time").eq(lit(pulsation_phase));
         let sphere_frame = star_lf.clone().filter(expr);
         //--------------------------------------------------
@@ -81,12 +81,8 @@ impl FluxOfSpectra {
         self.restart(pulsation_phase);
         for cell in surface_cells.iter(){
             self.get_doppler_shifted_wavelengths(cell);
-            match cell.coschi>0.9285{
-                true => {self.collect_flux_from_cell(cell,  spectral_grid, hypercube3d)}
-                false => {self.collect_flux_from_cell(cell,  spectral_grid, hypercube4d)}
-            }
+            self.collect_flux_from_cell(cell,  spectral_grid, hypercube2d);
         }
-    
     }
 
     /// So far I've only coded the version to write into a parquet file. 
@@ -120,28 +116,28 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame)->DataFrame{
    // Obtain the lazy frame of the parquet file, Obtain the time points, obtain the theta points
    let (
         mut spectral_grid,
-        mut hypercube3d,
-        mut hypercube4d,
+        mut hypercube2d
     )= loading_intensity_grids(lf.clone(), & profile_config);
     //----------------------------------------------------------------
     //-------------- Collect fluxes for each time point  -------------
     //----------------------------------------------------------------
 
     //time loop    
-    let mut last_timepoint= 0u16;
-    for (time_point_number,pulsation_phase) in time_points.iter().enumerate() {
+    //let mut last_timepoint= 0u16;
+    //for (time_point_number,pulsation_phase) in time_points.iter().enumerate() {
+    for pulsation_phase in time_points.iter() {
+    
         fluxes.integrate(
             lf.clone(),
             *pulsation_phase,
             & mut spectral_grid,
-            & mut hypercube3d,
-            & mut hypercube4d);
+            & mut hypercube2d);
         println!("done computing flux");
 
         println!("finished collecting fluxes {}",pulsation_phase);
         //fluxes.write_output(time_point_number as u16).expect(&format!("Unable to write parquet file for {} time point",*pulsation_phase));
         intensity_collection = intensity_collection.append_fluxes(fluxes.clone());
-        last_timepoint=time_point_number as u16;
+        //last_timepoint=time_point_number as u16;
     }
     intensity_collection.data_frame
     //if let Ok(_)= intensity_collection.write_output(last_timepoint){

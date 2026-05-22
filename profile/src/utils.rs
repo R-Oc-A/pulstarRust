@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use polars:: prelude::*;
 use crate::FluxOfSpectra;
-pub mod csv_to_ndarray;
+//pub mod csv_to_ndarray;
 pub mod csv_to_spectral_grid;
 
 
