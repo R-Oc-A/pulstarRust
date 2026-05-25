@@ -10,6 +10,13 @@ impl SpectralGrid{
             2usize => {cube.fill_coordinates(&vec![temps,log_g])?;}
             _ => {panic!("there's no intensity grids for variable metalicity and chemical abundances.")}
         }
+        //initializing memory for the corner values of the parameter space. 
+        let dummy_df = DataFrame::empty();
+        let dummy_lf = dummy_df.lazy();
+        let dummy_coordinate_values:Vec<LazyFrame> = vec![dummy_lf.clone();2usize.pow(dimension as u32)];
+        let dummy_partial_interpolation:Vec<LazyFrame> = vec![dummy_lf.clone();2usize.pow(dimension as u32 +1)-1];
+        cube.corner_values = dummy_coordinate_values;
+        cube.partial_interpolations = dummy_partial_interpolation;
         Ok(cube)
     }
 // AQUI, Tengo que encontrar esos 
@@ -18,7 +25,7 @@ impl SpectralGrid{
         let (index,_) = self.mu_values.iter().enumerate().fold((0usize,self.mu_values[0]),
         |acc,(index,x)|{if mu>*x{(index,*x)}else{acc}});
         
-        let fractional_distance_mu = if index == 7usize || index == 0usize{//because there's only 8 mu values
+        let fractional_distance_mu = if index == 6usize || index == 0usize{//because there's only 8 mu values
             0.0
         }else{
             (mu - self.mu_values[index])/(self.mu_values[index+1]-self.mu_values[index])
@@ -112,19 +119,19 @@ impl SpectralGrid{
     /// 
     /// With the purpose of interpolating only in wavelength at the very end. 
     fn avg_mu_lazyframe(lf:LazyFrame,mu_index:usize,fractional_distance:f64)->LazyFrame{
-        let expr_final = if mu_index == 7usize || mu_index==0usize{
+        let expr_final = if mu_index == 6usize || mu_index==0usize{
             vec![
                 col("wavelength"),
-                col(format!("mu{}_s",mu_index)).alias("mu_avg_s"),
-                col(format!("mu{}_c",mu_index)).alias("mu_avg_c"),
+                col(format!("mu{}_s",mu_index+1)).alias("mu_avg_s"),
+                col(format!("mu{}_c",mu_index+1)).alias("mu_avg_c"),
             ]
         }else{
             let names = vec![
                 format!("wavelength"),
-                format!("mu{}_s",mu_index),
                 format!("mu{}_s",mu_index+1),
-                format!("mu{}_c",mu_index),
+                format!("mu{}_s",mu_index+2),
                 format!("mu{}_c",mu_index+1),
+                format!("mu{}_c",mu_index+2),
             ];
             
             let cols:Vec<Expr> = names.iter().map(|x| col(x)).collect();

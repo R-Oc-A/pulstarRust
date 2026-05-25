@@ -62,7 +62,7 @@ fn main() {
         println!("finished collecting fluxes {}",pulsation_phase);
         println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
         
-        fluxes.write_output(time_point_number as u16).expect(&format!("Unable to write parquet file for {} time point",*pulsation_phase));
+        //fluxes.write_output(time_point_number as u16).expect(&format!("Unable to write parquet file for {} time point",*pulsation_phase));
 
     }
     println!("finished computation for a star's pulsation");

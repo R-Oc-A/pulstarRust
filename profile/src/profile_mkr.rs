@@ -41,11 +41,13 @@ ParameterSpaceHypercube<LazyFrame>,//hypercube2d
 
     println!("creating the spectral grids data structures from csv files...or neural network regresor");
     let spectral_grids = profile_config.init_spectral_grid_from_csv(maxval_rel_dopplershift, minval_rel_dopplershift);
+    
     println!("allocating memory for hypercube in the parameter space");
+    
     if let Ok(hypercube2d)= spectral_grids.new_hypercube(2usize){
         (spectral_grids,hypercube2d)
     }else{
-        panic!("unable t load intensity grids")
+        panic!("unable to load intensity grids")
     }
 }
 
