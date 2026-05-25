@@ -101,6 +101,7 @@ impl IntensityGrid {
         };
 
         let grid_lf = grid_df.lazy();
+        println!("Done with opening grid files");
         //This is the second filter, it's used so that the loaded grids can be linearly interpolated by bulk, in the sense that no extra queries should be implemented to look for the appropriate grid values that encompas an observed wavelength.
         sift_dataframe(wavelengths, maxval_rel_dopplershift, minval_rel_dopplershift, grid_lf)
     }
@@ -127,6 +128,7 @@ impl ProfileConfig{
         let mut vec_df:Vec<DataFrame> = Vec::new();
 
         for (n,grid) in intensity_grids.iter().enumerate(){
+            println!("starting with grid{}",n);
             vec_df.push(grid.extract_grid_into_df(&wavelengths,
             maxval_rel_dopplershift,
             minval_rel_dopplershift,

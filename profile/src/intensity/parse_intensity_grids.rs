@@ -8,11 +8,13 @@ fn add_padding_for_wavelength(wavelength:&[f64],
 )->Vec<f64>{
 
     let mut padded_wavelength_vec:Vec<f64> = Vec::new();
+
     let min_wavelength = if let Some( start) = wavelength.get(0){
         start * (minval_rel_dopplershift)
     }else{
         panic!("What are you trying to do? Your wavelength array has length 0")
     };
+    println!("finding last wavelength");
     let max_wavelength = if let Some( end) = wavelength.last(){
         end * (maxval_rel_dopplershift)
     }else{
@@ -21,14 +23,17 @@ fn add_padding_for_wavelength(wavelength:&[f64],
     let last_wavelength = if let Some(value) = wavelength.last(){value}else{panic!()};
     
     let d_lambda = wavelength[1]-wavelength[0];
-    
+
     let left_padding = {
         let mut index = 0usize;
         while min_wavelength < (wavelength[0]-(index as f64)*d_lambda){
+            //println!("min_wavelength is {}",min_wavelength);
+            //println!("current padding index {}",index);
             index += 1;
         }
         index
     };
+
     
     let right_padding = {
         let mut index = 0usize;
@@ -49,9 +54,7 @@ fn add_padding_for_wavelength(wavelength:&[f64],
     for index in 1..=right_padding{
         padded_wavelength_vec.push(last_wavelength + (index as f64)*d_lambda);
     }
-
     padded_wavelength_vec
-
 }
 
 
@@ -70,7 +73,7 @@ fn join_into_forward_backward(left:LazyFrame,
     }else{
         (format!("_backward"),FillNullStrategy::Backward(None))
     };
-
+    
     let mut names:Vec<String> = Vec::new();
     if is_global{
         for i in 1..=7 {names.push(format!("mu{}_s",i))}
@@ -83,54 +86,61 @@ fn join_into_forward_backward(left:LazyFrame,
     let new_names:Vec<String> = names.iter().map(|x| format!("{}{}",x.clone(),suffix)).collect();
 
     let mut renamed:Vec<Expr> = vec![col("wavelength")];    
-    renamed.push(col("wavelength"));
-    for i in 1..names.len(){
+    for i in 0..names.len(){
         renamed.push(col(names[i].clone()).alias(new_names[i].clone()))
     }
     renamed.push(col("wavelength").alias(format!("original_wavelength{}",suffix)));
     let extra_lf = left.clone().select(renamed);
-
 
     let include_lf = extra_lf.clone().join(
         right.clone(),
         [col("wavelength")],
         [col("wavelength")],
         JoinArgs::new(JoinType::Full).with_coalesce(JoinCoalesce::CoalesceColumns)
-    ).sort(["wavelenght"],Default::default());
+    );
 
-
+    let include_lf = include_lf.sort(["wavelength"], 
+Default::default());
+    
     let mut last_exprs:Vec<Expr> = Vec::new();
     last_exprs.push(col("wavelength"));
-    
     for name in new_names.into_iter(){
         last_exprs.push(col(name).fill_null_with_strategy(fillstrategy))
     }
-    last_exprs.push(col(format!("original_wavelength{}",suffix)));
-    let filled_null_lf = include_lf.clone().select(last_exprs);
+    last_exprs.push(col(format!("original_wavelength{}",suffix))
+    .fill_null_with_strategy(fillstrategy));
 
+    let filled_null_lf = include_lf.clone().select(last_exprs);
     filled_null_lf
+
 }
 
 fn select_only_df_w0(left:LazyFrame,right:LazyFrame)->LazyFrame{
-    left.join(
+    let selected_lf = left.clone().join(
         right.clone(),
         [col("wavelength")],
         [col("wavelength")],
         JoinArgs::new(JoinType::Inner)
-    )
+    );
+    selected_lf
 }
 
 fn append_fractional_distance(left:LazyFrame,right:LazyFrame)->LazyFrame{
-    left.join(
+    let joined_lf = left.clone().join(
         right.clone(),
         [col("wavelength")],
         [col("wavelength")],
         JoinArgs::new(JoinType::Inner)
-    ).with_columns([
+    );
+    println!("how you like me now {:?}",joined_lf.clone().collect().unwrap().head(Some(5)));
+    
+    let with_fd_lf = joined_lf.clone().with_columns([
         ((col("wavelength") - col("original_wavelength_backward"))
-        /(col("original_wavelength_forward")- col("original_wavelength_backward")))
-        .alias("fractional_distance")
-    ])
+        /(col("original_wavelength_forward")- col("original_wavelength_backward"))).fill_nan(0.0)
+        .alias("fractional_distance")]);
+
+    println!("with_fd_lf {:?}",with_fd_lf.clone().collect().unwrap().head(Some(5)));
+    with_fd_lf
 }
 
 fn linear_interpolation_full(lf:LazyFrame,is_global:bool)->LazyFrame{
@@ -191,18 +201,21 @@ pub fn sift_dataframe(
 
     let df_w0 = make_df_w0(&padded_wavelength);
     let lf_w0 = df_w0.lazy();
-    
+  
     let forward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), true,true);
     let backward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), false,true);
+    let forward_df = forward.collect().unwrap();
+    let backward_df = backward.collect().unwrap();
 
-    let forward = select_only_df_w0(forward.clone(), lf_w0.clone());
-    let backward = select_only_df_w0(backward.clone(), lf_w0.clone());
-
+    println!("arrived in here");
+    let forward = select_only_df_w0(forward_df.lazy().clone(), lf_w0.clone());
+    let backward = select_only_df_w0(backward_df.lazy().clone(), lf_w0.clone());
     let lf_fractional_distance = append_fractional_distance(forward.clone(), backward.clone());
 
     let linear_lf = linear_interpolation_full(lf_fractional_distance.clone(),true);
-    
+
     linear_lf.collect().unwrap()
+
 }
 
 
@@ -215,14 +228,10 @@ pub fn wavelength_interpolation(
     let lf_w0 = df_w0.lazy();
     let forward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), true,false);
     let backward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), false,false);
-
     let forward = select_only_df_w0(forward.clone(), lf_w0.clone());
     let backward = select_only_df_w0(backward.clone(), lf_w0.clone());
-
     let lf_fractional_distance = append_fractional_distance(forward.clone(), backward.clone());
-
-    let linear_lf = linear_interpolation_full(lf_fractional_distance.clone(),false);
-        
+    let linear_lf = linear_interpolation_full(lf_fractional_distance.clone(),false); 
     linear_lf
 
 }
@@ -273,8 +282,8 @@ fn filter1_if_contains_wavelenghts(
             if*wavelength_val > accumulator {*wavelength_val} else {accumulator}
         )+epsilon;    
 
-    let filter_lower_expr = col("wavelengths").gt(lit(min_wavelength));
-    let filter_greater_expr = col("wavelengths").lt(lit(max_wavelength));
+    let filter_lower_expr = col("wavelength").gt(lit(min_wavelength));
+    let filter_greater_expr = col("wavelength").lt(lit(max_wavelength));
 
     let combined_filter_exp = filter_lower_expr.or(filter_greater_expr);
     Some(combined_filter_exp)

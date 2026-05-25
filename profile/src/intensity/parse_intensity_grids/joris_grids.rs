@@ -43,7 +43,7 @@ pub fn convert_joris_grid_to_regular_grid(joris_lf:LazyFrame)->LazyFrame{
     let mu_values=[0.9636,0.8864,0.8018,0.7071,0.5976,0.4629,0.2623];
 
     joris_lf.clone().select([
-        col("wavelengths"),
+        col("wavelength"),
         append_specific_intensity(mu_values[0]).alias("mu1_s"),
         append_specific_intensity(mu_values[1]).alias("mu2_s"),
         append_specific_intensity(mu_values[2]).alias("mu3_s"),

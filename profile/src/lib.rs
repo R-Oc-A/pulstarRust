@@ -182,7 +182,6 @@ impl WavelengthRange{
         if capacity >= N_FLUX_POINTS as usize {panic!("Error, too many flux points requested.")}
 	    
         let mut wavelength:Vec<f64> = Vec::with_capacity(capacity);
-	    wavelength.push(self.start);
 	    for i in 0..=capacity {//<- inclussive loop so wavelength[capacity]==λ_f.
 	            wavelength.push( self.start + self.step * (i as f64) );
         }
