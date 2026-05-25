@@ -14,7 +14,6 @@ fn add_padding_for_wavelength(wavelength:&[f64],
     }else{
         panic!("What are you trying to do? Your wavelength array has length 0")
     };
-    println!("finding last wavelength");
     let max_wavelength = if let Some( end) = wavelength.last(){
         end * (maxval_rel_dopplershift)
     }else{
@@ -132,19 +131,26 @@ fn append_fractional_distance(left:LazyFrame,right:LazyFrame)->LazyFrame{
         [col("wavelength")],
         JoinArgs::new(JoinType::Inner)
     );
-    println!("how you like me now {:?}",joined_lf.clone().collect().unwrap().head(Some(5)));
     
-    let with_fd_lf = joined_lf.clone().with_columns([
-        ((col("wavelength") - col("original_wavelength_backward"))
-        /(col("original_wavelength_forward")- col("original_wavelength_backward"))).fill_nan(0.0)
-        .alias("fractional_distance")]);
+    let interpolation_mask_lf = joined_lf.clone().with_columns([
+        col("wavelength").neq( col(format!("original_wavelength_forward"))).alias("requires_interpolation")]);
 
-    println!("with_fd_lf {:?}",with_fd_lf.clone().collect().unwrap().head(Some(5)));
-    with_fd_lf
+    let fractional_distance_lf = interpolation_mask_lf.clone().with_columns([
+        when( col("requires_interpolation"))
+        .then(
+        (col("wavelength") - col("original_wavelength_forward"))
+        /(col("original_wavelength_backward")- col("original_wavelength_forward"))
+        )
+        .otherwise(lit(0.0))
+        .alias("fractional_distance")
+    ]);
+
+    fractional_distance_lf
 }
 
 fn linear_interpolation_full(lf:LazyFrame,is_global:bool)->LazyFrame{
     let mut exprs:Vec<Expr> = Vec::new();
+
     let expr = |forward:&str,backward:&str,name:&str|->Expr {
         (col(forward) * col("fractional_distance")
         + col(backward) * (lit(1.0) - col("fractional_distance") ) )
@@ -173,8 +179,10 @@ fn linear_interpolation_full(lf:LazyFrame,is_global:bool)->LazyFrame{
             )
         }
     }
-    lf.select( exprs)
 
+    let result_lf= lf.clone().select( exprs);
+
+    result_lf
 }
 
 
@@ -207,7 +215,6 @@ pub fn sift_dataframe(
     let forward_df = forward.collect().unwrap();
     let backward_df = backward.collect().unwrap();
 
-    println!("arrived in here");
     let forward = select_only_df_w0(forward_df.lazy().clone(), lf_w0.clone());
     let backward = select_only_df_w0(backward_df.lazy().clone(), lf_w0.clone());
     let lf_fractional_distance = append_fractional_distance(forward.clone(), backward.clone());
