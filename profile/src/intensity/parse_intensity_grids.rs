@@ -228,18 +228,21 @@ pub fn sift_dataframe(
 
 
 pub fn wavelength_interpolation(
-    shifted_wavelengths:&[f64],
-    grids_lf: LazyFrame)->LazyFrame{
+    shifted_wavelengths:LazyFrame,
+    grids_lf: LazyFrame,
+    )->LazyFrame{
 
-    let df_w0 = make_df_w0(shifted_wavelengths);
-    let lf_w0 = df_w0.lazy();
+    //let df_w0 = make_df_w0(shifted_wavelengths);
+    let lf_w0 = shifted_wavelengths.clone().select([col("shifted_wavelength").alias("wavelength")]);
     let forward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), true,false);
     let backward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), false,false);
     let forward = select_only_df_w0(forward.clone(), lf_w0.clone());
     let backward = select_only_df_w0(backward.clone(), lf_w0.clone());
     let lf_fractional_distance = append_fractional_distance(forward.clone(), backward.clone());
     let linear_lf = linear_interpolation_full(lf_fractional_distance.clone(),false); 
-    linear_lf
+        linear_lf.select([col("wavelength").alias("shifted_wavelength"),
+        col("mu_avg_s"),
+        col("mu_avg_c")])
 
 }
 

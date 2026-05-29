@@ -160,8 +160,8 @@ impl ProfileConfig{
                 log_g[0]=log_gravity; 
             }
         }
-        let row_indices = vec![0usize;2*wavelengths.len()];
-        SpectralGrid{ t_eff:t_eff, log_g:log_g, grid_values: vec_df, wavelengths:wavelengths, mu_values:mu_values, row_indices:row_indices}
+        //let row_indices = vec![0usize;2*wavelengths.len()];
+        SpectralGrid{ t_eff:t_eff, log_g:log_g, grid_values: vec_df, wavelengths:wavelengths, mu_values:mu_values}// row_indices:row_indices}
     }
     
 }

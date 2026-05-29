@@ -7,37 +7,57 @@ pub mod csv_to_spectral_grid;
 
 
 pub struct IntensityFlux{
-    pub data_frame:DataFrame,
+    pub data_frames:Vec<DataFrame>,
 }
 
 impl IntensityFlux{
-    pub fn new()->Self{
-        Self{data_frame: df!(
+    pub fn new(time_points:usize)->Self{
+        /*Self{data_frame: df!(
             "time"=>Vec::<f64>::new(),
             "wavelength" => Vec::<f64>::new(),
             "flux" => Vec::<f64>::new(),
             "continuum" => Vec::<f64>::new(),
             "normalized flux" => Vec::<f64>::new()
-        ).unwrap(),}
+        ).unwrap(),}*/
+        IntensityFlux{data_frames: Vec::<DataFrame>::with_capacity(time_points)}
     }
 
-    pub fn append_fluxes(self,fluxes:FluxOfSpectra)->Self{
-        let flux_df=df!(
+    /*pub fn append_fluxes(self,fluxes:FluxOfSpectra)->Self{
+        /*let flux_df=df!(
             "time" => fluxes.time,
             "wavelength" => fluxes.wavelengths,
             "flux" => fluxes.flux,
             "continuum" => fluxes.continuum
         ).unwrap();
-
-        // construct the mean flux expresion for the lazy data frame flux/cont
-        let expr = (col("flux") / col("continuum")).alias("normalized flux");
-        let flux_lf=flux_df.lazy().with_column(expr);
+        */
+        let flux_lf = fluxes.flux_data.lazy();
+        // construct the mean flux expresion for the lazy dataframe flux/cont
+        //let expr = (col("flux") / col("continuum")).alias("normalized flux");
+        //let flux_lf=flux_df.lazy().with_column(expr);
+        
         let result_lf=append_current_lf_into_collection_lf(flux_lf, self.data_frame.lazy()).unwrap();
 
         IntensityFlux { data_frame:result_lf.collect().unwrap()}
+    }*/
+    pub fn append_fluxes(& mut self,fluxes:FluxOfSpectra){
+        self.data_frames.push(fluxes.flux_data.clone());
     }
 
-    pub fn write_output(self, time_points:u16)->PolarsResult<()>{
+    pub fn collect_into_single_df(self)->DataFrame{
+        for (index,df) in self.data_frames.iter().enumerate(){
+            println!("this is the df for mode {}: {}",index,df.head(Some(5)));
+        }
+        let lfs:Vec<LazyFrame> = self.data_frames.into_iter().map(|x| x.lazy()).collect();
+
+        let collection_lf = polars::prelude::concat(&lfs,
+         UnionArgs::default()).unwrap();
+        
+        let result_lf = collection_lf.with_columns([(col("flux")/col("continuum")).alias("normalized flux")]);
+        
+        result_lf.collect().unwrap()
+    }
+
+    /*pub fn write_output(self, time_points:u16)->PolarsResult<()>{
         // write lazy frame into parquet
         let new_path = PathBuf::from(
             format!("wavelengths_tp{}.parquet",time_points)
@@ -64,7 +84,7 @@ impl IntensityFlux{
     
         Ok(())
         
-    }
+    }*/
 
 }
 
@@ -90,9 +110,9 @@ fn open_collecting_parquet_file_as_lazyframe(path_to_parquet: &std::path::PathBu
 ///  This function returns a [PolarsResult] with the following variants:
 /// * `Ok(LazyFrame)` - In case the [LazyFrame] was adequately created.
 /// * `Err(PolarsError)` - Returning a [PolarsError] to the calling function. 
-fn append_current_lf_into_collection_lf(spectra_lazyframe:LazyFrame,parquet_file_lazyframe:LazyFrame)->PolarsResult<LazyFrame>{
+fn append_current_lf_into_collection_lf(spectra_lazyframe:LazyFrame,collection_lazyframe:LazyFrame)->PolarsResult<LazyFrame>{
     concat(
-        [parquet_file_lazyframe,spectra_lazyframe],
+        [collection_lazyframe,spectra_lazyframe],
         UnionArgs::default()
     )
 }
@@ -208,3 +228,39 @@ pub fn write_into_parquet(
     Ok(())
 }
 
+
+pub fn collect_df(
+    flux_of_spectra: &FluxOfSpectra,
+    collection_df:Option<DataFrame>,
+)->PolarsResult<DataFrame>{
+
+    
+    if let Some(collection_of_phases) = collection_df{
+        let flux_lf = flux_of_spectra.clone().flux_data.lazy();
+        Ok(append_current_lf_into_collection_lf(flux_lf,
+             collection_of_phases.lazy())?.collect()?)
+    }else{
+        Ok(flux_of_spectra.flux_data.clone())
+    }
+}
+
+
+pub fn output_to_parquet(
+    flux_df: DataFrame,
+    time_points:u16,
+    ) -> PolarsResult<()>{
+    
+    let flux_lf = flux_df.lazy();
+    let new_path = std::path::PathBuf::from(format!("wavelengths_tp{}.parquet",time_points));
+
+    if let Ok(lf) = flux_lf.sink_parquet(
+        SinkTarget::Path(Arc::new(new_path.clone())),
+        ParquetWriteOptions::default(), 
+        
+        None, 
+        SinkOptions::default()){
+            lf.collect()?;
+        }else {eprint!("unable to sink to a parket in {} time_point",time_points)};
+    
+    Ok(())
+}

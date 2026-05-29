@@ -23,12 +23,14 @@ pub struct FluxOfSpectra{
     pub time: Vec<f64>,
     /// [Vec<f64>] containing the current observed wavelengths.  
     pub wavelengths: Vec<f64>,
-    /// [Vec<f64>] the doppler shifted wavelengths due to the total velocity.
-    pub shifted_wavelength:Vec<f64>,
+    // / [Vec<f64>] the doppler shifted wavelengths due to the total velocity.
+    //  pub shifted_wavelength:Vec<f64>,
     /// [Vec<f64>] cointaining the flux of the observed wavelengths.  
     pub flux: Vec<f64>,
     /// [Vec<f64>] containing the flux of the continuum expectra (i.e. blackbody radiation) if the requested wavelenghts. 
     pub continuum:Vec<f64>,
+    ///
+    pub flux_data:DataFrame,
 }
 
 
@@ -62,9 +64,6 @@ pub struct SpectralGrid {
         /// µ=sqrt(cos(χ)),
         /// where χ is the angle of the normal of a parallel atmosphere plane with respect to the unit vector in direction of the observer.
         mu_values:[f64;7],
-
-        /// Important indices 
-        row_indices: Vec<usize>
 }
 
 impl FluxOfSpectra{
@@ -72,30 +71,55 @@ impl FluxOfSpectra{
     /// This function should be used to construct a mutable instance at the beginning of the profile program. 
     pub fn new(profile_input: &ProfileConfig)->FluxOfSpectra{
         let wavelengths = profile_input.wavelength_range.get_wavelength_vector();
-        let shifted_wavelengths = wavelengths.clone();
+        //let shifted_wavelengths = wavelengths.clone();
         let time = vec![0.0;wavelengths.len()];
         let flux = vec![0.0;wavelengths.len()];
         let continuum = vec![0.0;wavelengths.len()];
 
+        let flux_data = df!(
+            "wavelength" => wavelengths.clone(),
+            "shifted_wavelength" => wavelengths.clone(),
+            "time" => time.clone(),
+            "flux" => flux.clone(),
+            "continuum" => continuum.clone(),
+        ).unwrap();
+
         FluxOfSpectra { time: time,
 			wavelengths: wavelengths,
-			shifted_wavelength: shifted_wavelengths,
+		//	shifted_wavelength: shifted_wavelengths,
 			flux: flux,
-			continuum: continuum }
+			continuum: continuum,
+            flux_data:flux_data,
+        }
     }
 
     /// This function sets the specific intensity flux and continuum specific intensity as 0.0, it also stores the new phase of pulsation of the calculation. 
     pub fn restart(&mut self, time_point:f64){
-         self.time.fill(time_point);
+         /*self.time.fill(time_point);
          self.flux.fill(0.0);
          self.continuum.fill(0.0);
+         
+         let flux_col = Series::new("flux".into(),self.flux.clone());
+         let continuum_col = Series::new("continuum".into(),self.continuum.clone());
+         let time_col = Series::new("time".into(),self.time.clone());
+
+         self.flux_data.replace("flux",flux_col).unwrap();
+         self.flux_data.replace("continuum",continuum_col).unwrap();
+         self.flux_data.replace("time",time_col).unwrap();
+        */
+        self.flux_data = self.flux_data.clone().lazy().select([
+            col("wavelength"),
+            col("shifted_wavelength"),
+            lit(time_point).alias("time"),
+            lit(0.0).alias("flux"),
+            lit(0.0).alias("continuum"),
+        ]).collect().unwrap();
     }
 
     /// This function fills the `shifted_wavelength` member of [FluxOfSpectra] by multiplying the wavelength vector  with the relative doppler shift stored in a [SurfaceCell]. 
-    pub fn get_doppler_shifted_wavelengths(&mut self,cell:&SurfaceCell){
-        for (n,wavelength) in self.wavelengths.iter().enumerate(){
-            self.shifted_wavelength[n] = wavelength * cell.rel_dlamb;
-        }
+    pub fn get_doppler_shifted_wavelengths(&mut self,cell:&SurfaceCell)->LazyFrame{
+        let lfs = self.flux_data.clone().lazy().select([(col("wavelength") * lit(cell.rel_dlamb)).alias("shifted_wavelength")]);
+        lfs
     }
 }
 
@@ -216,22 +240,6 @@ fn extract_column_as_vectorf64(column_name: &str,df:&DataFrame)->Vec<f64>{
     let column = df.column(column_name).unwrap();
     column.f64().unwrap().into_iter().flatten().collect()
 }
-
-/// This function takes a polars data frame and returns all of the values from a given column that holds string values. 
-/// ### Arguments: 
-/// * `column_name` - a string slice that holds the name of a column. The column should hold String values.
-/// * `df`- a polars DataFrame
-/// ### Returns:
-/// * `Vec<String>` - a vector that contains all of the values on the column.
-fn extract_column_as_vector_string (column_name: &str, df:&DataFrame)->Vec<String>{
-    let column = df.column(column_name).unwrap();
-    let vec_str:Vec<&str> = column.str().unwrap().into_iter().flatten().collect();
-
-    let vecc:Vec<String> = vec_str.iter().map(|s| s.to_string()).collect();
-
-    vecc
-}
-
 
 impl SurfaceCell {
     /// This function creates a vector collection of [SurfaceCell]s from the pulstar's output. 

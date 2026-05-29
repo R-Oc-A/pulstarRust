@@ -19,7 +19,7 @@ impl SpectralGrid{
         cube.partial_interpolations = dummy_partial_interpolation;
         Ok(cube)
     }
-// AQUI, Tengo que encontrar esos 
+
     fn find_mu_index(&self, mu:f64)->(usize,f64){
         //self.mu_values must be ordered from lower to greater for this function to work.
         let (index,_) = self.mu_values.iter().enumerate().fold((0usize,self.mu_values[0]),
@@ -33,19 +33,19 @@ impl SpectralGrid{
         (index,fractional_distance_mu)
     }
 
-    
+    /*
     /// This function is used to store for the observed wavelength the indices of the wavelengths in [GridsData] that will be used for interpolation. 
     /// This function relies on the bisection algorithm to perform the query.
     pub fn extract_important_rows(&mut self,global_flux: &mut FluxOfSpectra){
         self.row_indices.fill(0);
 
         let mut counter = 0usize;
-        for shifted_wavelength in global_flux.shifted_wavelength.iter() {
+        /*for shifted_wavelength in global_flux.shifted_wavelength.iter() {
             self.row_indices[counter] = search_geq(&self.wavelengths, *shifted_wavelength)-1;
             self.row_indices[counter+1] = self.row_indices[counter]+1;
             counter += 2usize;
-        }
-    }
+        }*/
+    }*/
 
 }
 impl FluxOfSpectra{
@@ -72,9 +72,8 @@ pub fn collect_flux_from_cell(& mut self,
         spectral_grid.fill_corner_values_2d(mu_val, hypercube);
         let coords_in_param_space = vec![cell.t_eff,cell.log_g];
         let lf = hypercube.multilinear_interpolation(&coords_in_param_space).unwrap();
-
-        let linear_lf = parse_intensity_grids::wavelength_interpolation(&self.shifted_wavelength, lf.clone());
-
+        let shifted_wavelengths = self.get_doppler_shifted_wavelengths(cell);
+        let linear_lf = parse_intensity_grids::wavelength_interpolation(shifted_wavelengths, lf.clone());
         let flux_lf = linear_lf.clone().select(
             [col("wavelength"),
             (col("mu_avg_s") * lit(cell.area)).alias("flux"),
@@ -82,15 +81,42 @@ pub fn collect_flux_from_cell(& mut self,
         );
 
         let linear_df = flux_lf.clone().collect().unwrap();
+        println!("linear_df {:#?}",linear_df.head(Some(5)));
+        self.add_into_current_data(linear_df.lazy());
+        println!("self df {:#?}",self.flux_data.head(Some(5)));
 
-        let flux_single_cell = extract_column_as_vectorf64("flux", &linear_df);
-        let continuum_single_cell = extract_column_as_vectorf64("continuum", &linear_df);
+        //let flux_single_cell = extract_column_as_vectorf64("flux", &linear_df);
+        //let continuum_single_cell = extract_column_as_vectorf64("continuum", &linear_df);
 
-        for (index,flux) in flux_single_cell.iter().enumerate(){
-            self.flux[index] += flux;
-            self.continuum[index] += continuum_single_cell[index];    
-        }
-    }
+        //for (index,flux) in flux_single_cell.iter().enumerate(){
+        //    self.flux[index] += flux;
+        //    self.continuum[index] += continuum_single_cell[index];    
+        //}
+        self.flux = extract_column_as_vectorf64("flux", &self.flux_data);
+        self.continuum = extract_column_as_vectorf64("continuum", &self.flux_data);
+}
+
+fn add_into_current_data (& mut self, cell_contribution:LazyFrame){
+    let flux_lf = self.flux_data.clone().lazy();
+    let cell_lf = cell_contribution.clone();
+
+    let flux_lf_to_add = flux_lf.clone().join(
+        cell_lf,
+        [col("wavelength")],
+        [col("wavelength")],
+        JoinArgs::new(JoinType::Inner)
+    );
+
+    let flux_added = flux_lf_to_add.clone().select([
+        col("wavelength"),
+        col("time"),
+        (col("flux") + col("flux_right")).alias("flux"),
+        (col("continuum") + col("continuum_right")).alias("continuum")
+    ]);
+
+    self.flux_data = flux_added.clone().collect().unwrap();
+}
+
 }
 
 impl SpectralGrid{

@@ -42,9 +42,10 @@ ParameterSpaceHypercube<LazyFrame>,//hypercube2d
     println!("creating the spectral grids data structures from csv files...or neural network regresor");
     let spectral_grids = profile_config.init_spectral_grid_from_csv(maxval_rel_dopplershift, minval_rel_dopplershift);
     
-    println!("allocating memory for hypercube in the parameter space");
+    println!("Allocating memory for hypercube in the parameter space");
     
     if let Ok(hypercube2d)= spectral_grids.new_hypercube(2usize){
+        println!("Done");
         (spectral_grids,hypercube2d)
     }else{
         panic!("unable to load intensity grids")
@@ -82,7 +83,6 @@ impl FluxOfSpectra {
         // Integrate specific intensity.        
         self.restart(pulsation_phase);
         for cell in surface_cells.iter(){
-            self.get_doppler_shifted_wavelengths(cell);
             self.collect_flux_from_cell(cell,  spectral_grid, hypercube2d);
         }
     }
@@ -107,7 +107,6 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame)->DataFrame{
         _=>{panic!("error parsing toml for profile config")}
     };
     let mut fluxes = FluxOfSpectra::new(&profile_config);
-    let mut intensity_collection = IntensityFlux::new();
    //---------------------------------------- 
    //----Parsing rasterized_star.parquet-----
    //----------------------------------------
@@ -115,6 +114,8 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame)->DataFrame{
     let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
     let extract_time_series = tf.column("time").unwrap();
     let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();
+
+    let mut intensity_collection = IntensityFlux::new(time_points.len());
    // Obtain the lazy frame of the parquet file, Obtain the time points, obtain the theta points
    let (
         mut spectral_grid,
@@ -138,10 +139,13 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame)->DataFrame{
 
         println!("finished collecting fluxes {}",pulsation_phase);
         //fluxes.write_output(time_point_number as u16).expect(&format!("Unable to write parquet file for {} time point",*pulsation_phase));
-        intensity_collection = intensity_collection.append_fluxes(fluxes.clone());
+        intensity_collection.append_fluxes(fluxes.clone());
         //last_timepoint=time_point_number as u16;
     }
-    intensity_collection.data_frame
+    
+    intensity_collection.collect_into_single_df()
+
+
     //if let Ok(_)= intensity_collection.write_output(last_timepoint){
     //println!("finished computation for a star's pulsation")}
     //else{panic!("unable to write parquetfile")};
