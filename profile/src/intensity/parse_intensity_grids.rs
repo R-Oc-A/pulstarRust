@@ -72,6 +72,7 @@ fn join_into_forward_backward(left:LazyFrame,
     }else{
         (format!("_backward"),FillNullStrategy::Backward(None))
     };
+
     
     let mut names:Vec<String> = Vec::new();
     if is_global{
@@ -84,25 +85,31 @@ fn join_into_forward_backward(left:LazyFrame,
 
     let new_names:Vec<String> = names.iter().map(|x| format!("{}{}",x.clone(),suffix)).collect();
 
-    let mut renamed:Vec<Expr> = vec![col("wavelength")];    
+    let mut renamed:Vec<Expr> = vec![col("wavelength")];
+    //if !is_global{
+    //    renamed.push(col("pixel_id"))
+    //};
     for i in 0..names.len(){
         renamed.push(col(names[i].clone()).alias(new_names[i].clone()))
     }
     renamed.push(col("wavelength").alias(format!("original_wavelength{}",suffix)));
     let extra_lf = left.clone().select(renamed);
-
+    //Here it is 
     let include_lf = extra_lf.clone().join(
         right.clone(),
         [col("wavelength")],
         [col("wavelength")],
         JoinArgs::new(JoinType::Full).with_coalesce(JoinCoalesce::CoalesceColumns)
     );
-
     let include_lf = include_lf.sort(["wavelength"], 
 Default::default());
+
     
     let mut last_exprs:Vec<Expr> = Vec::new();
     last_exprs.push(col("wavelength"));
+
+    if !is_global{last_exprs.push(col("pixel_id"))};//fill_null_with_strategy(fillstrategy))};
+
     for name in new_names.into_iter(){
         last_exprs.push(col(name).fill_null_with_strategy(fillstrategy))
     }
@@ -124,13 +131,17 @@ fn select_only_df_w0(left:LazyFrame,right:LazyFrame)->LazyFrame{
     selected_lf
 }
 
-fn append_fractional_distance(left:LazyFrame,right:LazyFrame)->LazyFrame{
+fn append_fractional_distance(left:LazyFrame,right:LazyFrame,is_global:bool)->LazyFrame{
+
+    let columns_to_be_joined:Vec<Expr> = if is_global{vec![col("wavelength")]}else{vec![col("wavelength"),col("pixel_id")]};
+
     let joined_lf = left.clone().join(
         right.clone(),
-        [col("wavelength")],
-        [col("wavelength")],
+        &columns_to_be_joined,
+        &columns_to_be_joined,
         JoinArgs::new(JoinType::Inner)
     );
+
     
     let interpolation_mask_lf = joined_lf.clone().with_columns([
         col("wavelength").neq( col(format!("original_wavelength_forward"))).alias("requires_interpolation")]);
@@ -158,6 +169,7 @@ fn linear_interpolation_full(lf:LazyFrame,is_global:bool)->LazyFrame{
     };
     
     exprs.push(col("wavelength"));
+    if !is_global{exprs.push(col("pixel_id"))};
     if is_global{
         for char in ["s","c"]{
             for index in 1..=7{
@@ -217,7 +229,7 @@ pub fn sift_dataframe(
 
     let forward = select_only_df_w0(forward_df.lazy().clone(), lf_w0.clone());
     let backward = select_only_df_w0(backward_df.lazy().clone(), lf_w0.clone());
-    let lf_fractional_distance = append_fractional_distance(forward.clone(), backward.clone());
+    let lf_fractional_distance = append_fractional_distance(forward.clone(), backward.clone(),true);
 
     let linear_lf = linear_interpolation_full(lf_fractional_distance.clone(),true);
 
@@ -225,7 +237,8 @@ pub fn sift_dataframe(
 
 }
 
-
+// I need here to fixe column names
+// But I should do it carefully
 
 pub fn wavelength_interpolation(
     shifted_wavelengths:LazyFrame,
@@ -233,18 +246,24 @@ pub fn wavelength_interpolation(
     )->LazyFrame{
 
     //let df_w0 = make_df_w0(shifted_wavelengths);
-    let lf_w0 = shifted_wavelengths.clone().select([col("shifted_wavelength").alias("wavelength")]);
+    let lf_w0 = shifted_wavelengths.clone().select([col("pixel_id"),col("wavelength")]);
     let forward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), true,false);
     let backward = join_into_forward_backward(grids_lf.clone(), lf_w0.clone(), false,false);
     let forward = select_only_df_w0(forward.clone(), lf_w0.clone());
     let backward = select_only_df_w0(backward.clone(), lf_w0.clone());
-    let lf_fractional_distance = append_fractional_distance(forward.clone(), backward.clone());
+    let lf_fractional_distance = append_fractional_distance(forward.clone(), backward.clone(),false);
     let linear_lf = linear_interpolation_full(lf_fractional_distance.clone(),false); 
-        linear_lf.select([col("wavelength").alias("shifted_wavelength"),
+    
+    //println!("linear_lf {:?}",linear_lf.clone().collect().unwrap());
+
+    linear_lf.select([col("pixel_id"),
+        col("wavelength"),
         col("mu_avg_s"),
         col("mu_avg_c")])
 
 }
+
+
 
 
 

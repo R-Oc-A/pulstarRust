@@ -3,6 +3,7 @@ use profile::*;
 use std::time::Instant;
 use profile::profile_mkr::*;
 use profile::utils::IntensityFlux;
+use polars::prelude::*;
 
 fn main() {
 
@@ -68,6 +69,7 @@ fn main() {
         //fluxes.write_output(time_point_number as u16).expect(&format!("Unable to write parquet file for {} time point",*pulsation_phase));
 
     }
+        println!("done with computations, starting with saving. Time is {:#?}",start_computing_time.elapsed());
     if let Ok(_) = utils::output_to_parquet(intensity_collection.collect_into_single_df(),time_points.len() as u16){
         println!("finished computation for a star's pulsation");
         println!("Total computation time is {:#?}",start_computing_time.elapsed());

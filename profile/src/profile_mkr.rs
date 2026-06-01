@@ -82,9 +82,15 @@ impl FluxOfSpectra {
     
         // Integrate specific intensity.        
         self.restart(pulsation_phase);
-        for cell in surface_cells.iter(){
-            self.collect_flux_from_cell(cell,  spectral_grid, hypercube2d);
+        let mut collecting_lf=self.flux_data.clone().lazy();
+        for (cell_number,cell) in surface_cells.iter().enumerate(){
+            collecting_lf = self.collect_flux_from_cell(cell,  spectral_grid, hypercube2d,collecting_lf.clone());
+            if cell_number%16 == 15{
+                let collecting_df = collecting_lf.clone().collect().unwrap();
+                collecting_lf = collecting_df.lazy();
+            }
         }
+        self.flux_data = collecting_lf.collect().unwrap();
     }
 
     /// So far I've only coded the version to write into a parquet file. 

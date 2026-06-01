@@ -71,14 +71,16 @@ impl FluxOfSpectra{
     /// This function should be used to construct a mutable instance at the beginning of the profile program. 
     pub fn new(profile_input: &ProfileConfig)->FluxOfSpectra{
         let wavelengths = profile_input.wavelength_range.get_wavelength_vector();
-        //let shifted_wavelengths = wavelengths.clone();
         let time = vec![0.0;wavelengths.len()];
         let flux = vec![0.0;wavelengths.len()];
         let continuum = vec![0.0;wavelengths.len()];
+        let pixel_id:Vec<u32> = wavelengths.clone().iter().enumerate().map(|(index,_)|{
+            index as u32
+        }).collect();
 
         let flux_data = df!(
             "wavelength" => wavelengths.clone(),
-            "shifted_wavelength" => wavelengths.clone(),
+            "pixel_id" => pixel_id.clone(),
             "time" => time.clone(),
             "flux" => flux.clone(),
             "continuum" => continuum.clone(),
@@ -86,7 +88,6 @@ impl FluxOfSpectra{
 
         FluxOfSpectra { time: time,
 			wavelengths: wavelengths,
-		//	shifted_wavelength: shifted_wavelengths,
 			flux: flux,
 			continuum: continuum,
             flux_data:flux_data,
@@ -109,7 +110,7 @@ impl FluxOfSpectra{
         */
         self.flux_data = self.flux_data.clone().lazy().select([
             col("wavelength"),
-            col("shifted_wavelength"),
+            col("pixel_id"),
             lit(time_point).alias("time"),
             lit(0.0).alias("flux"),
             lit(0.0).alias("continuum"),
@@ -118,7 +119,8 @@ impl FluxOfSpectra{
 
     /// This function fills the `shifted_wavelength` member of [FluxOfSpectra] by multiplying the wavelength vector  with the relative doppler shift stored in a [SurfaceCell]. 
     pub fn get_doppler_shifted_wavelengths(&mut self,cell:&SurfaceCell)->LazyFrame{
-        let lfs = self.flux_data.clone().lazy().select([(col("wavelength") * lit(cell.rel_dlamb)).alias("shifted_wavelength")]);
+        let lfs = self.flux_data.clone().lazy().select([col("pixel_id"),
+            (col("wavelength") * lit(cell.rel_dlamb)).alias("wavelength")]);
         lfs
     }
 }
@@ -271,40 +273,6 @@ impl SurfaceCell {
     }
 }
 
-/// This function applies binary search on an ordered vector to find the index where a reference value
-/// would be inserted. 
-/// 
-/// This is useful on this program because it gives the first and last values of the vector that are less than and greather than respectively.
-/// ### Arguments: 
-/// * `vector` - a borrowed vector of `f64` 
-/// * `key` - a reference value.
-/// ### Returns:
-/// * `index` - a `usize` value witht the property that  `vector[index-1]<key<vector[index]`
-fn search_geq(vector:&[f64],key:f64)-> usize {
-    //non empty vector
-    let first_element =vector.get(0);
-    if let Some(first_value) = first_element{
-        if key <= *first_value {0usize}
-        else{
-            let size = vector.len();
-            let mut top = size - 1;
-            let mut bottom = 0;
-            let mut middle = bottom + (top - bottom) / 2;
-            if key > vector[top]{panic!("key value is too large")}
-
-            while bottom<top{
-                if vector[middle] <key{
-                    bottom = middle + 1;
-                } else {
-                    top = middle;
-                }
-                middle = bottom + (top - bottom)/2;
-            }
-            top
-        }
-    }
-    else{ panic!("empty vector!")}
-}
 
 /// This function returns the maximum or minimum value of a column of [f64] from a [DataFrame]. This function is adviced to be used seldomly (as in outside of loops).
 /// 

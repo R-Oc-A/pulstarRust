@@ -66,7 +66,8 @@ impl FluxOfSpectra{
 pub fn collect_flux_from_cell(& mut self,
     cell: & SurfaceCell,
     spectral_grid: &mut SpectralGrid,
-    hypercube: &mut ParameterSpaceHypercube<LazyFrame>){
+    hypercube: &mut ParameterSpaceHypercube<LazyFrame>,
+    collecting_lf:LazyFrame)->LazyFrame{
 
         let mu_val = cell.coschi.sqrt();
         spectral_grid.fill_corner_values_2d(mu_val, hypercube);
@@ -74,47 +75,41 @@ pub fn collect_flux_from_cell(& mut self,
         let lf = hypercube.multilinear_interpolation(&coords_in_param_space).unwrap();
         let shifted_wavelengths = self.get_doppler_shifted_wavelengths(cell);
         let linear_lf = parse_intensity_grids::wavelength_interpolation(shifted_wavelengths, lf.clone());
+
         let flux_lf = linear_lf.clone().select(
-            [col("wavelength"),
+            [col("pixel_id"),
+            col("wavelength"),
             (col("mu_avg_s") * lit(cell.area)).alias("flux"),
             (col("mu_avg_c") * lit(cell.area)).alias("continuum")]
         );
 
-        let linear_df = flux_lf.clone().collect().unwrap();
-        println!("linear_df {:#?}",linear_df.head(Some(5)));
-        self.add_into_current_data(linear_df.lazy());
-        println!("self df {:#?}",self.flux_data.head(Some(5)));
+        //let linear_df = flux_lf.clone().collect().unwrap();
+        //println!("linear_df {:#?}",linear_df.head(Some(5)));
+        FluxOfSpectra::add_into_current_data(collecting_lf.clone(),flux_lf.clone())
+        //println!("self df {:#?}",self.flux_data.head(Some(5)));
 
-        //let flux_single_cell = extract_column_as_vectorf64("flux", &linear_df);
-        //let continuum_single_cell = extract_column_as_vectorf64("continuum", &linear_df);
-
-        //for (index,flux) in flux_single_cell.iter().enumerate(){
-        //    self.flux[index] += flux;
-        //    self.continuum[index] += continuum_single_cell[index];    
-        //}
-        self.flux = extract_column_as_vectorf64("flux", &self.flux_data);
-        self.continuum = extract_column_as_vectorf64("continuum", &self.flux_data);
 }
 
-fn add_into_current_data (& mut self, cell_contribution:LazyFrame){
-    let flux_lf = self.flux_data.clone().lazy();
+fn add_into_current_data (total_flux:LazyFrame, cell_contribution:LazyFrame)->LazyFrame{
+    let flux_lf = total_flux;
     let cell_lf = cell_contribution.clone();
 
     let flux_lf_to_add = flux_lf.clone().join(
         cell_lf,
-        [col("wavelength")],
-        [col("wavelength")],
+        [col("pixel_id")],
+        [col("pixel_id")],
         JoinArgs::new(JoinType::Inner)
     );
 
     let flux_added = flux_lf_to_add.clone().select([
         col("wavelength"),
+        col("pixel_id"),
         col("time"),
         (col("flux") + col("flux_right")).alias("flux"),
         (col("continuum") + col("continuum_right")).alias("continuum")
     ]);
 
-    self.flux_data = flux_added.clone().collect().unwrap();
+    flux_added
 }
 
 }
