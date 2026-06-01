@@ -95,30 +95,18 @@ impl FluxOfSpectra{
     }
 
     /// This function sets the specific intensity flux and continuum specific intensity as 0.0, it also stores the new phase of pulsation of the calculation. 
-    pub fn restart(&mut self, time_point:f64){
-         /*self.time.fill(time_point);
-         self.flux.fill(0.0);
-         self.continuum.fill(0.0);
-         
-         let flux_col = Series::new("flux".into(),self.flux.clone());
-         let continuum_col = Series::new("continuum".into(),self.continuum.clone());
-         let time_col = Series::new("time".into(),self.time.clone());
-
-         self.flux_data.replace("flux",flux_col).unwrap();
-         self.flux_data.replace("continuum",continuum_col).unwrap();
-         self.flux_data.replace("time",time_col).unwrap();
-        */
-        self.flux_data = self.flux_data.clone().lazy().select([
+    pub fn restart(&self, time_point:f64)->DataFrame{
+        self.flux_data.clone().lazy().select([
             col("wavelength"),
             col("pixel_id"),
             lit(time_point).alias("time"),
             lit(0.0).alias("flux"),
             lit(0.0).alias("continuum"),
-        ]).collect().unwrap();
+        ]).collect().unwrap()
     }
 
     /// This function fills the `shifted_wavelength` member of [FluxOfSpectra] by multiplying the wavelength vector  with the relative doppler shift stored in a [SurfaceCell]. 
-    pub fn get_doppler_shifted_wavelengths(&mut self,cell:&SurfaceCell)->LazyFrame{
+    pub fn get_doppler_shifted_wavelengths(& self,cell:&SurfaceCell)->LazyFrame{
         let lfs = self.flux_data.clone().lazy().select([col("pixel_id"),
             (col("wavelength") * lit(cell.rel_dlamb)).alias("wavelength")]);
         lfs

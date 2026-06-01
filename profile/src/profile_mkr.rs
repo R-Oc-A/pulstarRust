@@ -53,12 +53,12 @@ ParameterSpaceHypercube<LazyFrame>,//hypercube2d
 }
 
 impl FluxOfSpectra {
-    pub fn integrate(& mut self,
+    pub fn integrate(& self,
         star_lf:LazyFrame,
         pulsation_phase:f64,
         spectral_grid:& mut SpectralGrid,
         hypercube2d:& mut ParameterSpaceHypercube<LazyFrame>)
-        {
+        ->DataFrame{
         let expr = col("time").eq(lit(pulsation_phase));
         let sphere_frame = star_lf.clone().filter(expr);
         //--------------------------------------------------
@@ -81,16 +81,16 @@ impl FluxOfSpectra {
         let surface_cells = SurfaceCell::extract_cells_from_df(observed_sphere_df);
     
         // Integrate specific intensity.        
-        self.restart(pulsation_phase);
-        let mut collecting_lf=self.flux_data.clone().lazy();
+        let collecting_df = self.restart(pulsation_phase);
+        let mut collecting_lf= collecting_df.lazy();
         for (cell_number,cell) in surface_cells.iter().enumerate(){
             collecting_lf = self.collect_flux_from_cell(cell,  spectral_grid, hypercube2d,collecting_lf.clone());
-            if cell_number%16 == 15{
+            if cell_number%8 == 7{//collect everynow and then to avoid segmentation fault
                 let collecting_df = collecting_lf.clone().collect().unwrap();
                 collecting_lf = collecting_df.lazy();
             }
         }
-        self.flux_data = collecting_lf.collect().unwrap();
+        collecting_lf.collect().unwrap()
     }
 
     /// So far I've only coded the version to write into a parquet file. 
@@ -136,16 +136,16 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame)->DataFrame{
     //for (time_point_number,pulsation_phase) in time_points.iter().enumerate() {
     for pulsation_phase in time_points.iter() {
     
-        fluxes.integrate(
+        intensity_collection.append_fluxes(fluxes.integrate(
             lf.clone(),
             *pulsation_phase,
             & mut spectral_grid,
-            & mut hypercube2d);
+            & mut hypercube2d));
         println!("done computing flux");
 
         println!("finished collecting fluxes {}",pulsation_phase);
         //fluxes.write_output(time_point_number as u16).expect(&format!("Unable to write parquet file for {} time point",*pulsation_phase));
-        intensity_collection.append_fluxes(fluxes.clone());
+        //intensity_collection.append_fluxes(fluxes.clone());
         //last_timepoint=time_point_number as u16;
     }
     

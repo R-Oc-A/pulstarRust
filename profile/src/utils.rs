@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use ndarray::Data;
 use polars:: prelude::*;
 use crate::FluxOfSpectra;
 //pub mod csv_to_ndarray;
@@ -39,8 +40,8 @@ impl IntensityFlux{
 
         IntensityFlux { data_frame:result_lf.collect().unwrap()}
     }*/
-    pub fn append_fluxes(& mut self,fluxes:FluxOfSpectra){
-        self.data_frames.push(fluxes.flux_data.clone());
+    pub fn append_fluxes(& mut self,fluxes:DataFrame){
+        self.data_frames.push(fluxes);
     }
 
     pub fn collect_into_single_df(self)->DataFrame{

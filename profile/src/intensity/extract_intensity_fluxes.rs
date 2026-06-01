@@ -63,7 +63,7 @@ impl FluxOfSpectra{
 /// * `hypercube' - a reference to an instance of [ParameterSpaceHypercube]. The coordinates and values of the vertices in the parameter space that are used to perform the multilinear interpolation. 
 /// ### Returns:
 /// - This function adds the contribution of the observed specific intensities by a surface cell. 
-pub fn collect_flux_from_cell(& mut self,
+pub fn collect_flux_from_cell(&  self,
     cell: & SurfaceCell,
     spectral_grid: &mut SpectralGrid,
     hypercube: &mut ParameterSpaceHypercube<LazyFrame>,

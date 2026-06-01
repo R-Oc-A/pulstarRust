@@ -54,19 +54,16 @@ fn main() {
 
     let mut intensity_collection = IntensityFlux::new(time_points.len());
     //time loop    
-    for (time_point_number,pulsation_phase) in time_points.iter().enumerate() {
-        fluxes.integrate(
+    for (_,pulsation_phase) in time_points.iter().enumerate() {
+        intensity_collection.append_fluxes(fluxes.integrate(
             lf.clone(),
             *pulsation_phase,
             & mut spectral_grid,
-            & mut hypercube2d);
+            & mut hypercube2d));
         println!("done computing flux");
         
         println!("finished collecting fluxes {}",pulsation_phase);
         println!("time_elapsed is {:?} seconds",start_computing_time.elapsed());
-        
-        intensity_collection.append_fluxes(fluxes.clone());
-        //fluxes.write_output(time_point_number as u16).expect(&format!("Unable to write parquet file for {} time point",*pulsation_phase));
 
     }
         println!("done with computations, starting with saving. Time is {:#?}",start_computing_time.elapsed());
