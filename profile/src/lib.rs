@@ -15,7 +15,7 @@ mod intensity;
 pub mod utils;
 pub mod profile_mkr;
 pub mod regresor_template;
-
+pub mod famias_profiles;
 /// This structure holds the data to construct the synthetic normalized flux.
 #[derive(Clone)]
 pub struct FluxOfSpectra{
