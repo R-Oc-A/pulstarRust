@@ -162,3 +162,5 @@ impl temp_name_lib::interpolation::LinearlyInterpolatable for LimbDarkeningCoeff
         *left * fractional_distance + *right * (1.0-fractional_distance)
     }    
 }
+
+
