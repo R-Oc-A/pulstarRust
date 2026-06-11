@@ -23,7 +23,6 @@ use super::*;
 pub fn v_tar(
     mode: &PulsationMode,
     theta: f64,
-    dtheta: f64,
     phi:f64,
     velocity_amplitude:f64,
     tar_functions:&Option<TARCollection>,
@@ -33,7 +32,7 @@ pub fn v_tar(
         true => { Err(MathErrors::DivisionByZero)}
         false => {
             if let Some(hough_functions) = tar_functions{
-                let index = reference_frames::rotation_treatment::tar::construct_index(theta, dtheta);
+                let index = reference_frames::rotation_treatment::tar::construct_hough_index(theta,hough_functions.npts);
                 let h_r = hough_functions.h_r[index];
                 let h_p = hough_functions.h_p[index];
                 let h_t = hough_functions.h_t[index];

@@ -55,7 +55,6 @@ impl PulstarConfig {
 pub fn v_pulse_single_mode(
     mode: &PulsationMode,
     theta:f64,
-    dtheta:f64,
     phi:f64,
     velocity_amplitude:f64,
     spin_parameter:f64,
@@ -71,7 +70,7 @@ pub fn v_pulse_single_mode(
             v_perturbative(mode, sintheta, costheta, phi, velocity_amplitude, spin_parameter)},
 
         RotationRegime::Tar =>{
-            v_tar(mode, theta, dtheta, phi, velocity_amplitude, tar_functions)
+            v_tar(mode, theta,  phi, velocity_amplitude, tar_functions)
         },
         
         RotationRegime::CentrifugalDeformation => {
@@ -103,9 +102,6 @@ pub fn observed_pulsation_velocity(
     
 // * `velocity_amplitudes` - A [Vec] collection of the expected velocity amplitudes (with `f64` values) per mode. This collection is ordered in a way that there's a match with the pulsation mode in km/s.
     let mut collection_velocities:Vec<Coordinates>=Vec::new();
-    let dtheta = match parameters.mesh{
-        MeshConfig::Sphere { theta_step,.. } =>{theta_step.to_radians()}
-    };
     
     let velocity_amplitudes = parameters.get_velocity_amplitudes();
     
@@ -113,7 +109,6 @@ pub fn observed_pulsation_velocity(
         collection_velocities.push(v_pulse_single_mode(
             mode,
             theta,
-            dtheta,
             phi,
             velocity_amplitudes[index],
             mode.get_spin_parameter(parameters),

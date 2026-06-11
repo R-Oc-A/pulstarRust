@@ -15,7 +15,6 @@ use crate::reference_frames::rotation_treatment::tar::TARCollection;
 use crate::reference_frames::{surface_normal, Coordinates};
 
 pub mod pulstar_mkr;
-pub mod temp_name_healpix;
 
 /// This structure is necessary for starting the program. 
 /// It contains `mode_data` which is a [Vec] collection of the pulsation modes to be implemented, the `star_data` that characterizes the star, and the `time points` to be simulated. 
@@ -230,13 +229,16 @@ impl PulstarConfig {
                 let layer = cdshealpix::nested::get(depth);
                 let n_side = nside(depth) as u64;
                 let npix = 12u64 * n_side.pow(2);
+                let area =4.0*PI/(npix as f64);
                 //nested ordering of healpix
                 for index in 0..npix{
                     //transforming into colatitude ring ordering of healpix
                     let hash_ring = layer.to_ring(index);
-                    let (mut theta,phi) = cdshealpix::ring::center(n_side as u32,hash_ring);
+                    let (phi, mut theta) = cdshealpix::ring::center(n_side as u32,hash_ring);
                     theta = -(theta + 0.5*PI);
-                    rasterized_star.cells.push(SurfaceCell::new(theta,phi));
+                    let mut new_surface_cell = SurfaceCell::new(theta,phi);
+                    new_surface_cell.area = area;
+                    rasterized_star.cells.push(new_surface_cell);
                 }
             }
         }
@@ -334,17 +336,17 @@ impl SurfaceCell{
         temperature_0:f64,
         g0:f64,
         tar_collections:&[Option<TARCollection>]){
-        //Select the type of geometry
+        // Select the type of geometry
+        // So far it's the same for Spherical or healpix
         match parameters.mesh{
-            MeshConfig::Sphere {theta_step,
-                ..} => {
+            _ => {
                 let theta = self.coord_1;
                 let phi = self.coord_2;
-                let dtheta = theta_step.to_radians();
+                let area = self.area;
                 let k_spherical = k.transform(theta, phi);
                 
                 let s_normal = surface_normal(parameters,
-                     theta, dtheta,phi,tar_collections).unwrap();
+                     theta, phi, area, tar_collections).unwrap();
 
             
                 let cos_chi = reference_frames::cos_chi(
@@ -355,7 +357,7 @@ impl SurfaceCell{
                 else {
                     self.coschi = cos_chi;
                     self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap();
-                    (self.t_eff,self.log_g) = local_surface_temperature_logg(parameters, theta, dtheta, phi, g0, temperature_0, tar_collections);
+                    (self.t_eff,self.log_g) = local_surface_temperature_logg(parameters, theta,phi, g0, temperature_0, tar_collections);
                     self.area = s_normal.project_vector(&k_spherical).unwrap();
                 }
             }   
