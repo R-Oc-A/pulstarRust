@@ -153,7 +153,7 @@ pub fn non_rotating_d_dphi_dphi(
 	costheta: f64,
 	phi: f64) -> Result<f64,MathErrors>{
 
-    match sintheta < MACHINE_PRECISION{  
+    match sintheta.abs() < MACHINE_PRECISION{  
         false => {
         let r_dr = mode.rel_dr;
         let phase= mode.phase;

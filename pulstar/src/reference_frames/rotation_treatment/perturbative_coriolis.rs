@@ -142,7 +142,7 @@ pub fn perturbative_d_dtheta_dtheta(
 	costheta: f64,
 	phi: f64,
     spin_parameter:f64) -> Result<f64,MathErrors>{
-    match sintheta > f64::EPSILON.sqrt(){
+    match sintheta.abs() > f64::EPSILON.sqrt(){
         true =>{    
             let spheroidal_part = non_rotating_d_dtheta_dtheta(mode, sintheta, costheta, phi);
         

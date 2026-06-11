@@ -230,15 +230,18 @@ impl PulstarConfig {
                 let n_side = nside(depth) as u64;
                 let npix = 12u64 * n_side.pow(2);
                 let area =4.0*PI/(npix as f64);
+                let epsilon_theta = 1.5f64.to_radians();
                 //nested ordering of healpix
                 for index in 0..npix{
                     //transforming into colatitude ring ordering of healpix
                     let hash_ring = layer.to_ring(index);
                     let (phi, mut theta) = cdshealpix::ring::center(n_side as u32,hash_ring);
                     theta = -(theta + 0.5*PI);
+                    if theta>= epsilon_theta || theta <=PI-epsilon_theta{//avoid the poles
                     let mut new_surface_cell = SurfaceCell::new(theta,phi);
                     new_surface_cell.area = area;
                     rasterized_star.cells.push(new_surface_cell);
+                    }
                 }
             }
         }

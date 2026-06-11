@@ -226,7 +226,7 @@ pub fn tar_d_dphi_dphi(
 	phi: f64,
     houghs_functions:&TARCollection) -> Result<f64,MathErrors>{
     let sintheta = theta.sin();
-    match sintheta < f64::EPSILON.sqrt(){  
+    match sintheta.abs() < f64::EPSILON.sqrt(){  
         false => {
             let index = construct_hough_index(theta, houghs_functions.npts);
             let h_p = houghs_functions.h_p[index];
@@ -237,7 +237,8 @@ pub fn tar_d_dphi_dphi(
             /(sintheta.abs().powi(2)) )
         }
 
-        true =>{Err(MathErrors::DivisionByZero)}
+        true =>{
+            Err(MathErrors::DivisionByZero)}
     }
 }
 
