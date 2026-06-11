@@ -8,13 +8,14 @@ use temp_name_lib::math_module::spherical_harmonics;
 use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
 use temp_name_lib::type_def::{PI, RADIUSSUN};
 use nalgebra as na;
-
+use cdshealpix::*;
 use crate::local_pulsation_velocity::observed_pulsation_velocity;
 use crate::local_temperature_and_gravity::local_surface_temperature_logg;
 use crate::reference_frames::rotation_treatment::tar::TARCollection;
 use crate::reference_frames::{surface_normal, Coordinates};
 
 pub mod pulstar_mkr;
+pub mod temp_name_healpix;
 
 /// This structure is necessary for starting the program. 
 /// It contains `mode_data` which is a [Vec] collection of the pulsation modes to be implemented, the `star_data` that characterizes the star, and the `time points` to be simulated. 
@@ -131,6 +132,13 @@ pub enum MeshConfig{
     /// A sphere variant uses a regular angular spacing on the surface of a star, thus is only parameterized by Δθ Δφ.
     Sphere{theta_step:f64,
            phi_step:f64},
+
+    /// A sphere tesselated using the hierarchical scheme Healpix using the implementation developped by [cdshealpix]
+    HSphere{
+        /// The depth value defines the nside parameter as nside = 2^depth; on the other hand the nside parameter defines the actual number of cells as $N_{pix}=12\times N_side^{2}$.
+        /// depth &in [0,29]$
+        depth:u8,
+    }
     //[Ricardo:]Here maybe some other geometries may rise
 }
 
@@ -190,7 +198,8 @@ impl PulstarConfig {
     pub fn get_mesh_structure(&self)->(f64,f64){
         match self.mesh{
             MeshConfig::Sphere { theta_step,
-                 phi_step } => {(theta_step,phi_step)}
+                 phi_step } => {(theta_step,phi_step)},
+            _ => {(0.0,0.0)}
         }
     }
 
@@ -216,16 +225,20 @@ impl PulstarConfig {
                     phi =1.0
                     }
                 }
-/*
-                while theta < 180.0{
-                    while phi < 360.0{                        
-                        rasterized_star.cells.push(SurfaceCell::new(theta.to_radians(), phi.to_radians()));
-                        phi += phi_step;
-                    }
-                    phi = 1.0;
-                    theta += theta_step;
-                }*/
-            }   
+            }
+            MeshConfig::HSphere { depth  }=>{
+                let layer = cdshealpix::nested::get(depth);
+                let n_side = nside(depth) as u64;
+                let npix = 12u64 * n_side.pow(2);
+                //nested ordering of healpix
+                for index in 0..npix{
+                    //transforming into colatitude ring ordering of healpix
+                    let hash_ring = layer.to_ring(index);
+                    let (mut theta,phi) = cdshealpix::ring::center(n_side as u32,hash_ring);
+                    theta = -(theta + 0.5*PI);
+                    rasterized_star.cells.push(SurfaceCell::new(theta,phi));
+                }
+            }
         }
 
         //--Equilibrium log(g_0) (gravity g_0 is in cgs units)
