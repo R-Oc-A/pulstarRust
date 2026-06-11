@@ -128,12 +128,12 @@ fn extract_column_as_vectorf64(column_name: &str,df:&DataFrame)->Vec<f64>{
 }
 
 fn get_max(vec:&Vec<f64>)->f64{
-    vec.iter().fold(0.0, |accumulator,item| 
+    vec.iter().fold(*vec.get(0).unwrap(), |accumulator,item| 
     if *item>accumulator {*item} else{accumulator})
 }
 
 fn get_min(vec:&Vec<f64>)->f64{
-    vec.iter().fold(0.0, |accumulator,item| 
-    if *item<accumulator ||*item>0.0 {*item} else{accumulator})
+    vec.iter().fold(*vec.get(0).unwrap(), |accumulator,item| 
+    if *item<accumulator {*item} else{accumulator})
     
 }

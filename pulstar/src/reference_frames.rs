@@ -123,7 +123,6 @@ pub fn surface_normal(
 parameters: &PulstarConfig,
 theta: f64,
 phi: f64,
-area: f64,
 tar_collections:&[Option<TARCollection>],
 )->Result<Coordinates,MathErrors>{
     let sintheta = theta.sin();
@@ -190,7 +189,7 @@ tar_collections:&[Option<TARCollection>],
         let phi_hat = sintheta * coords[2] - total_dev2/sintheta;
 
         let normal = na::Vector3::new(r_hat,theta_hat,phi_hat);
-        let length = area * (1.0 + 2.0 * coords[0]
+        let length = (1.0 + 2.0 * coords[0]
             + costheta/sintheta * coords[1]
             + total_dev3 + total_dev4);
 

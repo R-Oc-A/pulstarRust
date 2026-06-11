@@ -101,7 +101,7 @@ impl Coordinates {
     /// ### Returns:
     /// * `Coordinate::Cartesian(unit_vector_k)` - The unit vector k in cartesian coordinates.
     pub fn unit_vector_k(inclination_angle:f64)->Self{
-        Coordinates::Cartesian(na::Vector3::new(-inclination_angle.sin(),
+        Coordinates::Cartesian(na::Vector3::new(inclination_angle.sin(),
             0.0,
             inclination_angle.cos() ))  
     }

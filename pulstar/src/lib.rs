@@ -2,6 +2,7 @@
 //! the (linear) variations on surface temperature, log g, and also the pulsation velocity components.
 //! for each of the surface cells. 
 use core::f64;
+use std::f64::consts;
 
 use serde::Deserialize;
 use temp_name_lib::math_module::spherical_harmonics;
@@ -229,17 +230,17 @@ impl PulstarConfig {
                 let layer = cdshealpix::nested::get(depth);
                 let n_side = nside(depth) as u64;
                 let npix = 12u64 * n_side.pow(2);
-                let area =4.0*PI/(npix as f64);
                 let epsilon_theta = 1.5f64.to_radians();
                 //nested ordering of healpix
                 for index in 0..npix{
                     //transforming into colatitude ring ordering of healpix
                     let hash_ring = layer.to_ring(index);
-                    let (phi, mut theta) = cdshealpix::ring::center(n_side as u32,hash_ring);
-                    theta = -(theta + 0.5*PI);
+                    let (mut phi,mut theta) = cdshealpix::ring::center(n_side as u32,hash_ring);
+                    theta = -((4.0*theta/PI - 1.0)%PI);
+                    phi = phi%(2.0*PI);
                     if theta>= epsilon_theta || theta <=PI-epsilon_theta{//avoid the poles
-                    let mut new_surface_cell = SurfaceCell::new(theta,phi);
-                    new_surface_cell.area = area;
+                    let new_surface_cell = SurfaceCell::new(theta,phi);
+                    //new_surface_cell.area = area;
                     rasterized_star.cells.push(new_surface_cell);
                     }
                 }
@@ -341,32 +342,33 @@ impl SurfaceCell{
         tar_collections:&[Option<TARCollection>]){
         // Select the type of geometry
         // So far it's the same for Spherical or healpix
-        match parameters.mesh{
-            _ => {
-                let theta = self.coord_1;
-                let phi = self.coord_2;
-                let area = self.area;
-                let k_spherical = k.transform(theta, phi);
-                
-                let s_normal = surface_normal(parameters,
-                     theta, phi, area, tar_collections).unwrap();
+        let theta = self.coord_1;
+        let phi = self.coord_2;
+        let area = match parameters.mesh{
+            MeshConfig::Sphere { theta_step, phi_step }=>{theta.sin()*theta_step*phi_step}
+            MeshConfig::HSphere { depth }=>{
+                let npix = 12*nside(depth).pow(2);
+                4.0*PI/(npix as f64)
+            }
+        };
+        let k_spherical = k.transform(theta, phi);
+        
+        let s_normal = surface_normal(parameters,
+             theta, phi, tar_collections).unwrap();
 
-            
-                let cos_chi = reference_frames::cos_chi(
-                    &s_normal,
-                   &k_spherical,
-                    theta, phi);
-                if cos_chi <= 0.0 { self.set_local_values_to_zero()}
-                else {
-                    self.coschi = cos_chi;
-                    self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap();
-                    (self.t_eff,self.log_g) = local_surface_temperature_logg(parameters, theta,phi, g0, temperature_0, tar_collections);
-                    self.area = s_normal.project_vector(&k_spherical).unwrap();
-                }
-            }   
+    
+        let cos_chi = reference_frames::cos_chi(
+            &s_normal,
+           &k_spherical,
+            theta, phi);
+        if cos_chi <= std::f64::EPSILON { self.set_local_values_to_zero()}
+        else {
+            self.coschi = cos_chi;
+            self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap();
+            (self.t_eff,self.log_g) = local_surface_temperature_logg(parameters, theta,phi, g0, temperature_0, tar_collections);
+            self.area = area*cos_chi;//*s_normal.project_vector(&k_spherical).unwrap();
         }
-
-    }
+    }   
 }
 
 impl PulsationMode{

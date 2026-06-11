@@ -21,7 +21,7 @@ rel_dtemp = 2.62
 phase_rel_dtemp = 180.0
 rel_dg = 10.0
 phase_rel_dg = 34.0
-rotation_effects = "NonRotating" #NonRotating,PerturbativeCoriolis,Tar,CentrifugalDeformation
+rotation_effects = "PerturbativeCoriolis" #NonRotating,PerturbativeCoriolis,Tar,CentrifugalDeformation
 [star_data]
 mass = 10.0
 radius = 6.93
