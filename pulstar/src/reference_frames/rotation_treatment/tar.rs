@@ -39,14 +39,10 @@ impl PulsationMode{
     pub fn new_tar_collection(&self, pulsconfig: &PulstarConfig)->TARCollection{
         let q = self.get_spin_parameter(pulsconfig);
         println!("spin parameter is {}",q);
-        let mut npts = match pulsconfig.mesh{
+        let npts = match pulsconfig.mesh{
             MeshConfig::Sphere { theta_step, phi_step:_ }=>{(180.0/theta_step) as usize}
             MeshConfig::HSphere { depth }=>{n_isolatitude_rings(nside(depth)) as usize}
         };
-        if npts < NPTS{
-            npts = NPTS;
-        }
-        if npts==0{panic!("npts = 0, that can't be the case")};
         let (lambda,
             mu_values,
             h_r,

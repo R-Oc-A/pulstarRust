@@ -4,6 +4,10 @@ use ndarray_linalg::*;
 use crate::type_def::PI;
 use itertools::Itertools;
 
+///Number of collocation points.
+const NPTS:usize = 800;
+
+mod barycentric_interpolation;
 
 /// This function calculates Hough functions. 
 ///
@@ -41,9 +45,11 @@ pub fn hough(
     )
 {
 
-    //enforce an even number of points
-    let m_size = npts/2;
-    let npts = m_size*2;
+    // To compute Hough functions, we must enforce an even number of points
+    // this was done by setting NPTS = msize * 2; where msize = npts/2; this is no longer necesary because 
+    // we set the number of collocation points to 800;
+    // still m_size is half the points because hough functions are (anti)symmetric around the equator so it's only necesary to compute on a hemisphere (north).
+    let m_size = NPTS/2;
 
     // define parity
     let parity = (l as i16-m)%2;
@@ -59,7 +65,7 @@ pub fn hough(
     let mut coeffs0_vec:Vec<f64> = Vec::with_capacity(m_size);
     let q_sqrd = q.powi(2);
     for index in 0..m_size{
-        mu_vec.push((PI/(npts as f64) * (index as f64 + 0.5)).cos());//by defining the cosine here this way, you avoid the singular points.
+        mu_vec.push((PI/(NPTS as f64) * (index as f64 + 0.5)).cos());//by defining the cosine here this way, you avoid the singular points.
         s_vec.push( (1.0-mu_vec[index].powi(2)).sqrt() );
     }
     
@@ -92,10 +98,10 @@ pub fn hough(
         for j in 0..m_size{
             
             let j_index = (2 * j as i16 + parity) as f64;
-            let phase = PI * j_index/(npts as f64) * ((npts+i) as f64 +0.5);
+            let phase = PI * j_index/(NPTS as f64) * ((NPTS+i) as f64 +0.5);
             let cij =phase.cos();
-            //let sij =(PI*j_index/(npts as f64) * 
-            //((npts+i) as f64 + 0.5) ).sin();
+            //let sij =(PI*j_index/(NPTS as f64) * 
+            //((NPTS+i) as f64 + 0.5) ).sin();
             let sij = (1.0-cij.powi(2)).sqrt()*(phase.sin().signum());
             if pf.abs() == 1{
                 d0[[i,j]]=cij*s[i];
@@ -322,15 +328,28 @@ pub fn hough(
     hough_rp *= norm_factor_hr;
     hough_tp *= norm_factor_hr;
     hough_pp *= norm_factor_hr;
+
+
+    let mu_on_grid = barycentric_interpolation::construct_mu_array_on_grid(npts);
+
+
+    let h_r = barycentric_interpolation::interpolate_hough_function(&mu_on_grid, &mu, &hough_r);
+    let h_t = barycentric_interpolation::interpolate_hough_function(&mu_on_grid, &mu, &hough_t);
+    let h_p = barycentric_interpolation::interpolate_hough_function(&mu_on_grid, &mu, &hough_p);
+    let h_rp = barycentric_interpolation::interpolate_hough_function(&mu_on_grid, &mu, &hough_rp);
+    let h_tp = barycentric_interpolation::interpolate_hough_function(&mu_on_grid, &mu, &hough_tp);
+    let h_pp = barycentric_interpolation::interpolate_hough_function(&mu_on_grid, &mu, &hough_pp);
+
+
     (
         eigenval,
-        mu.to_vec(),
-        hough_r.to_vec(),
-        hough_t.to_vec(),
-        hough_p.to_vec(),
-        hough_rp.to_vec(),
-        hough_tp.to_vec(),
-        hough_pp.to_vec()
+        mu_on_grid.to_vec(),
+        h_r.to_vec(),
+        h_t.to_vec(),
+        h_p.to_vec(),
+        h_rp.to_vec(),
+        h_tp.to_vec(),
+        h_pp.to_vec()
     )        
 }
 

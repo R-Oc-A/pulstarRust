@@ -9,4 +9,7 @@ assert_approx_eq = "1.1.0"
 nalgebra = "0.33.2"
 ndarray = "0.17.2"
 ndarray-linalg = {version = "*" , features = ["openblas-static"]}
+scirs2-interpolate = "0.5.0"
+scirs2-core = "0.5.0"
 itertools = "*"
+
