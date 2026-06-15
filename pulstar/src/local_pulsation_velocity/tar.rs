@@ -1,6 +1,6 @@
 use super::reference_frames::Coordinates;
 use crate::reference_frames::rotation_treatment::tar::TARCollection;
-use temp_name_lib::utils::MathErrors;
+use temp_name_lib::{math_module::spherical_harmonics::norm_factor::ylmnorm, utils::MathErrors};
 
 use super::*;
 
@@ -33,16 +33,22 @@ pub fn v_tar(
         false => {
             if let Some(hough_functions) = tar_functions{
                 let index = reference_frames::rotation_treatment::tar::construct_hough_index(theta,hough_functions.npts);
+                //if theta > 1.57 {println!("index is {}, and theta is {}",index,theta)};
+                let l = mode.l;
+                let m = mode.m;
                 let h_r = hough_functions.h_r[index];
                 let h_p = hough_functions.h_p[index];
                 let h_t = hough_functions.h_t[index];
 
-                let radial_velocity = velocity_amplitude;
+                let radial_velocity = velocity_amplitude * ylmnorm(l, m);
                 let tangential_velocity = mode.k*radial_velocity;
+                let phase = mode.phase + phi + m as f64;
+                let sinphase = phase.sin();
 
-                let v_r = -radial_velocity * h_r * (mode.phase + phi * mode.m as f64).sin();
-                let v_theta = -tangential_velocity * h_t/sintheta *(mode.phase + phi * mode.m as f64).sin();
-                let v_phi = tangential_velocity * h_p/sintheta * (mode.phase + phi * mode.m as f64).cos();
+
+                let v_r = -radial_velocity * h_r * sinphase;
+                let v_theta = -tangential_velocity * h_t/sintheta * sinphase;
+                let v_phi = tangential_velocity/sintheta * h_p * phase.cos();
 
                 Ok(Coordinates::Spherical(na::Vector3::new(v_r,v_theta, v_phi)))
             }else{

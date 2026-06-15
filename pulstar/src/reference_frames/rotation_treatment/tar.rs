@@ -6,7 +6,7 @@ use crate::{MeshConfig, PulsationMode, PulstarConfig, reference_frames::{Coordin
 use nalgebra as na;
 use cdshealpix::{ring::n_isolatitude_rings, *};
 
-pub const NPTS:usize = 1000usize; 
+pub const NPTS:usize = 800usize; 
 
 
 /// Contains the quantities obtained by solving the eigenvalue problem of the Laplace Tidal Differential equation,
@@ -111,7 +111,10 @@ pub fn tar_displacement(
     houghs_functions:&TARCollection)->Result<Coordinates,MathErrors>{
         let sintheta = theta.sin();
         match sintheta.abs()<=f64::EPSILON.sqrt(){
-            true => {Err(MathErrors::DivisionByZero)}
+            true => {
+                println!("theta is {:3.2}",theta);
+                Err(MathErrors::DivisionByZero)}
+
             false =>{
                 let index = construct_hough_index(theta,houghs_functions.npts);
                 
@@ -119,12 +122,13 @@ pub fn tar_displacement(
                 let h_p= houghs_functions.h_p[index];
                 let h_t = houghs_functions.h_t[index];
                 let cos_overall_phase =  (mode.phase + phi * mode.m as f64).cos();
-                let sin_overall_phase =  (mode.phase + phi * mode.m as f64).sin();
+                let sin_overall_phase =  (1.0-cos_overall_phase.powi(2)).sqrt() * (
+                    (mode.phase + phi * mode.m as f64).sin().signum());
                 
                 // Im taking this expressions from Townsend 2020.
                 let delta_r = radial_amplitude * h_r * cos_overall_phase; 
                 let delta_theta = tangential_amplitude * h_t/sintheta * cos_overall_phase; 
-                let delta_phi = -(mode.m as f64) * tangential_amplitude * h_p / sintheta.powi(2) * sin_overall_phase; 
+                let delta_phi = -tangential_amplitude * h_p / sintheta * sin_overall_phase; 
 
                 Ok(Coordinates::Spherical( (na::Vector3::new(delta_r, delta_theta, delta_phi)) ))
             }
@@ -149,7 +153,7 @@ pub fn tar_d_dr_rdtheta(
     ) -> f64{
     let index = construct_hough_index(theta,houghs_functions.npts);
 
-    let dh_r = -houghs_functions.dh_r[index]*theta.sin();// dH_r is the derivative of H_r with respect to μ=cos(θ), so here I applied the chain rule.
+    let dh_r = -houghs_functions.dh_r[index];// dH_r is the derivative of H_r with respect to μ=cos(θ), so here I applied the chain rule.
 
     ampl_r(mode)*dh_r
     * (mode.phase + (mode.m as f64) * phi).cos()
@@ -175,10 +179,11 @@ pub fn tar_d_dtheta_dtheta(
     
     let sintheta=theta.sin();
     match sintheta.abs() <= f64::EPSILON.sqrt(){
-        true => { Err(MathErrors::DivisionByZero)}
+        true => { println!("theta is {:3.2}",theta);
+             Err(MathErrors::DivisionByZero)}
         false => {
             let index = construct_hough_index(theta,houghs_functions.npts);
-            let dh_t= - houghs_functions.dh_t[index]*sintheta;
+            let dh_t= - houghs_functions.dh_t[index];
             let h_t = houghs_functions.h_t[index];
             Ok(ampl_t(mode)
             * (dh_t/sintheta - h_t/ sintheta.powi(2) * theta.cos())
@@ -238,6 +243,7 @@ pub fn tar_d_dphi_dphi(
         }
 
         true =>{
+            println!("theta is {:3.2}",theta);
             Err(MathErrors::DivisionByZero)}
     }
 }

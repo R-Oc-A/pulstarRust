@@ -230,15 +230,17 @@ impl PulstarConfig {
                 let layer = cdshealpix::nested::get(depth);
                 let n_side = nside(depth) as u64;
                 let npix = 12u64 * n_side.pow(2);
-                let epsilon_theta = 1.5f64.to_radians();
+                let epsilon_theta = 0.5f64.to_radians();
                 //nested ordering of healpix
                 for index in 0..npix{
                     //transforming into colatitude ring ordering of healpix
                     let hash_ring = layer.to_ring(index);
                     let (mut phi,mut theta) = cdshealpix::ring::center(n_side as u32,hash_ring);
-                    theta = -((4.0*theta/PI - 1.0)%PI);
+                    theta = -(theta - PI)%PI;
                     phi = phi%(2.0*PI);
-                    if theta>= epsilon_theta || theta <=PI-epsilon_theta{//avoid the poles
+                    if theta> epsilon_theta && theta < (PI-epsilon_theta){//avoid the poles
+                        if theta == 0.0 {panic!("something's wrong with your definition of theta ={:3.2}",theta)}
+                        //println!("theta {:2.4} initiated",theta.to_degrees());
                     let new_surface_cell = SurfaceCell::new(theta,phi);
                     //new_surface_cell.area = area;
                     rasterized_star.cells.push(new_surface_cell);
@@ -344,7 +346,7 @@ impl SurfaceCell{
         let theta = self.coord_1;
         let phi = self.coord_2;
         let area = match parameters.mesh{
-            MeshConfig::Sphere { theta_step, phi_step }=>{theta.sin()*theta_step*phi_step}
+            MeshConfig::Sphere { theta_step, phi_step }=>{theta.sin().abs()*theta_step*phi_step}
             MeshConfig::HSphere { depth }=>{
                 let npix = 12*nside(depth).pow(2);
                 4.0*PI/(npix as f64)
@@ -365,7 +367,7 @@ impl SurfaceCell{
             self.coschi = cos_chi;
             self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap();
             (self.t_eff,self.log_g) = local_surface_temperature_logg(parameters, theta,phi, g0, temperature_0, tar_collections);
-            self.area = area*cos_chi;//*s_normal.project_vector(&k_spherical).unwrap();
+            self.area = area * s_normal.project_vector(&k_spherical).unwrap();
         }
     }   
 }

@@ -92,11 +92,11 @@ pub fn hough(
         for j in 0..m_size{
             
             let j_index = (2 * j as i16 + parity) as f64;
-            let cij =(PI*j_index/(npts as f64) * 
-            ((npts+i) as f64 + 0.5) ).cos();
-            let sij =(PI*j_index/(npts as f64) * 
-            ((npts+i) as f64 + 0.5) ).sin();
-            
+            let phase = PI * j_index/(npts as f64) * ((npts+i) as f64 +0.5);
+            let cij =phase.cos();
+            //let sij =(PI*j_index/(npts as f64) * 
+            //((npts+i) as f64 + 0.5) ).sin();
+            let sij = (1.0-cij.powi(2)).sqrt()*(phase.sin().signum());
             if pf.abs() == 1{
                 d0[[i,j]]=cij*s[i];
                 d1[[i,j]]=j_index * sij - cij*mu[i]/s[i];
@@ -109,30 +109,12 @@ pub fn hough(
                     mu[i] * sij - j_index * cij * s[i]
                 ) / s[i].powi(3);
             }
-            /*if extra {
-                let j_index = (2 * j as i16 + 1 - parity) as f64;
-                let cij = (PI* j_index/(npts as f64) * ((npts + i) as f64 + 0.5 )).cos();
-                let sij = (PI* j_index/(npts as f64) * ((npts + i) as f64 + 0.5 )).sin();
-
-                if pf.abs() == 1{
-                    d0_other[[i,j]]=cij;
-                    d1_other[[i,j]]=j_index * sij / s[i]
-                }else{
-                    d0_other[[i,j]]=cij * s[i];
-                    d1_other[[i,j]]=j_index * sij - cij * mu[i] / s[i]
-                };
-            }*/
         }         
     }   
 
     d0 = d0.inv().unwrap();
     d1 = d1.dot(&d0);
     d2 = d2.dot(&d0);
-
-    /*if extra{
-        d0_other = d0_other.inv().unwrap();
-        d1_other = d1_other.dot(&d0_other);
-    }*/
 
     let full = 
         Array2::from_diag(&coeffs2).dot(&d2) +
