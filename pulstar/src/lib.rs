@@ -260,10 +260,9 @@ impl PulstarConfig {
 
     ///This method gives the rotation frequency in cycles per day
     pub fn get_rotation_frequency(&self)->f64{
-        let rot_freq_in_rad_sec = self.star_data.v_omega / (self.star_data.radius * RADIUSSUN*1.0e-3);
+        let rot_period_in_days = (self.star_data.radius * RADIUSSUN * 1.0e-3 * 2.0 * PI)/self.star_data.v_omega / (3.6e3 * 24.0);
 
-        rot_freq_in_rad_sec/(2.0*f64::consts::PI) * 3.6e3
-
+        1.0/rot_period_in_days
     }
 
     pub fn get_tar_collections(&self)->Vec<Option<TARCollection>>{
