@@ -58,7 +58,7 @@ impl GaussianProfile{
             let Star_logg =3.8;
             let output:DataFrame = DataFrame::empty();
             GaussianProfile { fl_in_ul, continuum, 
-                y_gauss, wavelength:sampling_wavelengths.clone().to_vec(),
+                y_gauss, wavelength:sampling_wavelengths.to_vec(),
                 eq_w, alpha_w,
                 sigmag_sqrtpi_sqrt2,
                 sigmag_sqrt2_pow2,
@@ -163,4 +163,103 @@ impl temp_name_lib::interpolation::LinearlyInterpolatable for LimbDarkeningCoeff
     }    
 }
 
+impl LimbDarkeningCoefficients{
 
+    fn new_parameter_space_cube(central_wavelength:f64,t_eff:f64,log_g:f64,df:&DataFrame)->ParameterSpaceHypercube<Self>{
+        let mut new_cube = ParameterSpaceHypercube::<Self>::new(2);
+        
+        
+        let teff= extract_column_as_vectorf64("Teff", df);
+        let logg= extract_column_as_vectorf64("Teff", df);
+        let l_coeffs1= extract_column_as_vectorf64("Teff", df);
+        let teff= extract_column_as_vectorf64("Teff", df);
+        new_cube
+    }
+
+
+}
+
+mod parse_famis_grid{
+    use super::*;
+    const STROM_FILTER_CENTRAL_WAVELENGTH:[f64;4]=[3500.0, 4110.0, 4670.0, 5470.0];//in kelvin
+
+
+    pub fn open_famias_grid(path:&str)->DataFrame{
+        let schema:Vec<Field> = vec![
+            Field::new("Teff".into(),DataType::Float64),
+            Field::new("logg".into(),DataType::Float64),
+            Field::new("M/H".into(),DataType::Float64),
+            Field::new("u_a1".into(),DataType::Float64),
+            Field::new("u_a2".into(),DataType::Float64),
+            Field::new("u_a3".into(),DataType::Float64),
+            Field::new("u_a4".into(),DataType::Float64),
+            Field::new("v_a1".into(),DataType::Float64),
+            Field::new("v_a2".into(),DataType::Float64),
+            Field::new("v_a3".into(),DataType::Float64),
+            Field::new("v_a4".into(),DataType::Float64),
+            Field::new("b_a1".into(),DataType::Float64),
+            Field::new("b_a2".into(),DataType::Float64),
+            Field::new("b_a3".into(),DataType::Float64),
+            Field::new("b_a4".into(),DataType::Float64),
+            Field::new("y_a1".into(),DataType::Float64),
+            Field::new("y_a2".into(),DataType::Float64),
+            Field::new("y_a3".into(),DataType::Float64),
+            Field::new("y_a4".into(),DataType::Float64),
+        ];
+        let path = format!("{}",path);
+        let df = LazyCsvReader::new(path)
+        .with_has_header(true)
+        .with_separator(b' ')
+        .with_schema(Some(Arc::new(
+            Schema::from_iter(schema))))
+        .finish().unwrap()
+        .collect().unwrap();
+        df
+    }
+
+    fn trim_df(central_wavelength:f64,lf:LazyFrame)->DataFrame{
+        let filter_wl:Vec<f64> = Vec::from(STROM_FILTER_CENTRAL_WAVELENGTH.clone());
+        if central_wavelength<STROM_FILTER_CENTRAL_WAVELENGTH[0]{panic!("central wavelenght is out of bounds, it should be between {} and {} Angstroms",STROM_FILTER_CENTRAL_WAVELENGTH[0],STROM_FILTER_CENTRAL_WAVELENGTH[3])};
+        if central_wavelength>STROM_FILTER_CENTRAL_WAVELENGTH[3] {panic!("central wavelenght is out of bounds, it should be between {} and {} Angstroms",STROM_FILTER_CENTRAL_WAVELENGTH[0],STROM_FILTER_CENTRAL_WAVELENGTH[3])};
+        let (left_index,_)=filter_wl.iter().enumerate()
+        .fold((0usize,STROM_FILTER_CENTRAL_WAVELENGTH[0]),
+        |(index_acc,acc),(index,filter_wavelength)|
+        {if *filter_wavelength <= central_wavelength {(index,*filter_wavelength)}
+        else{(index_acc,acc)}});
+        let (namel,namer):(char,char) = match left_index{
+            0usize=>{('u','b')}
+            1usize=>{('b','v')}
+            2usize=>{('v','y')}
+            3usize=>{('y','y')}
+            _=>{(' ',' ')}
+        };
+        let mut col_names:Vec<Expr> = Vec::with_capacity(10);
+        col_names.push(col("Teff"));
+        col_names.push(col("logg"));
+        for i in 1..=4{
+            col_names.push(col(format!("{}_a{}",namel,i)))
+        }
+        for i in 1..=4{
+            col_names.push(col(format!("{}_a{}",namer,i)))
+        }
+        lf.clone().select(
+            col_names
+        ).collect().unwrap()
+    }
+    fn trim_teff_logg(t_eff:f64,log_g:f64,df:&DataFrame)->DataFrame{
+        let teffs = extract_column_as_vectorf64("Teff", df);
+        let min_teff = teffs.iter().fold(teffs[0],|acc,t|{if *t<t_eff {*t}else{acc}});
+        let max_teff =  teffs.iter().fold(teffs[0],|acc,t|{if acc>=t_eff {acc}else{*t}});
+        let ddf = df.clone().lazy().filter(col("Teff").eq(lit(min_teff)).or(col("Teff").eq(lit(max_teff))))
+        .sort(["Teff","logg"],Default::default())
+        .collect().unwrap();
+        
+        let loggs = extract_column_as_vectorf64("logg", &ddf);
+        let min_logg = loggs.iter().fold(loggs[0],|acc,lg|{ if *lg<log_g{*lg}else{acc}});
+        let max_logg = loggs.iter().fold(loggs[0],|acc,lg|{ if acc<log_g{acc}else{*lg}});
+        ddf.clone().lazy().filter(
+            col("logg").eq(lit(min_logg)).and(col("logg").eq(lit(max_logg)))
+        ).sort(["Teff","logg"],Default::default()).collect().unwrap()
+    }
+
+}
