@@ -1,0 +1,970 @@
+[33mcommit 4e7f74d4aec31dfaa7e3b42883fc0ff2e0aaae60[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mgaussian_profile[m[33m, [m[1;31mpRust/gaussian_profile[m[33m)[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jun 16 14:46:15 2026 +0200
+
+    gaussian profile: in between commit. parsing routine to upload famias grids done
+
+[33mcommit 15c22a625fda2e2784cb89164a628f109b87f488[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jun 10 11:33:38 2026 +0200
+
+    gaussian_profile: in between commit
+
+[33mcommit 50ce49a1093bdcd5fc6f8aa84e5f04f1e5e860bd[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jun 9 16:56:10 2026 +0200
+
+    gaussian_profile: in-between commit.
+
+[33mcommit 99b53e57f142ae09125184f1ab0ce83d32ca103c[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jun 9 14:09:06 2026 +0200
+
+    gaussian_profile: in between commit
+
+[33mcommit d7a9ee5b497e94f032fc4e2849f34a65e4575a87[m[33m ([m[1;31mpRust/interpolation[m[33m, [m[1;32minterpolation[m[33m)[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Jun 1 12:43:03 2026 +0200
+
+    interpolation: stable version. Computations are done faster
+
+[33mcommit a4b472389430aaf6e0f0eb6379c9b64edf0761e4[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Jun 1 12:02:24 2026 +0200
+
+    interpolate: Debugging part almost done, this is a checkpoint of a stable version
+
+[33mcommit 50500ad2230af6f2cced5e8cbb4da5586657ee4d[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri May 29 16:02:24 2026 +0200
+
+    interpolation: in-between commit, must add a pixel id column to data frames so that I don't have to apply doppler shiftings more than one time
+
+[33mcommit 9cae531df28bbe3bfc2e85a5ebb51fbeeedd037e[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon May 25 16:55:27 2026 +0200
+
+    interpolate: inbetween commit, profile works but still some calculations might be sped up.
+
+[33mcommit dc644d7f6ca2f75623f8a34e95a437d55986d12e[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon May 25 15:20:07 2026 +0200
+
+    interpolation: inbetween commit, saving  loading of grid files
+
+[33mcommit d10c4a1d0bccf14f568f97be8ae7de4fd05ef4ca[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon May 25 14:33:10 2026 +0200
+
+    interpolation: inbetween commit
+
+[33mcommit 1c09331a8770e562d46ebfa252953b443acf8919[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri May 22 16:23:33 2026 +0200
+
+    interpolation: finalizing new interpolating scheme implementation into profile
+
+[33mcommit b20dea31533860b938510d8c8a24362b6c7f1990[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed May 20 20:04:25 2026 +0200
+
+    Multilinear-interpolation. In-between commit, implementing linear interpolation for a polars data frame to speed up the process
+
+[33mcommit 4cf8164f17e1b66191804b084eb34bd1fb99c119[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed May 13 11:35:45 2026 +0200
+
+    Multilinear_interpolation: uploading a generic version of multilinear interpolation written on the temp_name_lib
+
+[33mcommit f2cdfac7b38ae01f2d1f2c757b976113bec34eb7[m[33m ([m[1;31mpRust/profile_dev[m[33m, [m[1;32mprofile_dev[m[33m)[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon May 11 12:17:30 2026 +0200
+
+    profile_dev: Long_due fix of the name of a column of  the resulting dataframe. It changed from mean_flux into normalized flux
+
+[33mcommit 3923bd931bda71113e0cd611b31a35de5b872198[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue May 5 11:27:40 2026 +0200
+
+    pulstar_dev: Soft adjustment in the tar displacement implementation. since the standar function f64::cos() provided by rust can vary, I compute it once and store it
+
+[33mcommit 62678081d9e5392eb02f32f4cf4b0cb4fb88bb76[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Apr 28 11:26:02 2026 +0200
+
+    pulstar_dev: PerturbativeCoriolis is consistent with NonRotating treatment. Both are fully debugged (of course up to the requirements at this point). Tar implementation still needs to be corrected; The second derivative of Hough functions is missing as well as the proper angular coordinates displacement, i.e. that delta phi is equal to the phi component of the Lagrangian displacement divided by r sin theta.
+
+[33mcommit 6805aac72fd612baf07e212d559d1ad97bc3dc58[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Apr 27 16:41:00 2026 +0200
+
+     pulstar_dev: PerturbativeCoriolis and NonRotatinng treatment of rotation yield same results now when velocity of rotation is set to 0. There was a fix made in the mathematical expression of velocity for a single pulsation mode in the NonRotating case writing exactly the formula written on Joris thesis. There was an important fix made in Local_temperature_and_gravity and in Local_velocity where phase is now equal to mode.phase instead of mode.phase_offset, which doesn't change over time. Perturbative Coriolis as well as Tar derivatives must be corrected.
+
+[33mcommit 0b426d75d88b9fc93abd856f14f3f3387091cb94[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Apr 24 12:01:28 2026 +0200
+
+    pulstar_dev: new selection of surface cells in the rasterize_star method. It's now done with iterator on theta instead of within a while loop
+
+[33mcommit 360f44d7cd89b97ae046e51abf8387cfaaaac53d[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Apr 23 15:31:18 2026 +0200
+
+    pulstar_dev: renormalization of the hough functions in the tar implementation so that they yield similar results in the limit when spin parameter -> 0
+
+[33mcommit bc53cab897521115b2b81b50d0ea09e0e39f266b[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Apr 22 18:00:15 2026 +0200
+
+    pulstar_dev: inbetween commit. debugging pulstar.
+
+[33mcommit 93746b154a28cc1f41d73d87e7588dd2be45292f[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Apr 21 16:44:04 2026 +0200
+
+    pulstar_dev: Perturbative coriolis and TAR are both implemented, however the results vary from the nonrotating ones. The greatest difference is found while using the TAR treatment of rotation. Documenting and also organizing the code is next to be done.
+
+[33mcommit 4f05747ae4e6a76a32d1c0ed96c7a32fe1934093[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Apr 21 14:40:07 2026 +0200
+
+     pulstar_dev: inbetween commit. Adding perturbative coriolis treatment of rotation.
+
+[33mcommit d3396bdade77057ae9b0800616efbdf47f8063ba[m[33m ([m[1;31mpRust/main[m[33m, [m[1;32mmain[m[33m)[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Apr 20 13:26:36 2026 +0200
+
+    TAR: revised version of hough's functions.
+
+[33mcommit 9d7dfe36eccca2434c3536c95ad96e382e651783[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Apr 16 13:14:32 2026 +0200
+
+    pulstar_dev: tar implementation now has at list 400 collocation points for the houghs functions. A new way of getting the index of the function's arrays is given
+
+[33mcommit 3d30b73861efc76bc1f7df6df6e330392a359acf[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Apr 16 11:34:30 2026 +0200
+
+    TAR: standarization of Hough functions, they are no longer dependent on the number of collocation points. Previously the maximum amplitude decreased with the number of collocation points in order to maintain that the L2-norm remains equal to 1.
+
+[33mcommit 8d1636f59510637f5aec4c4f1d501e1e742cc631[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Apr 15 16:16:53 2026 +0200
+
+    TAR: some other corrected values on the implementation of houghs functions
+
+[33mcommit cfa3d48bfabf76fba9d85d9fc41b04689b52b17a[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Apr 15 16:08:13 2026 +0200
+
+    TAR: corrected values on the implementation of houghs functions
+
+[33mcommit 0e874ab70b37d9a9a2c90e642f9eb311e36b8493[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Apr 15 14:50:59 2026 +0200
+
+    pulstar_dev: uploading recent changes of implementation of tar in pulstar part of the project. Non rotating case works like it always has; the TAR implementation is not finished yet. I've noticed that the expected eigenvalue differs from the python implementation.
+
+[33mcommit 662494c39ff75ac4b2a76cb9c30cd728b19316d2[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Apr 13 13:22:09 2026 +0200
+
+    pulstar_dev: uploading rotation displacements using TAR
+
+[33mcommit 8ddda2a64afa1f8fd4d8ce0a374442e22855f8b2[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Apr 10 17:07:41 2026 +0200
+
+    pulstar_dev: inbetween commit output of houghs function is now a regular vector because parsing ndarray seems to be problematic. I'm halfway done with implementing pulsational displacements using tar. I need to have a consistent prograde/retrograde for everything. TAR uses q*m>0 retrograde and I think the non rotating and the perturbative coriolis approach are the other way around.
+
+[33mcommit 99b7e4f66bf5c35b5714ab43a72fd5c06be9b2bb[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Apr 9 15:08:53 2026 +0200
+
+    pulstar_dev: Documented implementation of Hough function
+
+[33mcommit a025424c18bf8fe456135d3f7e81f17de870b0b4[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Apr 3 16:11:40 2026 +0200
+
+    pulstar_dev: moddifying python interface. Now it's possible to call pulstar and profile separately
+
+[33mcommit cf91a66f2e5caec86eddde7983dfde380e9ceec9[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Apr 3 15:23:14 2026 +0200
+
+    pulstar_dev: uploaded new version of pulstar_input.toml.
+
+[33mcommit 413e5a149d0020ac3cc1a729dca21b4edc075715[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Apr 3 11:55:33 2026 +0200
+
+    pulstar_dev: Adding structure for implementing the different rotation regimes.
+
+[33mcommit 57eacbf0e036f63390dac5f472068e0e7d34866b[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Mar 31 15:30:59 2026 +0200
+
+    Hough's functions using the collocation method developed by Vincent Prat and implemented in Rust by me.
+
+[33mcommit 3fb64de4a8d854ea9f149c22ebb9c592362d6bef[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Mar 23 15:16:15 2026 +0100
+
+    Stable point for pulstar, profile, and python interface. Will begin coding a TAR implementation that relies on Chebyshev polynomials. I will later develop an expansion of Hough in terms of Spherical Harmonics
+
+[33mcommit 6a529d10fff70d2f86ba70cc1210ab305c3aa327[m[33m ([m[1;31mpRust/python_interface[m[33m, [m[1;32mpython_interface[m[33m)[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Feb 23 17:04:39 2026 +0100
+
+    Able to obtain and open a DataFrame from rust in python. I had to downgrade pyo3 so that it was compatible with polars version 0.49.1 It is left to do to update pulstar and profile to have the newest polars and pyo3 crate versions. I'll be doing this in later stages of the project. In the mean time I'll proceed to attend both the implementation of TAR and the fitting strategies.
+
+[33mcommit 0a54c381c7b145a6b3fc8138b20121fef80825bd[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Feb 23 14:45:04 2026 +0100
+
+    modified pulstar and profile main functions. They now work together and produce a parquet file at the end with the intensity written on a parquet file
+
+[33mcommit e4edc8f2f15239a584c7065565e0641ea406c0d3[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Feb 19 16:55:46 2026 +0100
+
+    Adding fully programmed python script to create both pulstar and profile toml strings. Moddified version of profile_main that now takes a toml string as input
+
+[33mcommit 127418c364947a4fe9d61124a5c1fcda8c51d360[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Feb 19 10:18:10 2026 +0100
+
+    pulstar and profile receive toml files as input. We'll be creating a python script to produce this toml strings instead of generating objects from python as the only relevant things for the project is to retreive specific intensities.
+
+[33mcommit 4ac136baf96720460d44f45707fa17bc5ee36ff4[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Feb 13 15:23:12 2026 +0100
+
+    Working version that is callable from python. From here on I'll be working on creating and parsing the configuration files from python to Rust
+
+[33mcommit c88e5bdf2b57ff00d16cf2f5091120f426807344[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Feb 10 16:52:53 2026 +0100
+
+    Python_module_dev: small modifications.
+
+[33mcommit 665ea36b8557a8e5ad4f0f3f0b1bb3c50eb0e1e6[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Feb 10 16:51:27 2026 +0100
+
+    Python_Module_dev:running pulstar from the pulstar_py...done
+
+[33mcommit 5fb6f145191da85a34e33a99bb699b949b282bdc[m[33m ([m[1;32mrefactoring_single_lib[m[33m)[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Feb 10 14:02:58 2026 +0100
+
+    developping python interface
+
+[33mcommit 4e41d9d5ffad7b1e0446ae01b8dd4b1f8b11659b[m[33m ([m[1;31mpRust/refactoring_single_lib[m[33m)[m
+Merge: 95182f5 5fbb3d7
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Feb 10 13:33:48 2026 +0100
+
+    Merge branch 'main' into refactoring_single_lib
+    " Previous commit of this branch had an outdated version of pulstar"
+
+[33mcommit 5fbb3d72d952385e9401b4d51a746d6eb6cfd96b[m
+Merge: bf8d620 a81d003
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Feb 10 13:32:41 2026 +0100
+
+    merging of main and pulstar_dev
+
+[33mcommit 95182f5cafff0d52a65d1056ca331a124aee9473[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Feb 10 13:26:57 2026 +0100
+
+    Deconstructing profile main function done
+
+[33mcommit c008682e0127bf27b790abeb43a2066a1416072a[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Feb 10 12:00:29 2026 +0100
+
+    Testing output to check for differences with the un-refactored version
+
+[33mcommit f1552fca27ffe9cc4c490eb6a0fa01dad159339c[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Feb 9 18:00:54 2026 +0100
+
+    deconstructing the main() function of the profile crate in order to move it into a separate function that will be called by the python interface
+
+[33mcommit bf8d620c0a5098454c4d31fecdf174ea971b93b5[m[33m ([m[1;32mprofile_nadyalike_grid[m[33m)[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Feb 9 15:19:38 2026 +0100
+
+    Fixing the nomenclature inside of the saving function. Mean flux changed to the actual term of normalized flux
+
+[33mcommit 2885c463f41b83e71aa31ea388c1d5ff2b9dd213[m[33m ([m[1;31mpRust/profile_nadyalike_grid[m[33m)[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Nov 24 14:20:44 2025 +0100
+
+    profile_dev_with_nadyalike_grid: stable version so far. results are comparable with Joris's ones
+
+[33mcommit 0a84c2fec1aaed993d73d581df5a583c074b39e4[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Nov 19 20:08:50 2025 +0100
+
+    profile with nadyalike grid: does not crash with joris grids but results are not similar at all. Must include how to handle for high mu values. Also it might be interesting to check if it's possible to translate from nadya to joris or thing something along those lines
+
+[33mcommit edee24f91b5c55bd10f06a0a060da2aa04dbeb3d[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Nov 19 17:51:55 2025 +0100
+
+    profile_dev_with_nadyalike_grid: created an adequate profile_input.toml file, so far the spectral grid was done correctly I presume. Beggining debugging the extract_flux_from_cell
+
+[33mcommit 314f54fe091fe66ee326368de289127339fdc85d[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Nov 19 16:00:07 2025 +0100
+
+    profile_dev_with_nadyalike_grid: finished adding all the implementations. All of the grids will hold nadyalike grids structure. Discriminating cells with mu values below 0.26 and grids are left to be done
+
+[33mcommit 4b74eb89440df1c2754e9d7b1942225a280aa4c4[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Nov 18 17:36:16 2025 +0100
+
+    profile_nadya: yeah lot of work to do:
+
+[33mcommit 4f94a02639d39a5606964624bba1d41426f26286[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Nov 18 16:26:24 2025 +0100
+
+    profile_dev_with_nadyalike_grid: inbetween commit. SpectralGrid will be a data structure rather than an enumeration. Joris like grids will be transformed to arrays that have specific intensities for 7 mu values very much like Nadya's grids and moving forward the way to go will be to ask all of the user defined grids to be transformed into this setup.
+
+[33mcommit e6ed5dbff7922d0d02f21213ada9d2737b75e6a7[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Nov 12 16:52:00 2025 +0100
+
+    profile_dev_with_nadyalike_grid: inbetween commit
+
+[33mcommit 8a546985fe5d0a440793b0c805403c0934fde364[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Nov 12 15:55:29 2025 +0100
+
+    profile_dev_with_nadyalike_grid: finished adding new implementations in order to parse csv data into ndarray::Array3; parsing either Joris or Nadyas grids is left to be done
+
+[33mcommit de3143470cd59c75ed38ed34220d0364c77638e3[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Nov 5 13:00:07 2025 +0100
+
+    profile_dev_with_nadyalike_grid: inbetween commit
+
+[33mcommit d5e308413545a3b7a0771f16bb1bbcc298afc45c[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Nov 5 12:59:10 2025 +0100
+
+    profile_dev_with_nadyalike_grid: adding a new data structure that will hold the information of the specific intensity grids as a ndarray::Array3<f64>
+
+[33mcommit 973ead2e06e09c29039b4983042b75c99c5a1530[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Nov 4 15:05:46 2025 +0100
+
+    Profile_dev_with_nadyalike_grid: First commit. Uploading updated cargo.toml from profile binary in order to include ndarray.
+
+[33mcommit 5beebcef6c577424cbeeff69636d36c34c1773fe[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Sep 22 14:31:49 2025 +0200
+
+    Deleted some comments on the main function of the profile project.
+
+[33mcommit 8324afa18146f4f332efc611b90e9e4c6c94b8f3[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Sep 22 11:22:43 2025 +0200
+
+    Uploading a commented version of the current profile binary that performs faster than using data frames. It will still be necessary to later drop the nested vectors version of the limb darkening coefficients to improve speed
+
+[33mcommit 478fe61481168d76881797b8bb19a224d31f84af[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Sep 19 11:49:12 2025 +0200
+
+    Rebasing of the branch that includes the multilinear interpolation done on the shared library. From this point onwards the profile binary will use that method to interpolate on the intensity grids.
+
+[33mcommit eda40fd7a2d571883dd33458e71f00870ccbe203[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Sep 16 12:57:14 2025 +0200
+
+    finished first version of the new structure of profile. It has new structures such as surface cells and fluxOfSpectra that allow to stop allocating inside loops.
+
+[33mcommit e0d50457aca03c8668a1daa6999ed6d03594adac[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Nov 4 10:21:04 2025 +0100
+
+    Multilinear interpolation: Added a new test to see if the multilinear interpolation method works on 1D that it was successful. Pending the 2D case
+
+[33mcommit b227cdf1dadbb30f052c54ea3138e097308cceb7[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Nov 3 17:26:02 2025 +0100
+
+    Multi-linear interpolation: There was a mistake on the multilinear test. Added now a check to see if the interpolating point is located inside the hypercube. Finished documenting the methods
+
+[33mcommit 33b66fa0ce279b06ae91b9b6f6e5e49c2793217a[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Oct 30 17:26:45 2025 +0100
+
+    Multilinear-interpolation: Finished conding the test with Nadya's sample grid. It passed. Documenting left
+    to do
+
+[33mcommit bda3e76c4961b9a61925899f7ea7507e208a78ff[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Oct 29 16:37:33 2025 +0100
+
+    Multilinear-interpolation: Finished coding the first part of the test which was creating a sample of the data contained in the intensity grids. I now have to manually code the multilinear interpolation to compare the results
+
+[33mcommit f696d08bab96820b1fe7e57f9f45baa477388d2e[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Oct 28 18:04:42 2025 +0100
+
+    Multilinear-interpolation: inbetween commit. I Finally decided on using ndarray to handle the memory layout of the specific intensity grids. Right now I'm coding a test with a sample of Nadya's grids. It's important to notice that she has the mu values in descending order.
+
+[33mcommit f74018aad1cd49a22c15c3eba0abd673dc989c28[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Oct 21 15:30:01 2025 +0200
+
+    Multilinear-interpolation: Inbetween commit. 1D version of linear interpolation done. Next is to create tests that push this module to work with Nadya's Spectral grids.
+
+[33mcommit b743aaf4040e1bd9934b5ab76b02f747f3bd40e5[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Oct 20 16:42:34 2025 +0200
+
+    Multilinear-interpolation: Finished coding multilinear interpolation. Steps to left to do: Set up a unit test for the multilinear interpolation method; create a mehtod for filling the hypercube on the parameter space
+
+[33mcommit ebf19d560d392f9975c7ac193d80befb0ce91091[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Oct 17 18:03:22 2025 +0200
+
+    Multilinear-interpolation: inbetween commit. Midway point
+
+[33mcommit c563c6e7b5cbee09e96e371ab11887979642b361[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Oct 15 17:36:29 2025 +0200
+
+    Multilinear-interpolation: inbetween commit. There's still lot's of methods and structures to program
+
+[33mcommit a81d00398218ba46ffe6e5dcde61c9b2859164a1[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Oct 15 11:57:28 2025 +0200
+
+    Pulstar_dev: Commenting this stable version of pulstar. write_grid_data.rs has readjusted the visibility of the RasterizedStarOutput struct to private. .gitignore file includes now all of *.swp files
+
+[33mcommit e5d671789d110c541912af60f8f89b417523509f[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Oct 14 15:11:36 2025 +0200
+
+    Pulstar_dev: Uploading a stable newer version of the pulstar code. It now has a simpler and less verbose main function. There are some methods that still need comments and documentation
+
+[33mcommit 44806740a9b0389e910e2776986066a321441aad[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Oct 14 10:54:16 2025 +0200
+
+    Pulstar_dev: Fixed a bug in the method upload_local_quantities for a surface cell. The code properly stores the phases of the rasterized star.
+
+[33mcommit 200f3e2fcb429da07417a11d5062fbfd3e52d85d[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Oct 13 18:18:01 2025 +0200
+
+    pulstar_dev: Uploading inbetween commit. There's now a less verbose structure on the main function. Although the program compiles, there seem to be only negative values for coschi
+
+[33mcommit f27fef19a0a35ee565db9d4454343467bd54c111[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Oct 10 18:30:46 2025 +0200
+
+    Pulstar_dev: finished coding the methods for updating the whole rasterized star; it iterates over the surface cells and on each cell updates_local_quantities
+
+[33mcommit 7699f7a2e04ce3ef4028c8dbf30862231e93adb9[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Oct 9 17:15:25 2025 +0200
+
+    Pusltar_dev: inbetween commit, creating the methods for updating local values over a surface cell of a star.
+
+[33mcommit 8905cabd36a34732b36abb8d783ba4d577fb723a[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Oct 7 16:15:12 2025 +0200
+
+    adding new data structures to reorganize the code. New additions:
+    Surface cell: contains all of the local quantities as well as the coordinates
+    RasterizedStar: contains a vector of surfacecells
+    
+    Main program will project only this new structures. Complete version still to be finished
+
+[33mcommit 84814c3f2d31b33ef4b771413612e2f4610f18bd[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Oct 7 12:49:28 2025 +0200
+
+    Updating the .gitignore file to ignore the cheetsheet for the Samply profiler tool
+
+[33mcommit 46cd490b9f19eeaab19a63bdc1ee7515eb3f4a26[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Aug 20 10:24:41 2025 +0200
+
+    Profile_dev: delleting an unused module from parse_intensity_grids.rs
+
+[33mcommit 26989a2990acf3b08d50f535254578dc72c0c778[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Aug 19 14:22:30 2025 +0200
+
+    Profile_dev: uploading newer versions of the modules extract_inteinsity_fluxes.rs and parse_intensity_grids.rs so that it filters wavelengths if asking for low resolution
+
+[33mcommit 893d17e64feb7b91c0993766e573299a56ee1ee0[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Aug 18 15:48:19 2025 +0200
+
+    Profile_dev: corrected a misspelling on lib.rs. On extract_intensity_fluxes.rs added a flag so that if the requested wavelength's spacing is lowresolution, then there is no second filtering prior to calculating the intensity fluxes.
+
+[33mcommit 500d8290a7996ffb30478f21ed481acc60842365[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Aug 13 14:28:26 2025 +0200
+
+    Profile_dev: Current version of profile is stable with the default profile_input.toml file. There are left some changes to be made so that the initialization of the intensity data frames doesn't add too much overhead as it currently cannot handle 1000 wavelengths.
+
+[33mcommit 63488a0d75fbd67cc652563dc106d962dc000af3[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Aug 13 11:51:34 2025 +0200
+
+    Profile_dev: Uploading new version to produce the output into parquet. It collect's every phase of pulsation into a single file
+
+[33mcommit bde3e2b486fc13d721aa8671038b58822818f7d1[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Aug 11 15:24:06 2025 +0200
+
+    Profile_dev: erasing unused code for  parsing intensity grid files.
+
+[33mcommit 5d7fde28d9d435b9c227254e3026319d869a4eb3[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Aug 11 14:51:45 2025 +0200
+
+    Pulstar_dev: Fix-There're changes in the profiles of the pulsation phases. Next to do is to decide whether it's convenient to have separate files for the sphere's data or to have them as it is in one single file.
+
+[33mcommit b7cd2a33bc9a17a025533c66820c48e39c7c5f97[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Aug 11 11:42:43 2025 +0200
+
+    Pulstar_dev: Finished writing the new parsing methods for the pulstar binary. Will begin to addres that there's currently no change on the pulsation phases
+
+[33mcommit 39daabfcbb8422a2f68f44ac57d2f20c43123028[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Aug 8 15:59:51 2025 +0200
+
+    Pulstar_dev: Uploading a checkpoint of the pulstar binary. Although the program compiles and adequately implements time advancing, parsing the input file needs to be adjusted.
+
+[33mcommit 0049ad6eb5226c06e1ad52785aa4a263bc8b66d3[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Aug 7 16:06:48 2025 +0200
+
+    Pulstar_dev: removing unnecessary structures and methods from temp_name_lib. joris_math module has changed name into math_module. Pulstar has been fixed, the rust compiler doesn't show warnings at this stage
+
+[33mcommit ecaca743f7037a9703699d0cbe00dbe121f5c401[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Aug 6 17:58:51 2025 +0200
+
+    Profile_dev: Massive speedup with current setup. It is still left to gauge whether it produces  relevant results.
+
+[33mcommit 9e524a7be76247c9ed4ab74bda0d82531b6fcb73[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Aug 6 16:59:16 2025 +0200
+
+    Profile_dev: Finished updating the main function. Beginning debuging phase of the reading once from disk version
+
+[33mcommit 9b38831c46d9aeff1ea9ed0ab8db2ba2b20f0641[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Aug 6 16:31:00 2025 +0200
+
+    Profile_dev: intensity and interpolate modules are updated. left to do is to implement changes into main function to see whether reading only once from disk accelerates computations.
+
+[33mcommit e168982eae11bc1e5ec0af987b9a20f181c22a11[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Aug 5 17:38:42 2025 +0200
+
+    Profile_dev: finished reorganizing intensity module. Now begins the modifying of the main library and the main function. reading grids from disk will be done only once
+
+[33mcommit d20cf9df9d279c961c04d2f07bf71b1ce0b41ce1[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Aug 5 12:07:16 2025 +0200
+
+    Profile_dev: creating submodules for the intensity module. new modules: parse_intensity_grids.rs extract_intensity_fluxes.rs
+
+[33mcommit f2a304afa9bd0ee9bc2fe730c548a1e3111ace42[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Aug 5 11:53:37 2025 +0200
+
+    Profile_dev: Starting point from reorganizing the parsing of grid files. The new version will read the intensity grid files (with a .txt extension) only once at the beginning of the program and then will perform queries over Polars::DataFrames created from reading this. This commit is thus a check point of a stable version of the profile code. Also from this point on, the optimizations, to check where are the bottlenecks will be done using profilers, namely sammy which is a profiler tool for rust based on perf
+
+[33mcommit a93cd2d2c6e050466c624ad07fb3da01543d4d2e[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Aug 1 18:11:48 2025 +0200
+
+    Profile_dev: Beginning of big restructure of the profile code. So far it works but is slow.
+
+[33mcommit 301c58c2ac253f3e71fac9044276abcc7ff582ea[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Jul 31 18:01:51 2025 +0200
+
+    Profile_dev: uploading changes to the filtering expression of the intensity grid files. Now only excludes wavelengths that are out of range. in the pulstar_input.toml there are some annotations done by Conny. I think I've identified the bottleneck. for every surface cell the computation of the intensity is carried on again and again. I think there must be a faster way. I'll try to explore it
+
+[33mcommit 7e73d604d458aadee6be560dc3d789fd1afedf5d[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Jul 31 14:10:57 2025 +0200
+
+    Profile_dev: Beginning of testing profile. Changes of gitignore file added to include a dummy rasterized_star parquet file. Currently there's an unidentified bottleneck.
+
+[33mcommit 95e26a6365bb99c32e5462b8f4dda433744bc0f9[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Jul 31 10:27:22 2025 +0200
+
+     Pulstar_dev: finished writing cleaning function for the temporary parquet files the name of the function is remove_temp_parquet_file()
+
+[33mcommit 6a572d106ff3b8afd4fdd1acdd2ccafdd961ebc3[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jul 30 18:05:51 2025 +0200
+
+    Pulstar_dev: update of the writing functions. Now i need to implement so it deletes temporary parquet files, the code works stably
+
+[33mcommit c30acad0c8cd62d7150a48f377dfbec0d444d269[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jul 30 11:31:40 2025 +0200
+
+    Pulstar_dev: Finished migrating the implementations for coordinates into the module implementations_for_coordinates.rs
+
+[33mcommit ab5cde1f40d27a2f859942b010dee35407a3035d[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jul 30 11:07:27 2025 +0200
+
+    Pulstar_dev: Fixed some major issues regarding calculating the variations in log_g. Main function now works without the old data structures. Will begin working on two things \n 1) migrating the Coordinates structures traits and implementations into its own module. \n 2) moddifying the write_parquet module to use the new structure.
+
+[33mcommit 82bef9250208b412ab1c1266b3522601754cd201[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 29 17:48:46 2025 +0200
+
+    Pulstar_dev: finished migrating the (simple) calculation methods of the rotation velocity into the module local_pulsation_velocity.rs
+
+[33mcommit 78f551bdf070ca61c08917b0ee12948139099763[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 29 17:32:18 2025 +0200
+
+    Pulstar_dev: finished migrating all of the (simple) pulsation methods and functions into the module local_pulsation_velocity.rs
+
+[33mcommit 9dcaf72352f5a71df15d537b39ee514c349b8815[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 29 15:08:30 2025 +0200
+
+    Pulstar_dev: Fixed a major bug in the computation of local_logg. All of the functions to calculate local temperature and gravity have been moved to the module local_temperature_and_gravity.rs. There're three aditions to the reference frame module: two functions to calculate the amplitude of the lagrangian displacements and a method to obtain the r component of a Coordinates::spherical variant
+
+[33mcommit 83a77d57783e83f8d39fb40f6a03c331d531044a[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 29 11:55:37 2025 +0200
+
+    Pulstar_dev: finished migrating the geometry functions over to the reference_frame.rs module. Beginning to move local pulsation values (velocity, temperature, gravity) over to thetheir own modules.
+
+[33mcommit c71bf90cb2646eb4cf5a0babb4152954ab276668[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Jul 28 11:08:39 2025 +0200
+
+    Pulstar_dev: Beginning the process of migrating some of the geometry functions into the reference_frame.rs module. There's a new enumeration of a vector called Coordinates that has Spherical and Cartesian variants. The displacement function is also contained in this module with more accurate documentation
+
+[33mcommit 3ebfb24a9caafab5c916c693da0b6dd364921abd[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Jul 18 18:23:36 2025 +0200
+
+    Pulstar_dev: The implementation of the new config structure continues. The program works all the way up to the beggining of the  theta/phi loops
+
+[33mcommit c13aa718aef866b44bb8912e0cdf9951887a90a0[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Jul 18 17:07:55 2025 +0200
+
+    Pulstar_Dev: Changing the structure of the pulstar_input.toml, it now handles the Time type enum better
+    Beggining to drop the old parameter structure from the main file.
+    So far the program works addequately all the way until the beggining of the loop.
+
+[33mcommit 19012e50e986f26577c8aa3000d7308343a51baa[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Jul 18 15:36:53 2025 +0200
+
+    Pulstar_dev: Finished parsing functions to create the configuration file for the pulstar program. There's a working version for the 'pulstar_input.toml' file
+
+[33mcommit 0ba2fe046de371a9c61fe7d899f051885f3c2af2[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Jul 17 18:42:50 2025 +0200
+
+    Rewriting line by line the pulstar main function. Currently working on the parsing of the input files. This will be done in a similar fashion as the profile binary
+
+[33mcommit 41ea887303f35899e0595b48bdd5033483081f4d[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Jul 17 17:46:09 2025 +0200
+
+    pulstar change: Local_values function now returns appropriate results for log_g and Temperature
+
+[33mcommit c8a282bf52bfc5c0636ed0ac0e1fe5eab26ba994[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Jul 17 12:44:33 2025 +0200
+
+    Experimenting with the documentation of the profile code. Major fix on the profile_input.toml file, profile program initializes parameters adequately
+
+[33mcommit f762313b4e90fee231477efe201b9382ff8c07d9[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jul 16 17:09:34 2025 +0200
+
+    Finished writing the comments for the main library lib.rs. the function 'append_doppler_shift' is now renamed as insert_col_relative_dlambda, the arguments 'doppler shift' are changed into 'relative shift'
+
+[33mcommit 6b2fa0839015867704bd0b7d8d7ebdd96a441eea[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jul 16 15:50:45 2025 +0200
+
+    erased unused modules or crates on main.rs. Will begin now to restructure and comment the main library
+
+[33mcommit 7edf7c1ed0510c6aed3332a5c4deff5411cabb1b[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jul 16 15:41:04 2025 +0200
+
+    Finishing writting the comments in the utils module. There's now an explanation of how does the writting onto a parquet file works.
+
+[33mcommit a998e99251e8a3a5e8606f6c7ff2060e36f38cf2[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jul 16 15:17:22 2025 +0200
+
+    Finished writting comments for the interpolation module. The function that had a similar name called 'interpolate element' has been renamed to 'get_contribution_from_vertex' as it's more clear that we're using Trilinear interpolation. There has been a fix on the main interpolating function as the i and j indices now correctly run from 0 to 1 and also the values for t0, t1,t2 have been fixed.
+
+[33mcommit 8a90bb6fe26c0c43e0e36b624defb399568f7eec[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jul 16 10:46:44 2025 +0200
+
+    Finished commenting the module define_parameter_space, which is used for serching on the (temperature,log_gravity) parameter space.
+
+[33mcommit 01e2833e2d99c736987b4243d1ee04514f7291e2[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jul 16 10:25:06 2025 +0200
+
+    Finished documenting the intensity module. The calculation of Doppler shifting of a vector of wavelengths is now moved into the main library.
+
+[33mcommit 89d6225d92b307ad5790577de45c785f3200f5fa[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 15 18:14:21 2025 +0200
+
+    Continuing reworking the intensity module. Access is now private. It will contain methods to produce a dataframe with the intensity grids that can be handled with polars
+
+[33mcommit 3c67dd8320004a6b0aa434b4616d8a1c32ff2b33[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 15 17:03:28 2025 +0200
+
+    Continuing reorganizing the profile program. finished rewriting the parser from the profile_input.toml file.
+
+[33mcommit 89c8d332c1e25114560753ea4be0675123015b86[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 15 15:13:40 2025 +0200
+
+    Rearranging the main function of profile. I will begin to declutter this main function and pass the functionalities onto the library
+
+[33mcommit c5f87e9bb7bb381b6c55d1f31250ab049341429c[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 15 13:51:04 2025 +0200
+
+    I have a correct parser for a first version of the toml file. Before proceeding it's important to restructure the current version of the profile code.
+
+[33mcommit d00c4c6650d0c00745fbce175d2a33b6421ec0fb[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 15 13:31:32 2025 +0200
+
+    Adding parsing of configuration files. First I will be exploring using TOML files instead of YAML since they're more natural to Rust. I'm currently working on a module called read_toml that will parse the config file into the program.
+
+[33mcommit 8fd367ad8a341311252a0cf8551ec884e78d09d8[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jul 9 17:50:38 2025 +0200
+
+    Finished first version of functions to write the parquet output file. Will begin writing the methods to read YAML configuration files for profile code.
+
+[33mcommit f77214ec745a9e60c633912b0bb72fc7568ad1c1[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jul 9 12:37:53 2025 +0200
+
+    developping functions for writting the parquet output file
+
+[33mcommit fe516369a890fba126b54fe81959a3629e59bc5d[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 8 17:40:32 2025 +0200
+
+    finished adding computations of flux and continuum intensity accross selected wavelengths for a given theta-phi cell
+
+[33mcommit 1af737e2c129309bd7e3b78a49871cc5db0d1a25[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 8 14:34:14 2025 +0200
+
+    Continuation of profiles reestructure
+
+[33mcommit f162528c5c7ff3c802246687c6560e0c25a40a3d[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 8 11:15:24 2025 +0200
+
+    Beginning to reestructure profile before advancing further. This is an inbetween commit
+
+[33mcommit 80478123bf04d674a234a35d99b4f3c5dc6be79f[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Jul 7 17:53:58 2025 +0200
+
+    continuing adding methods for profile
+
+[33mcommit c34fdf27aa1cdd5d1cdd8b4395f6afd1a557e128[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Jul 7 15:21:05 2025 +0200
+
+    Added a  function that selects the rectangle in the temperature_loggravity space where you would do lineal interpolation. This function relies heavily on polars for the query
+
+[33mcommit 7706e3deada9f2f94caa059dd7819037d94bad40[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Sun Jul 6 10:33:28 2025 +0200
+
+    First commit for the profile code; opening of the pulstar's output parquet file done; Working now on traversing the intensity grids using polars
+
+[33mcommit f6bbfb6b9c778c290aa41acd2c5d966d5d1de6ef[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jul 1 16:38:02 2025 +0200
+
+    Finished first version of the pulstar code. It now uses the polars crate and writes the information of the spherical grid on a parquet file
+
+[33mcommit 5ee5cc5fee6ec734a4b4f2a5477016d041ae4cfd[m[33m ([m[1;31mpRust/CreateStructure[m[33m, [m[1;32mCreateStructure[m[33m)[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Sun Jun 29 11:10:26 2025 +0200
+
+    Uploading input files and a running pulstar version of the code. The file writing methods and/or functions are to be implemented yet.
+
+[33mcommit 8c9baf139cfa54bfd7c612918beda02130ef42f7[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Jun 27 17:52:10 2025 +0200
+
+    Adding print report file; missing just the writing functions.
+
+[33mcommit ecec019b6cf048a0c54912b5081533c17faba3c6[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Jun 26 11:41:48 2025 +0200
+
+    Continuing development of main for pulstar code
+
+[33mcommit 7b39475123b059ae708672ceb557c760e07f6a82[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jun 25 17:28:16 2025 +0200
+
+    Continuing to write the pulstar main function.
+
+[33mcommit 384a9dc36700d57546d6408977bd07b68117b621[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jun 25 14:18:16 2025 +0200
+
+    Finished writing the first set of parsing tests. Might add some more in the future. So far, as long as the input files are well written, the program pulstar is able to initialize the setup.
+
+[33mcommit 0223ebf2b7c8edf44acb6abffce731bc20926ec4[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jun 25 10:12:19 2025 +0200
+
+    Parsing string tests done; writing tests for parsing files
+
+[33mcommit 6f7104c0d1098743c2a26e18c0e911ea3c42050d[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jun 24 13:09:26 2025 +0200
+
+    Reestructuring Utils from the pulstar code, parsing functions (value, string, file) will be distributed into single modules
+
+[33mcommit b7f3113796a0edecb9afa86d2fe1b2e4a1d8cc1b[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jun 24 11:34:05 2025 +0200
+
+    Adding tests for parsing routines. Parsing individual values(cell values) done. Left to do: tests for strings parsing and tests for file parsing.
+
+[33mcommit 1f165afbaabbc9eab36e8bbd06c28a854afb803e[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Fri Jun 20 16:19:07 2025 +0200
+
+    Continue development for the parsing function of the input file. Still not finished. This is just a check point.
+
+[33mcommit e6f3adbcdea5d4551760d64f0f2ce443e69b3d37[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Jun 19 15:00:13 2025 +0200
+
+    Working on pulstar binary. 50% completion on writing the parsing input file routines
+
+[33mcommit 6f8af18af7c4bca3c5d7b180be2773a0ff9b4c61[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Jun 12 12:54:46 2025 +0200
+
+    First complete version of the temp_name_lib
+
+[33mcommit 6f5c3bf178f989a2731e3b5b10bb25d08a50c2c6[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Mon Jun 9 16:31:28 2025 +0200
+
+    Adding local gravity and local temperature calculators.
+
+[33mcommit 02ddd55fdea7e90e8e75565372eb317edb7f0b30[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Sun Jun 8 15:29:15 2025 +0200
+
+    Continuing work on the structure. Finished writing the displacement module
+
+[33mcommit 46ccad8dd831ad4ccf4a33c59e0cdc586240d7ba[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Sat Jun 7 09:32:12 2025 +0200
+
+    Intermediate commit so that I don't loose progress.
+
+[33mcommit a2b984c7da88904c733369fee2c92144ef2bc00e[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Thu Jun 5 16:56:05 2025 +0200
+
+    Will be working on changing some functions to use references as they do not need to copy them.
+
+[33mcommit e9be7c1ae508db757fd6d77cc14652bd25d72a7b[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Wed Jun 4 11:46:27 2025 +0200
+
+    **Follow up on the structure. As of now: two binary packages and one library package within a workspace.**
+    The contents of the code will be divided in three packages contained on a workspace.
+    The packages are the following:
+    The pulstar binary
+    The profile binary
+    The temp_lib_name library
+    
+    On this first iteration of the project, I shall work on the temp_lib_name library.
+    This library is divided on two modules. joris_math module and star_physics module.
+    It's important to tell that I have yet to define the following:
+    
+    1) The access of modules, structures and functions.
+       Right now I'm declaring everything as public. But I'll figure that out later.
+    2) Tests and documentation.
+       There's only a test for the associated Legendre polynomials
+       which follows the structure of assert_eq!(plmn(args),expected_val).
+       Might be wise to ask Joris about this. As for the documentation,
+       it seems wise to follow the same structure as Joris.
+
+[33mcommit 541f1c30e5fa937138fa4b714069c2340f4e8bdb[m
+Author: Ricardo Ochoa Armenta <ricardo.ochoaarmenta@kuleuven.be>
+Date:   Tue Jun 3 14:42:37 2025 +0200
+
+    Testing a workspace modular structure for the project
+
+[33mcommit 395f488e7bd31b992c9876d8679184ea1fcebc3b[m
+Author: JorisDeRidder <joris.deridder@kuleuven.be>
+Date:   Thu May 8 17:00:32 2025 +0200
+
+    First version of the Lagrangian displacement vector
+
+[33mcommit 113a27060cc99f2410f2204c6d8217e9b29e308c[m
+Author: JorisDeRidder <joris.deridder@kuleuven.be>
+Date:   Thu May 8 17:00:04 2025 +0200
+
+    Making the computation of the associated legendre functions more efficient.
+
+[33mcommit cdc967138cf0129d14b40dc21f3ff848a44375b2[m
+Author: JorisDeRidder <joris.deridder@kuleuven.be>
+Date:   Wed May 7 23:28:06 2025 +0200
+
+    First version of sphericalharmonics.rs
+    
+    Without unit tests.
+
+[33mcommit 5ed8ae4fa46eb24c99a1d955a8241d3cb30bd9d8[m
+Author: JorisDeRidder <joris.deridder@kuleuven.be>
+Date:   Wed May 7 17:01:42 2025 +0200
+
+    Very first init of pulstar repository

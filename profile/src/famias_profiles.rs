@@ -2,9 +2,12 @@ use std::ops::Add;
 
 use temp_name_lib::interpolation::ParameterSpaceHypercube;
 
+use crate::famias_profiles::parse_famias_grid::{give_left_right_wavelengths, parse_lib_coefs};
+
 use super::*;
 
 mod parse_famias_grids;
+mod init_gaussian_profile;
 ///This structure contains all of the variables defined in FAMIAS to produce a Gaussian  profile
 pub struct GaussianProfile{
     ///Intensity of the flux (amplitude of the gaussian depending on the surface cell)
@@ -36,6 +39,57 @@ pub struct GaussianProfile{
     log_g:f64,
     ///Output Dataframe
     output:DataFrame,
+}
+
+pub fn gaussian_profile_mkr(toml_string:&str,star_df:DataFrame){
+   //---------------------------------------- 
+   //------Parsing profile_input.toml--------
+   //----------------------------------------
+   // |--> Check that the toml file exists
+   // |--> Check if the Profile_input.toml is well written.
+   // |--> Check if the Intensity Grid files exist.
+   // |--> Initialize the profile parameters.
+    //let profile_config = ProfileConfig::read_from_toml(toml_string);
+    let mut profile_gauss:GaussianProfile=init_gaussian_profile::init_profile(toml_string);
+   //---------------------------------------- 
+   //----Parsing rasterized_star.parquet-----
+   //----------------------------------------
+    let lf = star_df.lazy();
+    let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
+    let extract_time_series = tf.column("time").unwrap();
+    let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();
+
+
+    //init output dataframe
+    let mut intensity_collection = crate::utils::IntensityFlux::new(time_points.len());
+
+
+    // load limb darkening coefficients
+    
+   let (
+        mut spectral_grid,
+        mut hypercube2d
+    )= loading_intensity_grids(lf.clone(), & profile_config);
+    //----------------------------------------------------------------
+    //-------------- Collect fluxes for each time point  -------------
+    //----------------------------------------------------------------
+    for pulsation_phase in time_points.iter() {
+    
+        intensity_collection.append_fluxes(fluxes.integrate(
+            lf.clone(),
+            *pulsation_phase,
+            & mut spectral_grid,
+            & mut hypercube2d));
+        println!("done computing flux");
+
+        println!("finished collecting fluxes {}",pulsation_phase);
+
+        //append_into_df
+    }
+    
+    //write output into parquet file
+    intensity_collection.collect_into_single_df()
+
 }
 
 ///This structure contains the 4 limb darkening coefficients. 
@@ -102,7 +156,7 @@ impl GaussianProfile{
     }
 
     fn update_limb_darkening_coefficients(& mut self,t_eff:f64,log_g:f64,hypercube2d:& mut ParameterSpaceHypercube<LimbDarkeningCoefficients>){
-        let coords = [t_eff,log_g];
+        let coords = [t_eff,log_g,self.central_wavelength];
         self.limb = hypercube2d.multilinear_interpolation(&coords).unwrap();
     }
 
@@ -167,22 +221,90 @@ impl LimbDarkeningCoefficients{
 
     fn new_parameter_space_cube(central_wavelength:f64,t_eff:f64,log_g:f64,df:&DataFrame)->ParameterSpaceHypercube<Self>{
         let mut new_cube = ParameterSpaceHypercube::<Self>::new(2);
+
+        let (teffs,loggs,
+            leftfilter_a1,leftfilter_a2,leftfilter_a3,leftfilter_a4,
+            rightfilter_a1,rightfilter_a2,rightfilter_a3,rightfilter_a4) = parse_lib_coefs(central_wavelength, t_eff, log_g);
         
+        let (left_wl,right_wl)=give_left_right_wavelengths(central_wavelength);
+
+        let coords1 = [teffs[0],teffs[2]];
+        let coords2 = [loggs[0],loggs[2]];
+        let coords3 = [left_wl,right_wl];
         
-        let teff= extract_column_as_vectorf64("Teff", df);
-        let logg= extract_column_as_vectorf64("Teff", df);
-        let l_coeffs1= extract_column_as_vectorf64("Teff", df);
-        let teff= extract_column_as_vectorf64("Teff", df);
+        let mut vertices_data:Vec<LimbDarkeningCoefficients>=Vec::new();
+
+        for i in 0usize..2{
+            for j in 0usize..2{
+                let index = 2usize.pow(i as u32)+j;
+                for k in 0usize..2{
+                    let limb = match k{
+                        0usize=>{
+                            LimbDarkeningCoefficients([leftfilter_a1[index],leftfilter_a2[index],leftfilter_a3[index],leftfilter_a4[index]])
+                        }
+                        1usize=>{
+                            LimbDarkeningCoefficients([rightfilter_a1[index],rightfilter_a2[index],rightfilter_a3[index],rightfilter_a4[index]])
+
+                        }
+                        _=>{
+                            LimbDarkeningCoefficients([leftfilter_a1[index],leftfilter_a2[index],leftfilter_a3[index],leftfilter_a4[index]])
+                        }
+                    };
+                    vertices_data.push(limb)
+                }
+            }
+        }
+
+        new_cube.fill_coordinates(&[coords1,coords2,coords3]);
+        new_cube.fill_vertices_data(&vertices_data);
+
         new_cube
     }
 
 
 }
 
-mod parse_famis_grid{
+mod parse_famias_grid{
     use super::*;
     const STROM_FILTER_CENTRAL_WAVELENGTH:[f64;4]=[3500.0, 4110.0, 4670.0, 5470.0];//in kelvin
 
+    pub fn give_left_right_wavelengths(central_wavelength:f64)->(f64,f64){
+        let filter_wl:Vec<f64> = Vec::from(STROM_FILTER_CENTRAL_WAVELENGTH.clone());
+        let (left_index,_)=filter_wl.iter().enumerate()
+        .fold((0usize,STROM_FILTER_CENTRAL_WAVELENGTH[0]),
+        |(index_acc,acc),(index,filter_wavelength)|
+        {if *filter_wavelength <= central_wavelength {(index,*filter_wavelength)}
+        else{(index_acc,acc)}});
+        (STROM_FILTER_CENTRAL_WAVELENGTH[left_index],STROM_FILTER_CENTRAL_WAVELENGTH[left_index+1])
+    }
+    fn get_column_names(central_wavelength:f64)->Vec<String>{
+        let filter_wl:Vec<f64> = Vec::from(STROM_FILTER_CENTRAL_WAVELENGTH.clone());
+        if central_wavelength<STROM_FILTER_CENTRAL_WAVELENGTH[0]{panic!("central wavelenght is out of bounds, it should be between {} and {} Angstroms",STROM_FILTER_CENTRAL_WAVELENGTH[0],STROM_FILTER_CENTRAL_WAVELENGTH[3])};
+        if central_wavelength>STROM_FILTER_CENTRAL_WAVELENGTH[3] {panic!("central wavelenght is out of bounds, it should be between {} and {} Angstroms",STROM_FILTER_CENTRAL_WAVELENGTH[0],STROM_FILTER_CENTRAL_WAVELENGTH[3])};
+        let (left_index,_)=filter_wl.iter().enumerate()
+        .fold((0usize,STROM_FILTER_CENTRAL_WAVELENGTH[0]),
+        |(index_acc,acc),(index,filter_wavelength)|
+        {if *filter_wavelength <= central_wavelength {(index,*filter_wavelength)}
+        else{(index_acc,acc)}});
+        let (namel,namer):(char,char) = match left_index{
+            0usize=>{('u','b')}
+            1usize=>{('b','v')}
+            2usize=>{('v','y')}
+            3usize=>{('y','y')}
+            _=>{(' ',' ')}
+        };
+        let mut col_names:Vec<String> = Vec::with_capacity(10);
+        col_names.push(format!("Teff"));
+        col_names.push(format!("logg"));
+        for i in 1..=4{
+            col_names.push(format!("{}_a{}",namel,i))
+        }
+        for i in 1..=4{
+            col_names.push(format!("{}_a{}",namer,i))
+        }
+        col_names
+
+    }
 
     pub fn open_famias_grid(path:&str)->DataFrame{
         let schema:Vec<Field> = vec![
@@ -217,35 +339,6 @@ mod parse_famis_grid{
         df
     }
 
-    fn trim_df(central_wavelength:f64,lf:LazyFrame)->DataFrame{
-        let filter_wl:Vec<f64> = Vec::from(STROM_FILTER_CENTRAL_WAVELENGTH.clone());
-        if central_wavelength<STROM_FILTER_CENTRAL_WAVELENGTH[0]{panic!("central wavelenght is out of bounds, it should be between {} and {} Angstroms",STROM_FILTER_CENTRAL_WAVELENGTH[0],STROM_FILTER_CENTRAL_WAVELENGTH[3])};
-        if central_wavelength>STROM_FILTER_CENTRAL_WAVELENGTH[3] {panic!("central wavelenght is out of bounds, it should be between {} and {} Angstroms",STROM_FILTER_CENTRAL_WAVELENGTH[0],STROM_FILTER_CENTRAL_WAVELENGTH[3])};
-        let (left_index,_)=filter_wl.iter().enumerate()
-        .fold((0usize,STROM_FILTER_CENTRAL_WAVELENGTH[0]),
-        |(index_acc,acc),(index,filter_wavelength)|
-        {if *filter_wavelength <= central_wavelength {(index,*filter_wavelength)}
-        else{(index_acc,acc)}});
-        let (namel,namer):(char,char) = match left_index{
-            0usize=>{('u','b')}
-            1usize=>{('b','v')}
-            2usize=>{('v','y')}
-            3usize=>{('y','y')}
-            _=>{(' ',' ')}
-        };
-        let mut col_names:Vec<Expr> = Vec::with_capacity(10);
-        col_names.push(col("Teff"));
-        col_names.push(col("logg"));
-        for i in 1..=4{
-            col_names.push(col(format!("{}_a{}",namel,i)))
-        }
-        for i in 1..=4{
-            col_names.push(col(format!("{}_a{}",namer,i)))
-        }
-        lf.clone().select(
-            col_names
-        ).collect().unwrap()
-    }
     fn trim_teff_logg(t_eff:f64,log_g:f64,df:&DataFrame)->DataFrame{
         let teffs = extract_column_as_vectorf64("Teff", df);
         let min_teff = teffs.iter().fold(teffs[0],|acc,t|{if *t<t_eff {*t}else{acc}});
@@ -262,4 +355,39 @@ mod parse_famis_grid{
         ).sort(["Teff","logg"],Default::default()).collect().unwrap()
     }
 
+    pub fn parse_lib_coefs(central_wavelength:f64,t_eff:f64,log_g:f64)->
+    (Vec<f64>,//teff
+    Vec<f64>,//logg
+    Vec<f64>,//leftfilter_a1
+    Vec<f64>,//leftfilter_a2
+    Vec<f64>,//leftfilter_a3
+    Vec<f64>,//leftfilter_a4
+    Vec<f64>,//rightfilter_a1
+    Vec<f64>,//rightfilter_a2
+    Vec<f64>,//rightfilter_a3
+    Vec<f64>)//rightfilter_a4
+    {   let column_names = get_column_names(central_wavelength);
+        let columns:Vec<Expr> = column_names.clone().into_iter().map(|x|col(x)).collect();
+        let path = format!("./grids/FAMIAS_grids/limbcoef_MHp00.stromgren");
+        let df_grids = open_famias_grid(&path);
+        let trimmed1= df_grids.clone().lazy().select(columns).collect().unwrap();
+        let trimmed2 = trim_teff_logg(t_eff, log_g, &trimmed1.clone());
+
+        let teffs = extract_column_as_vectorf64(&column_names[0], &trimmed2);
+        let loggs = extract_column_as_vectorf64(&column_names[1], &trimmed2);
+        let leftfilter_a1 = extract_column_as_vectorf64(&column_names[2], &trimmed2);
+        let leftfilter_a2 = extract_column_as_vectorf64(&column_names[3], &trimmed2);
+        let leftfilter_a3 = extract_column_as_vectorf64(&column_names[4], &trimmed2);
+        let leftfilter_a4 = extract_column_as_vectorf64(&column_names[5], &trimmed2);
+        let rightfilter_a1 = extract_column_as_vectorf64(&column_names[6], &trimmed2);
+        let rightfilter_a2 = extract_column_as_vectorf64(&column_names[7], &trimmed2);
+        let rightfilter_a3 = extract_column_as_vectorf64(&column_names[8], &trimmed2);
+        let rightfilter_a4 = extract_column_as_vectorf64(&column_names[9], &trimmed2);
+
+        (teffs,loggs,
+        leftfilter_a1,leftfilter_a2,leftfilter_a3,leftfilter_a4,
+        rightfilter_a1,rightfilter_a2,rightfilter_a3,rightfilter_a4,
+        )
+    }
 }
+
