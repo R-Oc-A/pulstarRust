@@ -2,9 +2,9 @@
 # the input file for the input file for the profile code. 
 
 # intrinsic width
-sigma = 1.0
+sigma = 0.5
 #equivalent width
-eq_w = 1.0
+eq_w = 0.5
 #relation of the difference of temperature related to the pulsation amplitude
 alpha_w = 0.3
 zero_point_shift = 0.0

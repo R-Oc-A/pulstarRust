@@ -66,7 +66,7 @@ pub fn gaussian_profile_mkr(toml_string:&str,star_df:DataFrame)->DataFrame{
     let mut intensity_collection = crate::utils::IntensityFlux::new(time_points.len());
     let mut hypercube = profile_gauss.get_hypercube();
     profile_gauss.update_limb_darkening_coefficients(profile_gauss.t_eff,
-        profile_gauss.log_g, & mut hypercube);
+        profile_gauss.log_g,1.0, & mut hypercube);
     //----------------------------------------------------------------
     //-------------- Collect fluxes for each time point  -------------
     //----------------------------------------------------------------
@@ -121,24 +121,19 @@ impl GaussianProfile{
         }
     
     ///This formula is taken from Joris de Ridder Thesis. 
-    fn compute_gaussian_amplitude(& mut self, shifted_wavelength:&[f64],fl_in_ul:f64,d_temperature:f64){
+    fn compute_gaussian_amplitude(& mut self,relative_doppler_shift:f64,fl_in_ul:f64,d_temperature:f64){
         //rewrite gaussianprofile by adding cell's contrubution
+        let shifted_wavelength = self.central_wavelength * relative_doppler_shift;
         let w_eintr = self.get_w_eintr(d_temperature);
         self.y_gauss = 
         self.y_gauss.iter()
         .enumerate()
         .map(|(index,intensity)|
         {   
-            let velocity = (shifted_wavelength[index]/self.central_wavelength -1.0) *CLIGHT*1.0e-3;
-            /* *intensity + 
-            fl_in_ul * (
-                1.0 -w_eintr * self.sigmag_sqrtpi_sqrt2 *
-                (-(self.central_wavelength - shifted_wavelength[index]).powi(2)*self.sigmag_sqrt2_pow2).exp()
-            )*/
             *intensity + 
             fl_in_ul * (
-                1.0 - w_eintr * self.sigmag_sqrtpi_sqrt2 *
-                (-(velocity.powi(2))*self.sigmag_sqrt2_pow2).exp()
+                1.0 -w_eintr * self.sigmag_sqrtpi_sqrt2 *
+                (-(shifted_wavelength - self.wavelength[index]).powi(2)*self.sigmag_sqrt2_pow2).exp()
             )
         }
         ).collect();
@@ -162,8 +157,10 @@ impl GaussianProfile{
         }
     }
 
-    fn update_limb_darkening_coefficients(& mut self,t_eff:f64,log_g:f64,hypercube2d:& mut ParameterSpaceHypercube<LimbDarkeningCoefficients>){
-        let coords = [t_eff,log_g,self.central_wavelength];
+    fn update_limb_darkening_coefficients(& mut self,
+        t_eff:f64,log_g:f64,relative_doppler_shift:f64,
+        hypercube2d:& mut ParameterSpaceHypercube<LimbDarkeningCoefficients>){
+        let coords = [t_eff,log_g,self.central_wavelength*relative_doppler_shift];
         self.limb = hypercube2d.multilinear_interpolation(&coords).unwrap();
     }
 
@@ -205,15 +202,15 @@ impl GaussianProfile{
         self.y_gauss = vec![0.0;self.y_gauss.len()];
 
         for (index,cell) in surface_cells.iter().enumerate(){
-            //self.update_limb_darkening_coefficients(cell.t_eff, cell.log_g, hypercube2d);
+            self.update_limb_darkening_coefficients(cell.t_eff, cell.log_g,cell.rel_dlamb, hypercube2d);
             self.compute_fl_in_ul(cell.area, cell.coschi.sqrt(), index);
         }
         self.renormalize_fl_in_ul();
 
         for (index,cell) in surface_cells.iter().enumerate(){
             let d_temperature = (cell.t_eff/self.t_eff)-1.0;
-            let shifted_wavelength = self.get_doppler_shifted_wavelengths(cell.rel_dlamb);
-            self.compute_gaussian_amplitude(&shifted_wavelength, self.fl_in_ul[index],d_temperature);
+            //let shifted_wavelength = self.get_doppler_shifted_wavelengths(cell.rel_dlamb);
+            self.compute_gaussian_amplitude(cell.rel_dlamb, self.fl_in_ul[index],d_temperature);
         }   
         self.make_df();
     }
