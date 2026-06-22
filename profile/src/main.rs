@@ -1,8 +1,10 @@
 use std::env;
+use profile::famias_profiles::gaussian_profile_mkr;
 use profile::*;
 use std::time::Instant;
 use profile::profile_mkr::*;
 use profile::utils::IntensityFlux;
+use std::fs;
 use polars::prelude::*;
 
 fn main() {
@@ -19,6 +21,39 @@ fn main() {
     panic!("USAGE: profile -- profile_input.toml rasterized_star.parquet");
    }
 
+   if env_args.len() >3usize {
+    println!("Gaussian profile calculation mode");
+
+    
+   //--------------------------------------------------
+   //---------Program Start!---------------------------
+   //--------------------------------------------------
+    let start_computing_time = Instant::now();   
+
+    let path_to_file = env_args[3].clone();
+    
+    let contents = match fs::read_to_string(path_to_file.clone()){
+        Ok(c)=>c,
+        Err(_) => { panic!("Could not read file {}", path_to_file)}
+        };
+
+   // Obtain the lazy frame of the parquet file, Obtain the time points, obtain the theta points
+   let (lf,time_points)=parsing_star(&env_args[2].clone());
+
+   let star_df = lf.collect().unwrap();
+   let output_df  = gaussian_profile_mkr(&contents, star_df);
+    
+    
+    println!("done with computations, starting with saving. Time is {:#?}",start_computing_time.elapsed());
+    if let Ok(_) = utils::output_to_parquet(output_df,time_points.len() as u16){
+        println!("finished computation for a star's pulsation");
+        println!("Total computation time is {:#?}",start_computing_time.elapsed());
+    }else{
+        panic!("unable to write into parquet")
+    }
+
+   }
+   else{
 
    //--------------------------------------------------
    //---------Program Start!---------------------------
@@ -73,4 +108,5 @@ fn main() {
     }else{
         panic!("unable to write into parquet")
     }
+}
 }

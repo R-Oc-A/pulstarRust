@@ -2,7 +2,7 @@ use std::ops::Add;
 
 use temp_name_lib::interpolation::ParameterSpaceHypercube;
 
-use crate::famias_profiles::parse_famias_grid::{give_left_right_wavelengths, parse_lib_coefs};
+use crate::{famias_profiles::parse_famias_grid::{give_left_right_wavelengths, parse_lib_coefs}, utils::IntensityFlux};
 
 use super::*;
 
@@ -39,9 +39,11 @@ pub struct GaussianProfile{
     log_g:f64,
     ///Output Dataframe
     output:DataFrame,
+    ///phase of pulsation
+    time_point:f64,
 }
 
-pub fn gaussian_profile_mkr(toml_string:&str,star_df:DataFrame){
+pub fn gaussian_profile_mkr(toml_string:&str,star_df:DataFrame)->DataFrame{
    //---------------------------------------- 
    //------Parsing profile_input.toml--------
    //----------------------------------------
@@ -54,32 +56,25 @@ pub fn gaussian_profile_mkr(toml_string:&str,star_df:DataFrame){
    //---------------------------------------- 
    //----Parsing rasterized_star.parquet-----
    //----------------------------------------
-    let lf = star_df.lazy();
-    let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
+    let star_lf = star_df.lazy();
+    let tf = star_lf.clone().select([col("time").unique(),]).collect().unwrap();
     let extract_time_series = tf.column("time").unwrap();
     let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();
 
 
     //init output dataframe
     let mut intensity_collection = crate::utils::IntensityFlux::new(time_points.len());
-
-
-    // load limb darkening coefficients
-    
-   let (
-        mut spectral_grid,
-        mut hypercube2d
-    )= loading_intensity_grids(lf.clone(), & profile_config);
+    let mut hypercube = profile_gauss.get_hypercube();
+    profile_gauss.update_limb_darkening_coefficients(profile_gauss.t_eff,
+        profile_gauss.log_g, & mut hypercube);
     //----------------------------------------------------------------
     //-------------- Collect fluxes for each time point  -------------
     //----------------------------------------------------------------
     for pulsation_phase in time_points.iter() {
-    
-        intensity_collection.append_fluxes(fluxes.integrate(
-            lf.clone(),
-            *pulsation_phase,
-            & mut spectral_grid,
-            & mut hypercube2d));
+        profile_gauss.time_point = *pulsation_phase;
+        profile_gauss.integrate(star_lf.clone(),
+    &mut hypercube);
+        intensity_collection.append_fluxes(profile_gauss.output.clone());
         println!("done computing flux");
 
         println!("finished collecting fluxes {}",pulsation_phase);
@@ -88,7 +83,7 @@ pub fn gaussian_profile_mkr(toml_string:&str,star_df:DataFrame){
     }
     
     //write output into parquet file
-    intensity_collection.collect_into_single_df()
+    intensity_collection.collect_famias_into_single_df()
 
 }
 
@@ -110,6 +105,7 @@ impl GaussianProfile{
             let limb = LimbDarkeningCoefficients([0.0;4]);
             let star_temperature = 10.0;
             let Star_logg =3.8;
+            let time_point = 0.0;
             let output:DataFrame = DataFrame::empty();
             GaussianProfile { fl_in_ul, continuum, 
                 y_gauss, wavelength:sampling_wavelengths.to_vec(),
@@ -119,7 +115,9 @@ impl GaussianProfile{
                 zero_point_shift,
                 central_wavelength,
                 limb,t_eff:star_temperature,
-                log_g:Star_logg,output}
+                log_g:Star_logg,
+                time_point:time_point,
+                output:output}
         }
     
     ///This formula is taken from Joris de Ridder Thesis. 
@@ -130,13 +128,22 @@ impl GaussianProfile{
         self.y_gauss.iter()
         .enumerate()
         .map(|(index,intensity)|
-        {   intensity + 
+        {   
+            let velocity = (shifted_wavelength[index]/self.central_wavelength -1.0) *CLIGHT*1.0e-3;
+            /* *intensity + 
             fl_in_ul * (
                 1.0 -w_eintr * self.sigmag_sqrtpi_sqrt2 *
                 (-(self.central_wavelength - shifted_wavelength[index]).powi(2)*self.sigmag_sqrt2_pow2).exp()
+            )*/
+            *intensity + 
+            fl_in_ul * (
+                1.0 - w_eintr * self.sigmag_sqrtpi_sqrt2 *
+                (-(velocity.powi(2))*self.sigmag_sqrt2_pow2).exp()
             )
         }
         ).collect();
+
+
     }
     fn compute_fl_in_ul(&mut self,surface_area:f64,mu:f64,cell_index:usize){
         self.fl_in_ul[cell_index]=surface_area *(
@@ -168,10 +175,33 @@ impl GaussianProfile{
         self.eq_w*(1.0 + self.alpha_w*d_temperature)
     }
 
+    fn get_hypercube(&self)->ParameterSpaceHypercube<LimbDarkeningCoefficients>{
+        LimbDarkeningCoefficients::new_parameter_space_cube(self.central_wavelength, self.t_eff, self.log_g)
+    }
 
-    pub fn integrate(& mut self, surface_cells:&[SurfaceCell],
+    pub fn integrate(& mut self,star_lf:LazyFrame,
         hypercube2d:& mut ParameterSpaceHypercube<LimbDarkeningCoefficients>){
-        self.update_limb_darkening_coefficients(self.t_eff, self.log_g, hypercube2d);
+        
+        let expr = col("time").eq(lit(self.time_point));
+        let sphere_frame = star_lf.clone().filter(expr);
+        
+        // Filter if surface cell is visible.
+        let expr = col("coschi").gt(lit(0.08));//.and(col("coschi").lt(lit(0.9285)));
+        let visible_lf =sphere_frame.filter(expr);
+                
+        // Append relative doppler wavelength shift 
+        let observed_sphere_df = insert_col_relative_dlambda(visible_lf).collect().unwrap();
+        
+        // Obtain the relevant quantities to compute the flux on each cell of the surface of the rasterized star
+        // |--> relative doppler wavelength shift
+        // |--> normalized area of each cell projected onto the unit vector of directed towards the observer
+        // |--> coschi is projection of the unit vector normal to the cell surface towards the observer.
+        // |--> temperature over the surface cell
+        // |--> log gravity value over the surface cell
+        let surface_cells = SurfaceCell::extract_cells_from_df(observed_sphere_df);
+    
+        self.fl_in_ul = vec![0.0;surface_cells.len()];
+        
         self.y_gauss = vec![0.0;self.y_gauss.len()];
 
         for (index,cell) in surface_cells.iter().enumerate(){
@@ -179,12 +209,24 @@ impl GaussianProfile{
             self.compute_fl_in_ul(cell.area, cell.coschi.sqrt(), index);
         }
         self.renormalize_fl_in_ul();
+
         for (index,cell) in surface_cells.iter().enumerate(){
             let d_temperature = (cell.t_eff/self.t_eff)-1.0;
             let shifted_wavelength = self.get_doppler_shifted_wavelengths(cell.rel_dlamb);
             self.compute_gaussian_amplitude(&shifted_wavelength, self.fl_in_ul[index],d_temperature);
         }   
+        self.make_df();
     }
+
+
+    fn make_df(&mut self){
+        self.output = df!(
+            "wavelength" => self.wavelength.clone(),
+            "normalized flux" => self.y_gauss.clone(),
+            "time"=> vec![self.time_point;self.wavelength.len()]
+        ).unwrap();
+    }
+
 }
 
 impl Add for LimbDarkeningCoefficients{
@@ -219,19 +261,17 @@ impl temp_name_lib::interpolation::LinearlyInterpolatable for LimbDarkeningCoeff
 
 impl LimbDarkeningCoefficients{
 
-    fn new_parameter_space_cube(central_wavelength:f64,t_eff:f64,log_g:f64,df:&DataFrame)->ParameterSpaceHypercube<Self>{
-        let mut new_cube = ParameterSpaceHypercube::<Self>::new(2);
+    fn new_parameter_space_cube(central_wavelength:f64,t_eff:f64,log_g:f64)->ParameterSpaceHypercube<Self>{
+        let mut new_cube = ParameterSpaceHypercube::<Self>::new(3);
 
         let (teffs,loggs,
             leftfilter_a1,leftfilter_a2,leftfilter_a3,leftfilter_a4,
             rightfilter_a1,rightfilter_a2,rightfilter_a3,rightfilter_a4) = parse_lib_coefs(central_wavelength, t_eff, log_g);
         
         let (left_wl,right_wl)=give_left_right_wavelengths(central_wavelength);
-
         let coords1 = [teffs[0],teffs[2]];
-        let coords2 = [loggs[0],loggs[2]];
+        let coords2 = [loggs[0],loggs[1]];
         let coords3 = [left_wl,right_wl];
-        
         let mut vertices_data:Vec<LimbDarkeningCoefficients>=Vec::new();
 
         for i in 0usize..2{
@@ -342,17 +382,18 @@ mod parse_famias_grid{
     fn trim_teff_logg(t_eff:f64,log_g:f64,df:&DataFrame)->DataFrame{
         let teffs = extract_column_as_vectorf64("Teff", df);
         let min_teff = teffs.iter().fold(teffs[0],|acc,t|{if *t<t_eff {*t}else{acc}});
-        let max_teff =  teffs.iter().fold(teffs[0],|acc,t|{if acc>=t_eff {acc}else{*t}});
+        let max_teff =  teffs.iter().fold(teffs[0],|acc,t|{if acc>=t_eff+3000.0 {acc}else{*t}});
+
         let ddf = df.clone().lazy().filter(col("Teff").eq(lit(min_teff)).or(col("Teff").eq(lit(max_teff))))
         .sort(["Teff","logg"],Default::default())
         .collect().unwrap();
-        
-        let loggs = extract_column_as_vectorf64("logg", &ddf);
+               let loggs = extract_column_as_vectorf64("logg", &ddf);
         let min_logg = loggs.iter().fold(loggs[0],|acc,lg|{ if *lg<log_g{*lg}else{acc}});
-        let max_logg = loggs.iter().fold(loggs[0],|acc,lg|{ if acc<log_g{acc}else{*lg}});
-        ddf.clone().lazy().filter(
-            col("logg").eq(lit(min_logg)).and(col("logg").eq(lit(max_logg)))
-        ).sort(["Teff","logg"],Default::default()).collect().unwrap()
+        let max_logg = loggs.iter().fold(loggs[0],|acc,lg|{ if acc>=log_g{acc}else{*lg}});
+        let loggs_df = ddf.clone().lazy().filter(
+            col("logg").eq(lit(min_logg)).or(col("logg").eq(lit(max_logg)))
+        ).sort(["Teff","logg"],Default::default()).collect().unwrap();
+        loggs_df
     }
 
     pub fn parse_lib_coefs(central_wavelength:f64,t_eff:f64,log_g:f64)->
@@ -372,7 +413,6 @@ mod parse_famias_grid{
         let df_grids = open_famias_grid(&path);
         let trimmed1= df_grids.clone().lazy().select(columns).collect().unwrap();
         let trimmed2 = trim_teff_logg(t_eff, log_g, &trimmed1.clone());
-
         let teffs = extract_column_as_vectorf64(&column_names[0], &trimmed2);
         let loggs = extract_column_as_vectorf64(&column_names[1], &trimmed2);
         let leftfilter_a1 = extract_column_as_vectorf64(&column_names[2], &trimmed2);
@@ -391,3 +431,16 @@ mod parse_famias_grid{
     }
 }
 
+impl IntensityFlux {
+    fn collect_famias_into_single_df(self)->DataFrame{
+        for (index,df) in self.data_frames.iter().enumerate(){
+            println!("this is the df for mode {}: {}",index,df.head(Some(5)));
+        }
+        let lfs:Vec<LazyFrame> = self.data_frames.into_iter().map(|x| x.lazy()).collect();
+
+        let collection_lf = polars::prelude::concat(&lfs,
+         UnionArgs::default()).unwrap();
+        
+        collection_lf.collect().unwrap()
+    }
+}

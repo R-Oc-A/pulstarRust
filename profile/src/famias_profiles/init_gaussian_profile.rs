@@ -67,6 +67,7 @@ pub fn init_profile(toml_string:&str)->GaussianProfile{
         t_eff:config.t_eff,
         log_g:logg,
         output:DataFrame::empty(),
+        time_point:0.0,
         limb: super::LimbDarkeningCoefficients([0.0;4])
     }
 

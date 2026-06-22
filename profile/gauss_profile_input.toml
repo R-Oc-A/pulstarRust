@@ -1,0 +1,21 @@
+# This will be the typical structure of 
+# the input file for the input file for the profile code. 
+
+# intrinsic width
+sigma = 1.0
+#equivalent width
+eq_w = 1.0
+#relation of the difference of temperature related to the pulsation amplitude
+alpha_w = 0.3
+zero_point_shift = 0.0
+
+#central wavelength 
+central_wavelength =4100.0
+left_wavelength = 4094.0
+right_wavelength = 4106.0
+step = 0.03125
+
+#Star parameters
+t_eff = 21000.0
+mass = 10.0
+radius = 6.93
