@@ -2,13 +2,14 @@
 //! the (linear) variations on surface temperature, log g, and also the pulsation velocity components.
 //! for each of the surface cells. 
 use core::f64;
+use std::f64::consts;
 
 use serde::Deserialize;
 use temp_name_lib::math_module::spherical_harmonics;
 use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
 use temp_name_lib::type_def::{PI, RADIUSSUN};
 use nalgebra as na;
-
+use cdshealpix::*;
 use crate::local_pulsation_velocity::observed_pulsation_velocity;
 use crate::local_temperature_and_gravity::local_surface_temperature_logg;
 use crate::reference_frames::rotation_treatment::tar::TARCollection;
@@ -131,6 +132,13 @@ pub enum MeshConfig{
     /// A sphere variant uses a regular angular spacing on the surface of a star, thus is only parameterized by Δθ Δφ.
     Sphere{theta_step:f64,
            phi_step:f64},
+
+    /// A sphere tesselated using the hierarchical scheme Healpix using the implementation developped by [cdshealpix]
+    HSphere{
+        /// The depth value defines the nside parameter as nside = 2^depth; on the other hand the nside parameter defines the actual number of cells as $N_{pix}=12\times N_side^{2}$.
+        /// depth &in [0,29]$
+        depth:u8,
+    }
     //[Ricardo:]Here maybe some other geometries may rise
 }
 
@@ -190,7 +198,8 @@ impl PulstarConfig {
     pub fn get_mesh_structure(&self)->(f64,f64){
         match self.mesh{
             MeshConfig::Sphere { theta_step,
-                 phi_step } => {(theta_step,phi_step)}
+                 phi_step } => {(theta_step,phi_step)},
+            _ => {(0.0,0.0)}
         }
     }
 
@@ -204,8 +213,8 @@ impl PulstarConfig {
         match self.mesh {
             // On the spherical case we will be using equally spaced cells on (θ,φ)
             MeshConfig::Sphere { theta_step, phi_step } =>{
-                let mut phi:f64 =1.0;
-                let npts_theta = ((180.0/theta_step).floor() as usize) / 2 * 2;
+                let mut phi:f64 =0.0;
+                let npts_theta = (180.0/theta_step).floor() as usize;
                 for index in 0..npts_theta{
                     let theta = 180.0/(npts_theta as f64) * (index as f64 +0.5);
                     if theta<178.5{
@@ -213,19 +222,31 @@ impl PulstarConfig {
                             rasterized_star.cells.push(SurfaceCell::new(theta.to_radians(), phi.to_radians()));
                             phi += phi_step;
                         }                    
-                    phi =1.0
+                    phi =0.0;
                     }
                 }
-/*
-                while theta < 180.0{
-                    while phi < 360.0{                        
-                        rasterized_star.cells.push(SurfaceCell::new(theta.to_radians(), phi.to_radians()));
-                        phi += phi_step;
+            }
+            MeshConfig::HSphere { depth  }=>{
+                let layer = cdshealpix::nested::get(depth);
+                let n_side = nside(depth) as u64;
+                let npix = 12u64 * n_side.pow(2);
+                let epsilon_theta = 0.5f64.to_radians();
+                //nested ordering of healpix
+                for index in 0..npix{
+                    //transforming into colatitude ring ordering of healpix
+                    let hash_ring = layer.to_ring(index);
+                    let (mut phi,mut theta) = cdshealpix::ring::center(n_side as u32,hash_ring);
+                    theta = -(theta - PI)%PI;
+                    phi = phi%(2.0*PI);
+                    if theta> epsilon_theta && theta < (PI-epsilon_theta){//avoid the poles
+                        if theta == 0.0 {panic!("something's wrong with your definition of theta ={:3.2}",theta)}
+                        //println!("theta {:2.4} initiated",theta.to_degrees());
+                    let new_surface_cell = SurfaceCell::new(theta,phi);
+                    //new_surface_cell.area = area;
+                    rasterized_star.cells.push(new_surface_cell);
                     }
-                    phi = 1.0;
-                    theta += theta_step;
-                }*/
-            }   
+                }
+            }
         }
 
         //--Equilibrium log(g_0) (gravity g_0 is in cgs units)
@@ -241,10 +262,9 @@ impl PulstarConfig {
 
     ///This method gives the rotation frequency in cycles per day
     pub fn get_rotation_frequency(&self)->f64{
-        let rot_freq_in_rad_sec = self.star_data.v_omega / (self.star_data.radius * RADIUSSUN*1.0e-3);
+        let rot_period_in_days = (self.star_data.radius * RADIUSSUN * 1.0e-3 * 2.0 * PI)/self.star_data.v_omega / (3.6e3 * 24.0);
 
-        rot_freq_in_rad_sec/(2.0*f64::consts::PI) * 3.6e3
-
+        1.0/rot_period_in_days
     }
 
     pub fn get_tar_collections(&self)->Vec<Option<TARCollection>>{
@@ -321,34 +341,35 @@ impl SurfaceCell{
         temperature_0:f64,
         g0:f64,
         tar_collections:&[Option<TARCollection>]){
-        //Select the type of geometry
-        match parameters.mesh{
-            MeshConfig::Sphere {theta_step,
-                ..} => {
-                let theta = self.coord_1;
-                let phi = self.coord_2;
-                let dtheta = theta_step.to_radians();
-                let k_spherical = k.transform(theta, phi);
-                
-                let s_normal = surface_normal(parameters,
-                     theta, dtheta,phi,tar_collections).unwrap();
+        // Select the type of geometry
+        // So far it's the same for Spherical or healpix
+        let theta = self.coord_1;
+        let phi = self.coord_2;
+        let area = match parameters.mesh{
+            MeshConfig::Sphere { theta_step, phi_step }=>{theta.sin().abs()*theta_step*phi_step}
+            MeshConfig::HSphere { depth }=>{
+                let npix = 12*nside(depth).pow(2);
+                4.0*PI/(npix as f64)
+            }
+        };
+        let k_spherical = k.transform(theta, phi);
+        
+        let s_normal = surface_normal(parameters,
+             theta, phi, tar_collections).unwrap();
 
-            
-                let cos_chi = reference_frames::cos_chi(
-                    &s_normal,
-                   &k_spherical,
-                    theta, phi);
-                if cos_chi <= 0.0 { self.set_local_values_to_zero()}
-                else {
-                    self.coschi = cos_chi;
-                    self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap();
-                    (self.t_eff,self.log_g) = local_surface_temperature_logg(parameters, theta, dtheta, phi, g0, temperature_0, tar_collections);
-                    self.area = s_normal.project_vector(&k_spherical).unwrap();
-                }
-            }   
+    
+        let cos_chi = reference_frames::cos_chi(
+            &s_normal,
+           &k_spherical,
+            theta, phi);
+        if cos_chi <= std::f64::EPSILON { self.set_local_values_to_zero()}
+        else {
+            self.coschi = cos_chi;
+            self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap();
+            (self.t_eff,self.log_g) = local_surface_temperature_logg(parameters, theta,phi, g0, temperature_0, tar_collections);
+            self.area = area * s_normal.project_vector(&k_spherical).unwrap();
         }
-
-    }
+    }   
 }
 
 impl PulsationMode{

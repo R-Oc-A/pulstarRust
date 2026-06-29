@@ -19,7 +19,6 @@ use crate::reference_frames::{Coordinates,displacement,ampl_r,ampl_t};
 pub fn local_surface_temperature_logg(
     parameters:&PulstarConfig,
     theta:f64,
-    dtheta:f64,
     phi:f64,
     g0:f64,
     temperature_0:f64,
@@ -38,7 +37,6 @@ pub fn local_surface_temperature_logg(
             let ds = local_variable_pulsation_displacement(
             mode, 
             theta, 
-            dtheta, 
             phi, 
             radial_amplitude, 
             tangential_amplitude, 
@@ -54,7 +52,6 @@ pub fn local_surface_temperature_logg(
             let ds = local_variable_pulsation_displacement(
             mode, 
             theta, 
-            dtheta, 
             phi, 
             radial_amplitude, 
             tangential_amplitude,
@@ -94,7 +91,6 @@ pub fn local_surface_temperature_logg(
 fn local_variable_pulsation_displacement(
     mode: &PulsationMode,
     theta:f64,
-    dtheta:f64,
     phi:f64,
     radial_amplitude:f64,
     tangential_amplitude:f64,
@@ -110,7 +106,6 @@ fn local_variable_pulsation_displacement(
     displacement(
         &mode_with_dif_phase,
         theta,
-        dtheta, 
         phi, 
         radial_amplitude, 
         tangential_amplitude,

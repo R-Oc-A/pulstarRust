@@ -20,7 +20,6 @@ use super::rotation_treatment::{self};
 pub fn d_dr_rdtheta(
     mode: &PulsationMode,
 	theta: f64,
-	dtheta: f64,
 	phi: f64,
     tar_functions:&Option<TARCollection>) -> f64{
 
@@ -39,11 +38,11 @@ pub fn d_dr_rdtheta(
 
         RotationRegime::Tar =>{ if let Some(houghs_functions) = tar_functions{
             rotation_treatment::
-            tar::tar_d_dr_rdtheta(mode, theta, dtheta, phi,houghs_functions)}
+            tar::tar_d_dr_rdtheta(mode, theta,  phi,houghs_functions)}
             else{panic!("hough functions where not properly loaded.")}},
 
         RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dr_rdtheta(mode, theta, dtheta, phi)},
+            non_rotating::non_rotating_d_dr_rdtheta(mode, theta.sin(), theta.cos(), phi)},
     }
 }
 
@@ -59,7 +58,6 @@ pub fn d_dr_rdtheta(
 pub fn d_dtheta_dtheta(
     mode: &PulsationMode,
 	theta: f64,
-	dtheta: f64,
 	phi: f64,
     spin_parameter:f64,
     tar_functions:&Option<TARCollection>) -> f64{
@@ -79,11 +77,11 @@ pub fn d_dtheta_dtheta(
 
         RotationRegime::Tar =>{ if let Some(houghs_functions) = tar_functions{
             rotation_treatment::
-            tar::tar_d_dtheta_dtheta(mode, theta, dtheta, phi,houghs_functions).unwrap()}
+            tar::tar_d_dtheta_dtheta(mode, theta,  phi,houghs_functions).unwrap()}
             else{panic!("hough functions where not properly loaded.")}},
 
         RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dtheta_dtheta(mode, theta, dtheta, phi)}
+            non_rotating::non_rotating_d_dtheta_dtheta(mode, theta.sin(), theta.cos(), phi)}
     }
 }
 
@@ -99,7 +97,6 @@ pub fn d_dtheta_dtheta(
 pub fn d_dr_rdphi(
     mode: &PulsationMode,
 	theta: f64,
-	dtheta: f64,
 	phi: f64,
     tar_functions:&Option<TARCollection>) -> f64{
 
@@ -118,11 +115,11 @@ pub fn d_dr_rdphi(
 
         RotationRegime::Tar =>{ if let Some(houghs_functions) = tar_functions{
             rotation_treatment::
-            tar::tar_d_dr_rdphi(mode, theta, dtheta, phi,houghs_functions)}
+            tar::tar_d_dr_rdphi(mode, theta,  phi,houghs_functions)}
             else{panic!("hough functions where not properly loaded.")}},
 
         RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dr_rdphi(mode, theta, dtheta, phi)}
+            non_rotating::non_rotating_d_dr_rdphi(mode, theta.sin(), theta.cos(), phi)}
     }
 }
 
@@ -140,7 +137,6 @@ pub fn d_dr_rdphi(
 pub fn d_dphi_dphi(
     mode: &PulsationMode,
 	theta: f64,
-	dtheta: f64,
 	phi: f64,
     spin_parameter:f64,
     tar_functions:&Option<TARCollection>) -> Result<f64,MathErrors>{
@@ -160,10 +156,10 @@ pub fn d_dphi_dphi(
 
         RotationRegime::Tar =>{ if let Some(houghs_functions) = tar_functions{
             rotation_treatment::
-            tar::tar_d_dphi_dphi(mode, theta, dtheta, phi,houghs_functions)}
+            tar::tar_d_dphi_dphi(mode, theta,  phi,houghs_functions)}
             else{panic!("hough functions where not properly loaded.")}},
             
         RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dphi_dphi(mode, theta, dtheta, phi)}
+            non_rotating::non_rotating_d_dphi_dphi(mode, theta.sin(), theta.cos(), phi)}
     }
 }

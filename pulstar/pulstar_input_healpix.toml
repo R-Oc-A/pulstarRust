@@ -21,7 +21,7 @@ rel_dtemp = 2.62
 phase_rel_dtemp = 180.0
 rel_dg = 10.0
 phase_rel_dg = 34.0
-rotation_effects = "Tar" #NonRotating,PerturbativeCoriolis,Tar,CentrifugalDeformation
+rotation_effects = "PerturbativeCoriolis" #NonRotating,PerturbativeCoriolis,Tar,CentrifugalDeformation
 [star_data]
 mass = 10.0
 radius = 6.93
@@ -29,6 +29,5 @@ effective_temperature = 22642.0
 v_omega = 20.0 #Rotation velocity
 inclination_angle = 45.0
 
-[mesh.Sphere]
-theta_step = 1.0
-phi_step = 1.0
+[mesh.HSphere]
+depth = 8
