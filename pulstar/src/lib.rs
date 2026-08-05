@@ -368,11 +368,9 @@ impl SurfaceCell{
             &s_normal,
            &k_spherical,
             theta, phi);
-
-        //if cos_chi <= std::f64::EPSILON { 
-        if cos_chi.abs() <= 1.0e-2{
+        
+        if cos_chi <= std::f64::EPSILON { 
             self.set_local_values_to_zero();
-            println!("I'm here with theta = {}",theta.to_degrees());
         }
         else {
             self.coschi = cos_chi;
