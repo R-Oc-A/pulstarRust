@@ -76,10 +76,11 @@ pub fn init_profile(toml_string:&str)->GaussianProfile{
 impl GaussianProfileInit{
     
     fn read_from_toml(toml_string:&str)->Self{
-        match toml::from_str(toml_string){
+        toml::from_str(toml_string).expect("error parsing toml for profile config") /*{
+        
             Ok(profile)=>{profile}
-            _=>{panic!("error parsing toml for profile config")}
-        }
+            Err(error)=>{panic!("error parsing toml for profile config{}",error)}
+        }*/
     }
 
     fn init_wavelength_arr(&self)->Vec<f64>{

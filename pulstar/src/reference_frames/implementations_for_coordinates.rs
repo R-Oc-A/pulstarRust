@@ -136,7 +136,7 @@ impl Coordinates {
 
 
             let t_matrix = na::Matrix3::new(
-                sintheta*costheta, costheta*cosphi, -sinphi,
+                sintheta*cosphi, costheta*cosphi, -sinphi,
                 sintheta*sinphi, costheta*cosphi, cosphi,
                 costheta, -sintheta, 0.0,
             );//spherical to cartesian matrix

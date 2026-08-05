@@ -236,15 +236,21 @@ impl PulstarConfig {
                     //transforming into colatitude ring ordering of healpix
                     let hash_ring = layer.to_ring(index);
                     let (mut phi,mut theta) = cdshealpix::ring::center(n_side as u32,hash_ring);
-                    theta = -(theta - PI)%PI;
+                    if theta >=0.0{
+                        theta = (theta-0.5*PI).abs();
+                    }else{
+                        theta = theta.abs() + 0.5*PI;
+                    };
+                    //theta = -(theta - PI)%PI;
+                    //theta += 0.5*PI; 
                     phi = phi%(2.0*PI);
-                    if theta> epsilon_theta && theta < (PI-epsilon_theta){//avoid the poles
-                        if theta == 0.0 {panic!("something's wrong with your definition of theta ={:3.2}",theta)}
+                    //if theta> epsilon_theta && theta < (PI-epsilon_theta){//avoid the poles
+                        //if theta == 0.0 {panic!("something's wrong with your definition of theta ={:3.2}",theta)}
                         //println!("theta {:2.4} initiated",theta.to_degrees());
-                    let new_surface_cell = SurfaceCell::new(theta,phi);
+                        let new_surface_cell = SurfaceCell::new(theta,phi);
                     //new_surface_cell.area = area;
                     rasterized_star.cells.push(new_surface_cell);
-                    }
+                    //}
                 }
             }
         }
@@ -362,7 +368,12 @@ impl SurfaceCell{
             &s_normal,
            &k_spherical,
             theta, phi);
-        if cos_chi <= std::f64::EPSILON { self.set_local_values_to_zero()}
+
+        //if cos_chi <= std::f64::EPSILON { 
+        if cos_chi.abs() <= 1.0e-2{
+            self.set_local_values_to_zero();
+            println!("I'm here with theta = {}",theta.to_degrees());
+        }
         else {
             self.coschi = cos_chi;
             self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap();

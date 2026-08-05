@@ -27,10 +27,8 @@ fn main() {
 
     //let path = String::from("pulstar_input.toml");
 
-    let contents = match fs::read_to_string(path){
-        Ok(c)=>c,
-        Err(_) => { panic!("Could not read file {}",path)}
-        };
+    let contents = fs::read_to_string(path).expect(&format!("Could not read file {}",path));
+
     let mut pulse_config = PulstarConfig::read_from_toml(&contents);
     let time_points = pulse_config.get_time_points(); 
 
