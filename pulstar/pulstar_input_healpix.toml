@@ -30,4 +30,4 @@ v_omega = 20.0 #Rotation velocity
 inclination_angle = 45.0
 
 [mesh.HSphere]
-depth = 8
+depth = 3

@@ -72,7 +72,7 @@ impl IntensityGrid {
             Self::Joris { temperature:_, log_gravity:_, filename:path_to_grid}=>{path_to_grid} 
             Self::Nadya { temperature:_, log_gravity:_, metalicity:_, filename: path_to_grid }=>{path_to_grid}
         };
-        let path = format!("{}{}",path_to_grid,filename);
+        let path = PlRefPath::new(format!("{}{}",path_to_grid,filename));
         let schema = Schema::from_iter(self.get_schema());
         let lf= LazyCsvReader::new(path)
         .with_separator(b' ')

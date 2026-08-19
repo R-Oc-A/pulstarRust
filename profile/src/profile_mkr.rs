@@ -10,13 +10,13 @@ pub fn parsing_star(path_to_star:&str)->(LazyFrame,Vec<f64>){
    //----Parsing rasterized_star.parquet-----
    //----------------------------------------
    // Obtain the lazy frame of the parquet file, Obtain the time points, obtain the theta points
-    let rasterized_star_path = path_to_star;
+    let rasterized_star_path = PlRefPath::new(path_to_star);
+    
     let lf = LazyFrame::scan_parquet(rasterized_star_path, Default::default()).unwrap();
     //get vector of time_points
-    
     let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
-    let extract_time_series = tf.column("time").unwrap();
-    let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();
+    let time_points = extract_column_as_vectorf64("time", &tf);
+    println!("extracted time points are {:?}",time_points);
     (lf.clone(),time_points)
 }
 
@@ -33,13 +33,14 @@ ParameterSpaceHypercube<LazyFrame>,//hypercube2d
         "velocity",
          star_lf.clone(),
           false).unwrap();
+    let max_vel = if max_vel.abs()>min_vel.abs(){max_vel.abs()}else{min_vel.abs()};
     
     let maxval_rel_dopplershift =  1.0+max_vel/CLIGHT*1.0e3;
-    let minval_rel_dopplershift = 1.0+min_vel/CLIGHT*1.0e3;
+    let minval_rel_dopplershift = 1.0-max_vel/CLIGHT*1.0e3;
     println!("min relative dopplershift is {}",minval_rel_dopplershift);
     println!("max relative dopplershift is {}", maxval_rel_dopplershift);
 
-    println!("creating the spectral grids data structures from csv files...or neural network regresor");
+    println!("creating the spectral grids data structures from csv files");//...or neural network regresor");
     let spectral_grids = profile_config.init_spectral_grid_from_csv(maxval_rel_dopplershift, minval_rel_dopplershift);
     
     println!("Allocating memory for hypercube in the parameter space");
@@ -71,7 +72,6 @@ impl FluxOfSpectra {
             
         // Append relative doppler wavelength shift 
         let observed_sphere_df = insert_col_relative_dlambda(visible_lf).collect().unwrap();
-    
         // Obtain the relevant quantities to compute the flux on each cell of the surface of the rasterized star
         // |--> relative doppler wavelength shift
         // |--> normalized area of each cell projected onto the unit vector of directed towards the observer
@@ -89,7 +89,7 @@ impl FluxOfSpectra {
                 let collecting_df = collecting_lf.clone().collect().unwrap();
                 collecting_lf = collecting_df.lazy();
             }
-        }
+        } 
         collecting_lf.collect().unwrap()
     }
 
@@ -118,8 +118,17 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame)->DataFrame{
    //----------------------------------------
     let lf = star_df.lazy();
     let tf = lf.clone().select([col("time").unique(),]).collect().unwrap();
-    let extract_time_series = tf.column("time").unwrap();
+    //let tf_array = tf.column("time").unwrap().as_series().unwrap().f64().unwrap();
+    /*let extract_time_series = tf.column("time").unwrap();
     let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();
+    let time_points:Vec<f64> = tf_array.to_vec().into_iter().map(
+        |x| match x {
+            None => {panic!("unable to read time points")},
+            Some(value)=>{value}
+        }
+    ).collect();*/
+    let time_points = extract_column_as_vectorf64("time", &tf);
+    println!("{:?}",time_points);
 
     let mut intensity_collection = IntensityFlux::new(time_points.len());
    // Obtain the lazy frame of the parquet file, Obtain the time points, obtain the theta points

@@ -98,7 +98,7 @@ impl IntensityFlux{
 ///  This function returns a [PolarsResult] with the following variants:
 /// * `Ok(LazyFrame)` - In case the [LazyFrame] was adequately created.
 /// * `Err(PolarsError)` - Returning a [PolarsError] to the calling function. 
-fn open_collecting_parquet_file_as_lazyframe(path_to_parquet: &std::path::PathBuf)->PolarsResult<LazyFrame>{
+fn open_collecting_parquet_file_as_lazyframe(path_to_parquet: PlRefPath)->PolarsResult<LazyFrame>{
     LazyFrame::scan_parquet(path_to_parquet, ScanArgsParquet::default())
 }
 
@@ -165,8 +165,8 @@ fn lazyframe_to_be_written (time_points:u16,flux_lf:LazyFrame)->PolarsResult<Laz
     if time_points == 1{
         Ok(flux_lf)
     }else{
-        let old_path = std::path::PathBuf::from(format!("wavelengths_tp{}.parquet",time_points-1));
-        let old_lf = open_collecting_parquet_file_as_lazyframe(&old_path)?;
+        let old_path = PlRefPath::new(format!("wavelengths_tp{}.parquet",time_points-1));
+        let old_lf = open_collecting_parquet_file_as_lazyframe(old_path)?;
         Ok(append_current_lf_into_collection_lf(flux_lf, old_lf)?)
     }
 }
@@ -199,12 +199,20 @@ pub fn write_into_parquet(
     let flux_lf = lf.with_column(expr);
 
     // write lazy frame into parquet
-    let new_path = PathBuf::from(
+    /*let new_path = PathBuf::from(
         format!("wavelengths_tp{}.parquet",time_points)
-    );
+    );*/
+    let new_path = format!("wavelengths_tp{}.parquet",time_points);
     let lf_to_write = lazyframe_to_be_written(time_points,
          flux_lf.clone())?;
-
+    let df_to_write = lf_to_write.clone().collect()?;
+    println!("Sanity check");
+    println!("df to write is {}",df_to_write.head(Some(5)));
+    
+    let mut new_parquet_file = std::fs::File::create(new_path.clone())?;
+    let new_path = PlRefPath::new(new_path);
+    ParquetWriter::new(&mut new_parquet_file).finish( & mut df_to_write.clone());
+    /*
     if let Ok(lf) = lf_to_write.sink_parquet(
         SinkTarget::Path(Arc::new(new_path.clone())),
         ParquetWriteOptions::default(),
@@ -212,7 +220,7 @@ pub fn write_into_parquet(
         SinkOptions::default()){
             lf.collect()?;
         }else {eprint!("unable to sink to a parket in {} time_point",time_points)};
-
+    */
     // print 5 rows of the parquet output
     let llf = LazyFrame::scan_parquet(new_path,
     ScanArgsParquet::default()).unwrap();
@@ -251,10 +259,14 @@ pub fn output_to_parquet(
     time_points:u16,
     ) -> PolarsResult<()>{
     
-    let flux_lf = flux_df.lazy();
-    let new_path = std::path::PathBuf::from(format!("wavelengths_tp{}.parquet",time_points));
+    //let flux_lf = flux_df.lazy();
+    let new_path = format!("wavelengths_tp{}.parquet",time_points);
+    
+    let mut new_parquet_file = std::fs::File::create(new_path)?;
 
-    if let Ok(lf) = flux_lf.sink_parquet(
+    ParquetWriter::new(&mut new_parquet_file).finish(&mut flux_df.clone());
+
+    /*if let Ok(lf) = flux_lf.sink_parquet(
         SinkTarget::Path(Arc::new(new_path.clone())),
         ParquetWriteOptions::default(), 
         
@@ -262,6 +274,6 @@ pub fn output_to_parquet(
         SinkOptions::default()){
             lf.collect()?;
         }else {eprint!("unable to sink to a parket in {} time_point",time_points)};
-    
+    */
     Ok(())
 }

@@ -12,4 +12,4 @@ ndarray-linalg = {version = "*" , features = ["openblas-static"]}
 scirs2-interpolate = "0.5.0"
 scirs2-core = "0.5.0"
 itertools = "*"
-polars = {version = "0.49.1", features = ["lazy"]}
+polars = {version = "0.55.2", features = ["lazy"]}

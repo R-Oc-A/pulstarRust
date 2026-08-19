@@ -15,6 +15,7 @@ pub mod polars_lazyframe;
 /// This structure contains all the relevant information to produce 
 /// multilinear interpolation. 
 /// 
+
 pub struct ParameterSpaceHypercube<T>
 where
     T:LinearlyInterpolatable+Clone,

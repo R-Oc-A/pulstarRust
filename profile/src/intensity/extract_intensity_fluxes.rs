@@ -67,7 +67,8 @@ pub fn collect_flux_from_cell(&  self,
     cell: & SurfaceCell,
     spectral_grid: &mut SpectralGrid,
     hypercube: &mut ParameterSpaceHypercube<LazyFrame>,
-    collecting_lf:LazyFrame)->LazyFrame{
+    collecting_lf:LazyFrame,
+    )->LazyFrame{
 
         let mu_val = cell.coschi.sqrt();
         spectral_grid.fill_corner_values_2d(mu_val, hypercube);
@@ -83,10 +84,8 @@ pub fn collect_flux_from_cell(&  self,
             (col("mu_avg_c") * lit(cell.area)).alias("continuum")]
         );
 
-        //let linear_df = flux_lf.clone().collect().unwrap();
-        //println!("linear_df {:#?}",linear_df.head(Some(5)));
-        FluxOfSpectra::add_into_current_data(collecting_lf.clone(),flux_lf.clone())
-        //println!("self df {:#?}",self.flux_data.head(Some(5)));
+        let lff=FluxOfSpectra::add_into_current_data(collecting_lf.clone(),flux_lf.clone());
+        lff
 
 }
 

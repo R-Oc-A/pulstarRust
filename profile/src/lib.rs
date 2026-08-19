@@ -35,6 +35,7 @@ pub struct FluxOfSpectra{
 
 
 /// This structure holds the local quantities over a surface element of the star. 
+#[derive(Debug)]
 pub struct SurfaceCell{
     ///Effective temperature.
     t_eff: f64,
@@ -228,7 +229,15 @@ pub fn insert_col_relative_dlambda(lf:LazyFrame)// I take ownership of the data 
 /// * `Vec<f64>` - a vector that contains all of the values on the column.
 fn extract_column_as_vectorf64(column_name: &str,df:&DataFrame)->Vec<f64>{
     let column = df.column(column_name).unwrap();
-    column.f64().unwrap().into_iter().flatten().collect()
+    let array = column.f64().unwrap();
+    let extracted_vector:Vec<f64> = array.to_vec().into_iter().map(
+        |x|match x{
+            None => {panic!("error while extracting the data from a column")},
+            Some(value )=>{value}
+        }
+    ).collect();
+    extracted_vector
+    //column.f64().unwrap().into_iter().flatten().collect()
 }
 
 impl SurfaceCell {

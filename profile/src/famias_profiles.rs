@@ -58,9 +58,21 @@ pub fn gaussian_profile_mkr(toml_string:&str,star_df:DataFrame)->DataFrame{
    //----------------------------------------
     let star_lf = star_df.lazy();
     let tf = star_lf.clone().select([col("time").unique(),]).collect().unwrap();
+    let tf_array = tf.column("time").unwrap().as_series().unwrap().f64().unwrap();
+    /*let extract_time_series = tf.column("time").unwrap();
+    let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();*/
+    let time_points:Vec<f64> = tf_array.to_vec().into_iter().map(
+        |x| match x {
+            None => {panic!("unable to read time points")},
+            Some(value)=>{value}
+        }
+    ).collect();
+    println!("sanity check control. This are the time points");
+    println!("{:?}",time_points);
+    /*let tf = star_lf.clone().select([col("time").unique(),]).collect().unwrap();
     let extract_time_series = tf.column("time").unwrap();
     let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();
-
+    */
 
     //init output dataframe
     let mut intensity_collection = crate::utils::IntensityFlux::new(time_points.len());
@@ -365,7 +377,7 @@ mod parse_famias_grid{
             Field::new("y_a3".into(),DataType::Float64),
             Field::new("y_a4".into(),DataType::Float64),
         ];
-        let path = format!("{}",path);
+        let path = PlRefPath::new(format!("{}",path));
         let df = LazyCsvReader::new(path)
         .with_has_header(true)
         .with_separator(b' ')

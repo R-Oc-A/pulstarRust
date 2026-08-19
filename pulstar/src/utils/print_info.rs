@@ -4,6 +4,7 @@ use temp_name_lib::{
     math_module::spherical_harmonics::norm_factor::ylmnorm, type_def::CYCLI2RAD,
     };
 use polars::prelude::*;
+use polars::prelude::Series;
 pub fn print_report(now:&Instant,
     parameters: &PulstarConfig,
     time_points:usize){
@@ -124,7 +125,15 @@ pub fn print_report(now:&Instant,
 /// * `Vec<f64>` - a vector that contains all of the values on the column.
 fn extract_column_as_vectorf64(column_name: &str,df:&DataFrame)->Vec<f64>{
     let column = df.column(column_name).unwrap();
-    column.f64().unwrap().into_iter().flatten().collect()
+    let seriess = column.as_materialized_series();
+    let chunked_array:ChunkedArray<polars::datatypes::Float64Type> = seriess.clone().take_inner();
+    
+    chunked_array.to_vec().iter().map(|x| 
+        match x{
+            Some(value)=>{*value},
+            None => {0.0}
+    }).collect()
+    //column.f64().unwrap().into_iter().flatten().collect()
 }
 
 fn get_max(vec:&Vec<f64>)->f64{

@@ -296,7 +296,8 @@ fn filter1_if_contains_wavelenghts(
     minval_rel_dopplershift:f64)->Option<Expr>{
 
     
-    let epsilon = 0.01;
+    let epsilon = 10.0 * (wavelengths.get(0).expect("empty wavelength array")
+    -wavelengths.get(1).expect("wavelength array of only one element not supported"));
 
     let min_wavelength = minval_rel_dopplershift 
         * wavelengths.iter()
