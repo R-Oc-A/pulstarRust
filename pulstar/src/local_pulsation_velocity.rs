@@ -60,7 +60,7 @@ pub fn v_pulse_single_mode(
     spin_parameter:f64,
     tar_functions:&Option<TARCollection>,
 )->Result<Coordinates,MathErrors>{
-    match mode.rotation_effects{
+    match &mode.rotation_effects{
         RotationRegime::NonRotating => {
             let (sintheta,costheta) = (theta.sin(),theta.cos());
             v_non_rotating(mode, sintheta, costheta, phi, velocity_amplitude)},
@@ -73,7 +73,7 @@ pub fn v_pulse_single_mode(
             v_tar(mode, theta,  phi, velocity_amplitude, tar_functions)
         },
         
-        RotationRegime::CentrifugalDeformation => {
+        RotationRegime::CentrifugalDeformation{coefficient_expansion} => {
             let (sintheta,costheta) = (theta.sin(),theta.cos());
             v_non_rotating(mode, sintheta, costheta, phi, velocity_amplitude)},        
     }

@@ -59,7 +59,7 @@ pub struct PulstarConfig{
 }
 
 /// This structure parameterizes a pulsation mode
-#[derive(Deserialize,Debug,PartialEq, Clone, Copy)]
+#[derive(Deserialize,Debug,PartialEq, Clone)]
 pub struct PulsationMode{
     /// The degree of the mode
     pub l: u16, 
@@ -92,14 +92,15 @@ pub struct PulsationMode{
 }   
 
 /// The pulsational displacement depends on how the effects of rotation 
-#[derive(Deserialize,Debug,PartialEq,Clone,Copy)]
+#[derive(Deserialize,Debug,PartialEq,Clone)]
 pub enum RotationRegime{
     NonRotating,
     PerturbativeCoriolis,
     Tar,
-    CentrifugalDeformation,
+    CentrifugalDeformation{
+        coefficient_expansion:Vec<f64>
+    },
 }
-
 
 
 
@@ -116,6 +117,10 @@ pub struct StarData{
     pub v_omega: f64,
     /// The inclination angle in degrees
     pub inclination_angle: f64,
+    /// First deformation coefficient for associated to the first Lagrange polynomial of the expansion. 
+    pub deform_alpha:Option<f64>,
+    /// Second deformation coefficient associated to the first Lagrange polynomial of the expansion.
+    pub deform_betha:Option<f64>,
 }
 
 /// There are two types of inputing the points in the phases of a pulsation's variability.
@@ -138,7 +143,14 @@ pub enum MeshConfig{
         /// The depth value defines the nside parameter as nside = 2^depth; on the other hand the nside parameter defines the actual number of cells as $N_{pix}=12\times N_side^{2}$.
         /// depth &in [0,29]$
         depth:u8,
-    }
+    },
+    /*
+    /// A sphere that has been deformed by rotation.
+    /// The deviation from spherical geometry is expresed by the first two coefficients of the expansion in Legendre polynomials (even number because they should retain symmetry around the equator)
+    /// Also, here we provide 
+    DeformSphere{
+        triangle_length:f64,
+    }*/   
     //[Ricardo:]Here maybe some other geometries may rise
 }
 

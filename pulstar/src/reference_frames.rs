@@ -49,7 +49,7 @@ pub fn displacement(
     tangential_amplitude:f64,
     spin_parameter:f64,
     tar_functions:&Option<TARCollection>)->Result<Coordinates,MathErrors>{
-            match mode.rotation_effects{
+            match &mode.rotation_effects{
                 RotationRegime::NonRotating =>{rotation_treatment::non_rotating::non_rotating_displacement(
                     mode,
                     theta.sin(),
@@ -78,7 +78,7 @@ pub fn displacement(
                         tar_collection)}
                     else{Err(MathErrors::FunctionNotFound)}
                 },
-                RotationRegime::CentrifugalDeformation =>{rotation_treatment::non_rotating::non_rotating_displacement(
+                RotationRegime::CentrifugalDeformation{coefficient_expansion} =>{rotation_treatment::non_rotating::non_rotating_displacement(
                     mode,
                     theta.sin(),
                     theta.cos(),

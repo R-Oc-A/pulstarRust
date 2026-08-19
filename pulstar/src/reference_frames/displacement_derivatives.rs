@@ -23,7 +23,7 @@ pub fn d_dr_rdtheta(
 	phi: f64,
     tar_functions:&Option<TARCollection>) -> f64{
 
-    match mode.rotation_effects{
+    match &mode.rotation_effects{
         RotationRegime::NonRotating =>{
             let sintheta = theta.sin(); 
             let costheta = theta.cos(); 
@@ -41,7 +41,7 @@ pub fn d_dr_rdtheta(
             tar::tar_d_dr_rdtheta(mode, theta,  phi,houghs_functions)}
             else{panic!("hough functions where not properly loaded.")}},
 
-        RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
+        RotationRegime::CentrifugalDeformation{coefficient_expansion} =>{ rotation_treatment::
             non_rotating::non_rotating_d_dr_rdtheta(mode, theta.sin(), theta.cos(), phi)},
     }
 }
@@ -62,7 +62,7 @@ pub fn d_dtheta_dtheta(
     spin_parameter:f64,
     tar_functions:&Option<TARCollection>) -> f64{
 
-    match mode.rotation_effects{
+    match &mode.rotation_effects{
         RotationRegime::NonRotating =>{
             let sintheta = theta.sin(); 
             let costheta = theta.cos(); 
@@ -80,7 +80,7 @@ pub fn d_dtheta_dtheta(
             tar::tar_d_dtheta_dtheta(mode, theta,  phi,houghs_functions).unwrap()}
             else{panic!("hough functions where not properly loaded.")}},
 
-        RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
+        RotationRegime::CentrifugalDeformation{coefficient_expansion} =>{ rotation_treatment::
             non_rotating::non_rotating_d_dtheta_dtheta(mode, theta.sin(), theta.cos(), phi)}
     }
 }
@@ -100,7 +100,7 @@ pub fn d_dr_rdphi(
 	phi: f64,
     tar_functions:&Option<TARCollection>) -> f64{
 
-    match mode.rotation_effects{
+    match &mode.rotation_effects{
         RotationRegime::NonRotating =>{
             let sintheta = theta.sin(); 
             let costheta = theta.cos(); 
@@ -118,7 +118,7 @@ pub fn d_dr_rdphi(
             tar::tar_d_dr_rdphi(mode, theta,  phi,houghs_functions)}
             else{panic!("hough functions where not properly loaded.")}},
 
-        RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
+        RotationRegime::CentrifugalDeformation{coefficient_expansion} =>{ rotation_treatment::
             non_rotating::non_rotating_d_dr_rdphi(mode, theta.sin(), theta.cos(), phi)}
     }
 }
@@ -141,7 +141,7 @@ pub fn d_dphi_dphi(
     spin_parameter:f64,
     tar_functions:&Option<TARCollection>) -> Result<f64,MathErrors>{
 
-    match mode.rotation_effects{
+    match &mode.rotation_effects{
         RotationRegime::NonRotating =>{
             let sintheta = theta.sin(); 
             let costheta = theta.cos(); 
@@ -159,7 +159,7 @@ pub fn d_dphi_dphi(
             tar::tar_d_dphi_dphi(mode, theta,  phi,houghs_functions)}
             else{panic!("hough functions where not properly loaded.")}},
             
-        RotationRegime::CentrifugalDeformation =>{ rotation_treatment::
+        RotationRegime::CentrifugalDeformation{coefficient_expansion} =>{ rotation_treatment::
             non_rotating::non_rotating_d_dphi_dphi(mode, theta.sin(), theta.cos(), phi)}
     }
 }
