@@ -22,7 +22,7 @@ phase_rel_dtemp = 180.0
 rel_dg = 10.0
 phase_rel_dg = 34.0
 [mode_data.rotation_effects.CentrifugalDeformation]
-coefficient_expansion = [1.0,0.0,0.0,0.0,0.0]
+coefficient_expansion = [0.0,0.0,1.0,0.0,0.0]
 
 [star_data]
 mass = 10.0

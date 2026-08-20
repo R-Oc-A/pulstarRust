@@ -41,8 +41,8 @@ pub fn d_dr_rdtheta(
             tar::tar_d_dr_rdtheta(mode, theta,  phi,houghs_functions)}
             else{panic!("hough functions where not properly loaded.")}},
 
-        RotationRegime::CentrifugalDeformation{coefficient_expansion} =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dr_rdtheta(mode, theta.sin(), theta.cos(), phi)},
+        RotationRegime::CentrifugalDeformation{coefficient_expansion:_} =>{ rotation_treatment::
+            centrifugal_deformation::deformed_d_dr_rdtheta(mode, theta.sin(), theta.cos(), phi)},
     }
 }
 
@@ -80,8 +80,8 @@ pub fn d_dtheta_dtheta(
             tar::tar_d_dtheta_dtheta(mode, theta,  phi,houghs_functions).unwrap()}
             else{panic!("hough functions where not properly loaded.")}},
 
-        RotationRegime::CentrifugalDeformation{coefficient_expansion} =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dtheta_dtheta(mode, theta.sin(), theta.cos(), phi)}
+        RotationRegime::CentrifugalDeformation{coefficient_expansion:_} =>{ rotation_treatment::
+            centrifugal_deformation::deformed_d_dtheta_dtheta(mode, theta.sin(), theta.cos(), phi)}
     }
 }
 
@@ -118,8 +118,8 @@ pub fn d_dr_rdphi(
             tar::tar_d_dr_rdphi(mode, theta,  phi,houghs_functions)}
             else{panic!("hough functions where not properly loaded.")}},
 
-        RotationRegime::CentrifugalDeformation{coefficient_expansion} =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dr_rdphi(mode, theta.sin(), theta.cos(), phi)}
+        RotationRegime::CentrifugalDeformation{coefficient_expansion:_} =>{ rotation_treatment::
+            centrifugal_deformation::deformed_d_dr_rdphi(mode, theta.sin(), theta.cos(), phi)}
     }
 }
 
@@ -159,7 +159,7 @@ pub fn d_dphi_dphi(
             tar::tar_d_dphi_dphi(mode, theta,  phi,houghs_functions)}
             else{panic!("hough functions where not properly loaded.")}},
             
-        RotationRegime::CentrifugalDeformation{coefficient_expansion} =>{ rotation_treatment::
-            non_rotating::non_rotating_d_dphi_dphi(mode, theta.sin(), theta.cos(), phi)}
+        RotationRegime::CentrifugalDeformation{coefficient_expansion:_} =>{ rotation_treatment::
+            centrifugal_deformation::deformed_d_dphi_dphi(mode, theta.sin(), theta.cos(), phi)}
     }
 }

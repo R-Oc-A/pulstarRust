@@ -1,3 +1,4 @@
+use crate::local_pulsation_velocity::centrifugal_deformation::v_deformed;
 use crate::local_pulsation_velocity::non_rotating::v_non_rotating;
 use crate::local_pulsation_velocity::perturbative_coriolis::v_perturbative;
 use crate::local_pulsation_velocity::tar::v_tar;
@@ -73,9 +74,9 @@ pub fn v_pulse_single_mode(
             v_tar(mode, theta,  phi, velocity_amplitude, tar_functions)
         },
         
-        RotationRegime::CentrifugalDeformation{coefficient_expansion} => {
+        RotationRegime::CentrifugalDeformation{coefficient_expansion:_} => {
             let (sintheta,costheta) = (theta.sin(),theta.cos());
-            v_non_rotating(mode, sintheta, costheta, phi, velocity_amplitude)},        
+            v_deformed(mode, sintheta, costheta, phi, velocity_amplitude)},        
     }
 }
 

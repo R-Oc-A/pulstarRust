@@ -78,7 +78,7 @@ pub fn displacement(
                         tar_collection)}
                     else{Err(MathErrors::FunctionNotFound)}
                 },
-                RotationRegime::CentrifugalDeformation{coefficient_expansion} =>{rotation_treatment::non_rotating::non_rotating_displacement(
+                RotationRegime::CentrifugalDeformation{coefficient_expansion:_} =>{rotation_treatment::centrifugal_deformation::deformed_displacement(
                     mode,
                     theta.sin(),
                     theta.cos(),

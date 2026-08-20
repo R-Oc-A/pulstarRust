@@ -9,7 +9,9 @@ pub enum MathErrors{
     NotAdequateNumberOfElements,
     NotDefinedForRadialOrSectorialPulsations,
     FunctionNotFound,
-    CorruptHeaderOfDataFrame
+    CorruptHeaderOfDataFrame,
+    OrderOfExpansionNotSupported,
+    RequestUnrelatedRotationRegime,
 }
 
 pub const MACHINE_PRECISION:f64 = 1.0e-8;
