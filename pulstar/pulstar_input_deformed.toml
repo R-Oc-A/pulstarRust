@@ -5,24 +5,66 @@
 # Ask Joris why
 [time_points.Uniform]
 start = 0.01
-end = 0.01
+end = 0.1
 step = 0.01
 
 #[time_points.Explicit]
 #collection = [0.01,0.3,0.32]
 [[mode_data]]
-l = 4 # degree of the mode
-m = 1 # azimuthal order
+l = 2 # degree of the mode
+m = 0 # azimuthal order
 rel_dr = 0.024 #relative lagrangian displacement amplitude 
 k = 0.05 #this should be model defined rather than user defined, This is related the ratio of horizontal displacement/vertical displacement
-frequency = 6.74 # in an inertial frame cycles/day
+frequency = 8.5210 # in an inertial frame cycles/day
 phase_offset = 0.00 #values in the [0,1] domain
 rel_dtemp = 2.62 
 phase_rel_dtemp = 180.0
 rel_dg = 10.0
 phase_rel_dg = 34.0
-[mode_data.rotation_effects.CentrifugalDeformation]
-coefficient_expansion = [0.0,0.0,1.0,0.0,0.0]
+[[mode_data.rotation_effects.CentrifugalDeformation.coefficient_expansion]]
+l = 0
+frequency = 9.6216
+coeff = 1.2006e-2
+[[mode_data.rotation_effects.CentrifugalDeformation.coefficient_expansion]]
+l = 0
+frequency =10.7276
+coeff = 3.6549
+[[mode_data.rotation_effects.CentrifugalDeformation.coefficient_expansion]]
+l = 0
+frequency = 11.8595
+coeff = -6.4502e-1
+[[mode_data.rotation_effects.CentrifugalDeformation.coefficient_expansion]]
+l = 0
+frequency =13.0264
+coeff = 1.1676e-4
+[[mode_data.rotation_effects.CentrifugalDeformation.coefficient_expansion]]
+l = 0
+frequency = 14.2083 
+coeff = 7.8631e-5
+[[mode_data.rotation_effects.CentrifugalDeformation.coefficient_expansion]]
+l = 2
+frequency = 8.5487
+coeff = -3.3254e-2
+[[mode_data.rotation_effects.CentrifugalDeformation.coefficient_expansion]]
+l = 2
+frequency = 9.6108
+coeff = 1.3433e-2
+[[mode_data.rotation_effects.CentrifugalDeformation.coefficient_expansion]]
+l = 2
+frequency = 10.7070
+coeff = 1.1745e-2
+[[mode_data.rotation_effects.CentrifugalDeformation.coefficient_expansion]]
+l = 2
+frequency = 11.8341
+coeff = -5.7054e-4
+[[mode_data.rotation_effects.CentrifugalDeformation.coefficient_expansion]]
+l = 2
+frequency = 12.9995
+coeff = -4.7372e-4
+[[mode_data.rotation_effects.CentrifugalDeformation.coefficient_expansion]]
+l = 2
+frequency = 14.1828
+coeff = 1.4112e-4
 
 [star_data]
 mass = 10.0

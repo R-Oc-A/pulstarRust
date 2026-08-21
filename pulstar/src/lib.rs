@@ -2,7 +2,7 @@
 //! the (linear) variations on surface temperature, log g, and also the pulsation velocity components.
 //! for each of the surface cells. 
 use core::f64;
-use std::f64::consts;
+
 
 use serde::Deserialize;
 use temp_name_lib::math_module::spherical_harmonics;
@@ -91,17 +91,31 @@ pub struct PulsationMode{
     pub rotation_effects:RotationRegime,
 }   
 
-/// The pulsational displacement depends on how the effects of rotation 
+/// The pulsational displacement depends on how the effects of rotation  are added
 #[derive(Deserialize,Debug,PartialEq,Clone)]
 pub enum RotationRegime{
+    /// The Non Rotating case disregards 
     NonRotating,
+    /// Adds toroidal corrections to the pulsation displacements
     PerturbativeCoriolis,
+    /// Computes the pulsation displacements using the traditional approximation of rotation
     Tar,
+    /// Expands the centrifugal deformation of a star in a given expansion of [BasisMode]s of the non rotating case.
     CentrifugalDeformation{
-        coefficient_expansion:Vec<f64>
+        coefficient_expansion:Vec<BasisMode>
     },
 }
 
+#[derive(Deserialize,Debug,PartialEq,Clone)]
+/// For the implementation of rotational deformation, the pulsation modes couple along different degrees (l) but also frequencies (radial order), thus this variation is described only by modes that are part of a basis that expands the deviation from spherical behaviour.
+pub struct BasisMode{
+    /// Degree of the pulsation
+    pub l:u16,
+    /// frequency of this mode in cycles per day
+    pub frequency:f64,
+    /// expansion coefficient
+    pub coeff:f64,
+}
 
 
 /// This structure parameterizes the star

@@ -1,9 +1,7 @@
-use pulstar::{reference_frames::{Coordinates}, 
-            utils::{print_info::{ print_report}, 
-                    write_grid_data::write_output_to_parquet},
-             PulstarConfig,};
-use std::{env,time::Instant};
+use pulstar::{PulstarConfig, reference_frames::Coordinates, utils::{print_info::print_report, write_grid_data::{output_to_parquet, write_output}},};
+use std::{env, time::Instant};
 use pulstar::{AdvanceInTime,ParsingFromToml};
+use polars::prelude::*;
 use std::fs;
 fn main() {
 
@@ -45,7 +43,7 @@ fn main() {
     //---------------------------------------- 
     //----------Start of loop-----------------
     //---------------------------------------- 
-
+    let mut collection_df:Option<DataFrame> = None;
     for (n,time_stamp) in time_points.iter().enumerate(){
         println!("\n +-- Computing surface data for time point number {} with time stamp {:.3}.", n,*time_stamp);
 
@@ -56,11 +54,15 @@ fn main() {
         
         //--Computes effective temperature, log gravity, radial component of total velocity, cosχ, etc. on all surface cells avoiding the poles.  
         star.compute_local_quantities(&pulse_config, &k,&tar_collections);
-        
+
+        collection_df=Some(write_output(&star,collection_df).unwrap());
         //--Save the data of the current phase.
-        write_output_to_parquet(&star, n as u16 +1).unwrap();
+        //write_output_to_parquet(&star, n as u16 +1).unwrap();
     }//end for time loop
     
+    println!("saving parquet file");
+    output_to_parquet(collection_df.expect("collection data frame empty!"), time_points.len() as u16).expect("unable to create file error {}");
+
     // Prints some values of the run
     print_report(&now, &pulse_config, time_points.len());
     

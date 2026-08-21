@@ -4,6 +4,7 @@ use crate::reference_frames::rotation_treatment::non_rotating::
 {non_rotating_d_dr_rdtheta, non_rotating_d_dtheta_dtheta, 
 non_rotating_displacement, non_rotating_d_dr_rdphi, non_rotating_d_dphi_dphi};
 use crate::reference_frames::{*,Coordinates};
+use polars::lazy::dsl::first;
 use temp_name_lib::utils::MathErrors;
 
 
@@ -172,30 +173,34 @@ pub fn add_deformations_generic<F,T>(
             RotationRegime::CentrifugalDeformation { coefficient_expansion:vecs }=>{vecs.clone()}
             _=>{return Err(MathErrors::RequestUnrelatedRotationRegime)}
         };
-        if coeff_expansion.len()>5{return Err(MathErrors::OrderOfExpansionNotSupported)}
+        if coeff_expansion.len()>12{return Err(MathErrors::OrderOfExpansionNotSupported)}
         else{
             // compute the displacement of the main mode of pulsation
-            let main_coeff_index=compute_index_from_mode(mode.l);
+            let first_basis_mode = coeff_expansion.get(0).expect("empty coefficient expansion!");
+            let mut temp_mode = mode.clone();
+            temp_mode.l = first_basis_mode.l;
+            temp_mode.frequency = first_basis_mode.frequency;
+            let mut sum_of_basis_modes =  first_basis_mode.coeff * function_to_eval(
+                &temp_mode, 
+                sintheta, costheta, phi, radial_amplitude, tangential_amplitude)?;
+            /*let main_coeff_index=compute_index_from_mode(mode.l);
             let mut first_contribution =  coeff_expansion[main_coeff_index] * function_to_eval(
                 mode, 
-                sintheta, costheta, phi, radial_amplitude, tangential_amplitude)?;
+                sintheta, costheta, phi, radial_amplitude, tangential_amplitude)?;*/
             
             //add the crossed terms
-            for (index,coeff) in coeff_expansion.iter().enumerate(){
-                if index != main_coeff_index{
-                    let mut temp_pulsation_mode = mode.clone();
-                    //extract l from index
-                    let odd_or_even = mode.l%2;
-                    let temp_l = odd_or_even + 2 * index as u16;
-                    if mode.m.abs() as u16 > temp_l{continue};
-                    temp_pulsation_mode.l =temp_l;
-                    let temp_contribution = *coeff * function_to_eval(&temp_pulsation_mode,
+            for (index,basis_mode) in coeff_expansion.iter().enumerate(){
+                if index != 0{
+                    temp_mode.l = basis_mode.l;
+                    temp_mode.frequency = basis_mode.frequency;
+                    
+                    let temp_contribution = basis_mode.coeff * function_to_eval(&temp_mode,
                         sintheta, costheta, phi, radial_amplitude, tangential_amplitude)?;
-                    first_contribution += temp_contribution;
+                    sum_of_basis_modes += temp_contribution;
                 }
             }
 
-        Ok(first_contribution)
+        Ok(sum_of_basis_modes)
 
     }
 }
