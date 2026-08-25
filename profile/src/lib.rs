@@ -216,7 +216,7 @@ impl WavelengthRange{
 /// (1 - v/c)
 pub fn insert_col_relative_dlambda(lf:LazyFrame)// I take ownership of the data frame since I will produce a new one and want the old one to be dropped after appending
 ->LazyFrame{
-    let doppler_shift = lit(1.0) - col("velocity")/lit(CLIGHT)*lit(1.0e3);
+    let doppler_shift = lit(1.0) / (lit(1.0) - col("velocity")/lit(CLIGHT)*lit(1.0e3));
     lf.clone().lazy().
     with_column(doppler_shift.clone().alias("relative shift"))
 }
