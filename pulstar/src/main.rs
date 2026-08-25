@@ -1,6 +1,7 @@
+use polars::prelude::*;
 use pulstar::{reference_frames::{Coordinates}, 
             utils::{print_info::{ print_report}, 
-                    write_grid_data::write_output_to_parquet},
+                    write_grid_data::{write_output}},
              PulstarConfig,};
 use std::{env,time::Instant};
 use pulstar::{AdvanceInTime,ParsingFromToml};
@@ -45,7 +46,7 @@ fn main() {
     //---------------------------------------- 
     //----------Start of loop-----------------
     //---------------------------------------- 
-
+    let mut collection_df:Option<DataFrame> = None;
     for (n,time_stamp) in time_points.iter().enumerate(){
         println!("\n +-- Computing surface data for time point number {} with time stamp {:.3}.", n,*time_stamp);
 
@@ -58,9 +59,13 @@ fn main() {
         star.compute_local_quantities(&pulse_config, &k,&tar_collections);
         
         //--Save the data of the current phase.
-        write_output_to_parquet(&star, n as u16 +1).unwrap();
+        collection_df = Some(write_output(&star,collection_df).unwrap());
+        //write_output_to_parquet(&star, n as u16 +1).unwrap();
     }//end for time loop
-    
+    let output_name = format!("rasterized_star_{}tp.parquet",time_points.len());
+    let mut output_file = std::fs::File::create(output_name).expect("unable to create output file for pulstar");
+    ParquetWriter::new(& mut output_file).finish(& mut collection_df.expect("collection of pulsation data frame empty")).unwrap();
+    //write_output_to_parquet(&collection_df.unwrap(), time_points.len() as u16);
     // Prints some values of the run
     print_report(&now, &pulse_config, time_points.len());
     
