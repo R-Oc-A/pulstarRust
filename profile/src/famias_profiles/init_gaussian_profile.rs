@@ -2,7 +2,7 @@ use polars::frame::DataFrame;
 use serde::{Deserialize,Serialize};
 use super::GaussianProfile;
 use std::f64::consts::PI;
-use temp_name_lib::type_def::{GRAVCONSTANT,RADIUSSUN,MASSSUN};
+use temp_name_lib::type_def::{CLIGHT, GRAVCONSTANT, MASSSUN, RADIUSSUN};
 
 #[derive(Deserialize,Serialize)]
 pub struct GaussianProfileInit{
@@ -46,8 +46,13 @@ pub fn init_profile(toml_string:&str)->GaussianProfile{
     let wavelength = config.init_wavelength_arr();
     let y_gauss = vec![0.0;wavelength.len()];
     let fl_in_ul = vec![0.0;wavelength.len()];
-    let sigma_sqrtpi_sqrt2 = 1.0/(config.sigma * PI.sqrt() * 2.0f64.sqrt());
-    let sigma_sqrt2_pow2 = 0.5/config.sigma.powi(2);
+
+    let eq_w_lmbd = config.central_wavelength - from_kms_to_lambda(config.eq_w, config.central_wavelength);
+    let sigma_lmbd = config.central_wavelength - from_kms_to_lambda(config.sigma, config.central_wavelength);
+
+
+    let sigma_sqrtpi_sqrt2 = 1.0/(sigma_lmbd * PI.sqrt() * 2.0f64.sqrt());
+    let sigma_sqrt2_pow2 = 0.5/sigma_lmbd.powi(2);
     //surface gravity
     let logg = 4.438 + config.mass.log10() - 2.0*config.radius.log10();
     // Init limb_coeffs
@@ -60,7 +65,7 @@ pub fn init_profile(toml_string:&str)->GaussianProfile{
         wavelength:wavelength,
         sigmag_sqrt2_pow2:sigma_sqrt2_pow2,
         sigmag_sqrtpi_sqrt2:sigma_sqrtpi_sqrt2,
-        eq_w:config.eq_w,
+        eq_w:eq_w_lmbd,
         alpha_w:config.alpha_w,
         zero_point_shift:config.zero_point_shift,
         central_wavelength:config.central_wavelength,
@@ -72,7 +77,9 @@ pub fn init_profile(toml_string:&str)->GaussianProfile{
     }
 
 }
-
+fn from_kms_to_lambda(vel:f64,lambda_0:f64)->f64{
+    lambda_0 * (1.0/(1.0-vel/CLIGHT *1.0e3))
+}
 impl GaussianProfileInit{
     
     fn read_from_toml(toml_string:&str)->Self{
