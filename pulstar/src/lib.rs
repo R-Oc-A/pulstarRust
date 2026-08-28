@@ -10,7 +10,7 @@ use temp_name_lib::utils::{MathErrors,MACHINE_PRECISION};
 use temp_name_lib::type_def::{PI, RADIUSSUN};
 use nalgebra as na;
 use cdshealpix::*;
-use crate::local_pulsation_velocity::observed_pulsation_velocity;
+use crate::local_pulsation_velocity::{observed_pulsation_velocity, project_vrot};
 use crate::local_temperature_and_gravity::local_surface_temperature_logg;
 use crate::reference_frames::rotation_treatment::tar::TARCollection;
 use crate::reference_frames::{surface_normal, Coordinates};
@@ -374,7 +374,7 @@ impl SurfaceCell{
         }
         else {
             self.coschi = cos_chi;
-            self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap();
+            self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap()+project_vrot(parameters, theta, phi, k);
             (self.t_eff,self.log_g) = local_surface_temperature_logg(parameters, theta,phi, g0, temperature_0, tar_collections);
             self.area = area * s_normal.project_vector(&k_spherical).unwrap();
         }
@@ -435,12 +435,12 @@ pub trait AdvanceInTime {
 
 impl AdvanceInTime for PulsationMode{
     fn advance_in_time(&mut self,time_point:f64) {
-        self.phase = 2.0 * PI *(self.frequency * time_point 
+        self.phase = -2.0 * PI *(self.frequency * time_point 
             + self.phase_offset);
 
-        self.phase_temp = 2.0 * PI *(self.frequency * time_point 
+        self.phase_temp = -2.0 * PI *(self.frequency * time_point 
             + self.phase_offset) + self.phase_rel_dtemp;
-        self.phase_logg = 2.0 * PI *(self.frequency * time_point 
+        self.phase_logg = -2.0 * PI *(self.frequency * time_point 
             + self.phase_offset) + self.phase_rel_dg;
 
 
