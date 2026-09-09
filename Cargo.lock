@@ -1573,6 +1573,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cef28b23f82a86b32a30cfbd8e45fb66645bd677b150636ae277ac9295054c44"
 
 [[package]]
+name = "marching_step_triangulation"
+version = "0.1.0"
+dependencies = [
+ "nalgebra",
+ "polars",
+]
+
+[[package]]
 name = "matrixmultiply"
 version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"

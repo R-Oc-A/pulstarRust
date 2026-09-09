@@ -1,5 +1,5 @@
 [workspace]
 resolver = "3"
-members = [ "profile","pulstar", "temp_name_lib","pulstar_py"]
+members = [ "profile","pulstar", "temp_name_lib","pulstar_py", "marching_step_triangulation"]
 
 rustdocflags = [ "--html-in-header", "./src/docs-header.html" ]
