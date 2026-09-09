@@ -91,18 +91,6 @@ fn create_rasterized_star_dataframe(star: RasterizedStarOutput)->PolarsResult<Da
     )
 }
 
-/// This function opens the parquet file and creates a lazyframe out of the handle.
-/// ### Arguments: 
-/// * `path to parquet` - a [std::path::PathBuf] that indicates the path and name to the parquet file.
-/// ### Returns:
-///  This function returns a [PolarsResult] with the following variants:
-/// * `Ok(LazyFrame)` - In case the [LazyFrame] was adequately created.
-/// * `Err(PolarsError)` - Returning a [PolarsError] to the calling function. 
-fn open_collecting_parquet_file_as_lazyframe(path_to_parquet: PlRefPath)->PolarsResult<LazyFrame>{
-    LazyFrame::scan_parquet(path_to_parquet, ScanArgsParquet::default())
-}
-
-
 /// This function stacks the the LazyFrame of the rasterized star into the collection stored in the parquet file and creates a lazyframe out of the handle.
 /// ### Arguments: 
 /// * `star_lazyframe` - a [LazyFrame] created from the data frame of the rasterized star.
@@ -117,23 +105,6 @@ fn append_current_lf_into_collection_lf(star_lf:LazyFrame,collection_lf:LazyFram
         UnionArgs::default()
         )?)
 }
-
-/// This function removes the parquet file that holds the old collection of rasterized stars
-/// 
-/// ### Arguments: 
-/// * `path_to_parquet` - A [std::path::PathBuf] path to the old parquet file. 
-/// ### Returns: 
-/// This function returns a [Result] with the following variants:
-/// * `Ok(_)` - if everything went ok.
-/// * `Err(std::io::Error)` - where the error is passed to the calling function to indicate that it could not remove the file. 
-fn remove_temp_parquet_file(time_points:u16)->Result<(), std::io::Error>{
-    //let old_path = std::path::PathBuf::from(format!("rasterized_star_{}tp.parquet",time_points-1));
-    let old_file =format!("rasterized_star_{}tp.parquet",time_points-1); 
-    println!("deletting {}",old_file);
-    std::fs::remove_file(old_file)?;
-    Ok(())
-}
-
 
 /// This function writes the output of the pulstar binary into a parquet file. 
 /// This will collect all of the computations for each time point
@@ -182,24 +153,6 @@ pub fn write_output_to_parquet(
     
 }
 
-///This function creates the [LazyFrame] that will be used to create the parquet file 
-/// 
-/// ### Arguments:
-/// * `time_points` - a [u16] integer that indicates the time_point to be added. 
-/// * `star_lf` - the [LazyFrame] of the rasterized star [DataFrame]
-/// ### Returns:
-/// * [LazyFrame] - This lazyframe will be sinked ([polars::prelude::LazyFrame::sink_parquet]) into a parquet file
-fn lazyframe_to_be_written (time_points:u16,star_lf:LazyFrame)->PolarsResult<LazyFrame>{
-    if time_points == 1{
-        Ok(star_lf)
-    }else{
-        //let old_path = std::path::PathBuf::from(format!("rasterized_star_{}tp.parquet",time_points-1));
-        let old_path = PlRefPath::new(format!("rasterized_star_{}tp.parquet",time_points-1));
-        let old_lf = open_collecting_parquet_file_as_lazyframe(old_path)?;
-        Ok(append_current_lf_into_collection_lf(star_lf, old_lf)?)
-    }
-}
-
 
 /*TO DO: Change the writing output
 The function should receive an Option<DataFrame> and append to that and only write at the end of the process. 
@@ -232,18 +185,6 @@ pub fn output_to_parquet(
     time_points:u16,
     ) -> PolarsResult<()>{
     
-    //let star_lf = star_df.lazy();
-    /*let new_path = std::path::PathBuf::from(format!("rasterized_star_{}tp.parquet",time_points));
-
-    if let Ok(lf) = star_lf.sink_parquet(
-        SinkTarget::Path(Arc::new(new_path.clone())),
-        ParquetWriteOptions::default(), 
-        
-        None, 
-        SinkOptions::default()){
-            lf.collect()?;
-        }else {eprint!("unable to sink to a parket in {} time_point",time_points)};
-    */
     let new_path = format!("rasterized_star_{}tp.parquet",time_points);
     let mut star_parquet = std::fs::File::create(new_path).expect("unable to create rasterized star parquet");
     ParquetWriter::new(&mut star_parquet).finish(&mut star_df.clone()).unwrap();

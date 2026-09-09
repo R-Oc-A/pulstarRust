@@ -102,7 +102,8 @@ pub enum RotationRegime{
     Tar,
     /// Expands the centrifugal deformation of a star in a given expansion of [BasisMode]s of the non rotating case.
     CentrifugalDeformation{
-        coefficient_expansion:Vec<BasisMode>
+        coefficient_expansion:[f64;3],
+        //coefficient_expansion:Vec<BasisMode>
     },
 }
 
@@ -111,8 +112,6 @@ pub enum RotationRegime{
 pub struct BasisMode{
     /// Degree of the pulsation
     pub l:u16,
-    /// frequency of this mode in cycles per day
-    pub frequency:f64,
     /// expansion coefficient
     pub coeff:f64,
 }
@@ -487,7 +486,6 @@ impl AdvanceInTime for PulstarConfig{
 }
 
 impl AdvanceInTime for RasterizedStar{
-
     fn advance_in_time(&mut self,time_point:f64) {
         self.time_stamp=time_point;
     }
