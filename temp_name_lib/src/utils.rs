@@ -12,6 +12,7 @@ pub enum MathErrors{
     CorruptHeaderOfDataFrame,
     OrderOfExpansionNotSupported,
     RequestUnrelatedRotationRegime,
+    ResolutionNotSupported,
 }
 
 pub const MACHINE_PRECISION:f64 = 1.0e-8;

@@ -12,9 +12,11 @@ use polars::prelude::*;
 /// Module used to extract data from a [Tetrahedrization]. 
 mod write_output;
 
-
 /// Module used to compute surface normal, centroid of a triangle..and other stuff.
 mod triangle_functions;
+
+/// Module that contains the potential, the derivatives, the initial point, as well as the δt step usefull to perform a triangulation.
+pub mod working_examples;
 
 
 /// Error threshold for the computation of the Newton rhapson method of landing a point close to the implicit surface into the surface.

@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+temp_name_lib = {path = "../temp_name_lib"}
 nalgebra = "*"
 polars = {version = "0.55.2", features=["lazy","parquet"]}
