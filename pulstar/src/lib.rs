@@ -370,24 +370,12 @@ impl RasterizedStar{
                         index);
                 }
                 // update cells of the mesh
-                for (index,cell) in self.cells.iter_mut().enumerate(){ 
-                    if index == 501 {
-                        println!("cell number {index}");
-                        println!("cell log g {}",cell.log_g);
-                        println!("cell teff {}",cell.t_eff);
-                        println!("cell v_tot {}",cell.v_tot);
-                    } 
+                for cell in self.cells.iter_mut(){ 
                     cell.update_local_quantities(parameters, k,
                         self.t_eff, 
                         self.g_0,
                         tar_collections, 
                          Some(& mut copy_triangles));
-                    if index == 501 {
-                        println!("=========");
-                        println!("cell number {index} after puls");
-                        println!("cell log g {}",cell.log_g);
-                        println!("cell v_tot {}",cell.v_tot);
-                    } 
                 }
                 // Should save moving points to see what's going on;
                 
@@ -490,6 +478,22 @@ impl SurfaceCell{
                 
                 
                 let coschi = surface_normal.project_vector(&k).expect("different vector base!");
+                // compute s_normal and area as usual
+                let theta = match centroid{
+                    Coordinates::Spherical(value)=>{value.y}
+                    _=>{panic!("expecting spherical coordinates of centroid")}
+                };
+                let phi = match centroid{
+                    Coordinates::Spherical(value)=>{value.z}
+                    _=>{panic!("expecting spherical coordinates of centroid")}
+                };
+                self.coord_1=theta;
+                self.coord_2=phi;
+                
+                if coschi<=std::f64::EPSILON{
+                    self.set_local_values_to_zero();
+                }else{
+
                 // compute t_eff,log_g and v_total via interpolation
                 let t_eff = triangles.triangles.interpolate_in_centroid(&[
                     triangles.effective_temp_of_points[first_vertex],
@@ -506,29 +510,16 @@ impl SurfaceCell{
                     triangles.velocity_of_points[second_vertex],
                     triangles.velocity_of_points[third_vertex],
                 ]);
-                // compute s_normal and area as usual
-                let theta = match centroid{
-                    Coordinates::Spherical(value)=>{value.y}
-                    _=>{panic!("expecting spherical coordinates of centroid")}
-                };
-                let phi = match centroid{
-                    Coordinates::Spherical(value)=>{value.z}
-                    _=>{panic!("expecting spherical coordinates of centroid")}
-                };
-                //let coschi= cos_chi(&surface_normal, k, theta, phi);
-
                 self.coord_1 = theta;
                 self.coord_2 = phi;
-                self.area = area * coschi;
+                self.area = area * coschi.abs();
                 self.log_g = log_g;
                 self.t_eff = t_eff;
                 self.v_tot = v_tot;
-
-
-                // compute observed surface area
-
+                self.coschi = coschi;
+                }
             }
-    }
+        }
     }   
 }
 

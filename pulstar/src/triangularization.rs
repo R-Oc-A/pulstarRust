@@ -74,23 +74,27 @@ fn point_coords_to_spherical(cartesian_coords:Vector3<f64>)->Vector3<f64>{
 
     let r = cartesian_coords.norm();
     let cos_theta = z/r;
-    let theta = (cos_theta.acos()).to_degrees();
+    let theta = cos_theta.acos();
     
-    let phi = if cos_theta.abs()<MACHINE_PRECISION{0.0}else{
-        if x<MACHINE_PRECISION { 
+    let phi = if (1.0-cos_theta.abs()).abs()<MACHINE_PRECISION{0.0}else{
+        if x.abs()<MACHINE_PRECISION { 
             if y>0.0{0.5*PI}
             else{1.5 * PI}
         }else{
-            let tan_phi = y/x;
-            if x>0.0{
-                if y>0.0{tan_phi.atan()}
-                else{ tan_phi.atan()+PI}
+            let atan = (y/x).atan();
+            if y>=0.0{
+                //first quadrant
+                if x>=0.0{atan}
+                //second quadrant
+                else {PI + atan}
             }else{
-                if y<0.0{tan_phi.atan()+PI}
-                else{tan_phi.atan()}
-            }
-        }        
-    }.to_degrees();
+                //third quadrant
+                if x<0.0{PI + atan}
+                //fourth quadrant
+                else{2.0*PI + atan}
+            }        
+        }
+    };
     
     Vector3::from([r,theta,phi])
 }
