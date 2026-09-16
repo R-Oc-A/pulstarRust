@@ -13,9 +13,14 @@ use cdshealpix::*;
 use crate::local_pulsation_velocity::{observed_pulsation_velocity, project_vrot};
 use crate::local_temperature_and_gravity::local_surface_temperature_logg;
 use crate::reference_frames::rotation_treatment::tar::TARCollection;
-use crate::reference_frames::{surface_normal, Coordinates};
+use crate::reference_frames::{Coordinates, surface_normal};
+use crate::triangularization::{Triangles, cell_from_triangle, new_triangles};
+use marching_step_triangulation::Tetrahedrization;
+
 
 pub mod pulstar_mkr;
+
+pub mod triangularization;
 
 /// This structure is necessary for starting the program. 
 /// It contains `mode_data` which is a [Vec] collection of the pulsation modes to be implemented, the `star_data` that characterizes the star, and the `time points` to be simulated. 
@@ -157,17 +162,23 @@ pub enum MeshConfig{
         /// depth &in [0,29]$
         depth:u8,
     },
+    /// A sphere tesselated using the [marching_step_triangulation]
+    TSphere{
+        triangle_length:f64
+    }
+    
     /*
     /// A sphere that has been deformed by rotation.
     /// The deviation from spherical geometry is expresed by the first two coefficients of the expansion in Legendre polynomials (even number because they should retain symmetry around the equator)
     /// Also, here we provide 
-    DeformSphere{
+    DeformedSphere{
         triangle_length:f64,
     }*/   
     //[Ricardo:]Here maybe some other geometries may rise
 }
 
-/// This structure holds the local quantities over a surface element of the star. 
+/// This structure holds the local quantities over a surface element of the star.
+#[derive(Debug)] 
 pub struct SurfaceCell{
     /// Effective temperature.
     t_eff: f64,
@@ -181,13 +192,15 @@ pub struct SurfaceCell{
     rel_dlamb: f64,
     /// Total velocity. It is not 
     v_tot: f64,
-    /// Coordinates of the surface cell, As a surface, this should only require 2 values. 
+    /// Coordinates of the surface cell, As a surface, this should only require 2 values to parameterize. 
     coord_1: f64, // <- Theta in spherical coordinates
-    ///
+    /// Coordinates of the surface cell.
     coord_2: f64, // <- Phi in spherical coordinates
+    /// index of the associated triangle. Only applicable if this surface element was constructed via a [triangles]
+    triangle_index: Option<usize>
 }
 
-/// Discretized version of the star. 
+/// Discretized version of the star.
 pub struct RasterizedStar{
     /// A [Vec] collection  that contains the [SurfaceCell]s of the star excluding the poles. 
     cells: Vec<SurfaceCell>,
@@ -197,6 +210,8 @@ pub struct RasterizedStar{
     pub t_eff: f64,
     /// The surface gravity of the star. 
     pub g_0: f64,
+    /// Triangularization of the surface.
+    pub triangularization:Option<Triangles>,
 }
 
 //----------------------------------------
@@ -278,6 +293,19 @@ impl PulstarConfig {
                     //}
                 }
             }
+            MeshConfig::TSphere { triangle_length }=>{
+                let mut tetra = Tetrahedrization::default();
+                let mut triangulation = tetra.triangulation_output();
+                let triangles = new_triangles(& self, triangulation);
+
+                for (index,_triangle) in triangles.triangles.triangles.iter().enumerate(){
+                    rasterized_star.cells.push(
+                        cell_from_triangle(&triangles, index)
+                    )
+                }
+
+                rasterized_star.triangularization=Some(triangles);
+            }
         }
 
         //--Equilibrium log(g_0) (gravity g_0 is in cgs units)
@@ -315,18 +343,55 @@ impl PulstarConfig {
 impl RasterizedStar{
     /// Creates a new instance of a [RasterizedStar], setting all the member values to zero  and an empty [Vec<SurfaceCell>].
     fn new()->Self{
-        RasterizedStar{ cells: Vec::new(), time_stamp: 0.0, t_eff:0.0, g_0:0.0 }
+        RasterizedStar{ cells: Vec::new(), time_stamp: 0.0, t_eff:0.0, g_0:0.0, triangularization:None}
     }
 
     pub fn compute_local_quantities(&mut self,
         parameters:&PulstarConfig,
         k: &Coordinates,
         tar_collections: &[Option<TARCollection>]){
-        for cell in self.cells.iter_mut(){
-            cell.update_local_quantities(parameters, k,
-                self.t_eff,
-                self.g_0,
-                tar_collections);
+        match &self.triangularization{            
+            None =>{
+                for cell in self.cells.iter_mut(){
+                    cell.update_local_quantities(parameters, k,
+                        self.t_eff,
+                        self.g_0,
+                        tar_collections,None);
+                }
+            }
+            Some(triangularization)=>{
+                let mut copy_triangles = triangularization.clone();
+                // update points of the triangulation
+                let number_of_points = triangularization.triangles.points.len();
+                for index in 0usize.. number_of_points{
+                    let _ = copy_triangles.update_point_quantities(parameters,
+                        k,
+                        tar_collections,
+                        index);
+                }
+                // update cells of the mesh
+                for (index,cell) in self.cells.iter_mut().enumerate(){ 
+                    if index == 501 {
+                        println!("cell number {index}");
+                        println!("cell log g {}",cell.log_g);
+                        println!("cell teff {}",cell.t_eff);
+                        println!("cell v_tot {}",cell.v_tot);
+                    } 
+                    cell.update_local_quantities(parameters, k,
+                        self.t_eff, 
+                        self.g_0,
+                        tar_collections, 
+                         Some(& mut copy_triangles));
+                    if index == 501 {
+                        println!("=========");
+                        println!("cell number {index} after puls");
+                        println!("cell log g {}",cell.log_g);
+                        println!("cell v_tot {}",cell.v_tot);
+                    } 
+                }
+                // Should save moving points to see what's going on;
+                
+            }
         }
     }
 
@@ -341,7 +406,7 @@ impl SurfaceCell{
     /// ### Returns: 
     /// * A new instance of [SurfaceCell]
     fn new(coord_1:f64,coord_2:f64)->Self{
-        Self { t_eff: 0.0, log_g: 0.0, area: 0.0, coschi: 0.0, rel_dlamb: 0.0, v_tot: 0.0, coord_1: coord_1, coord_2: coord_2 }
+        Self { t_eff: 0.0, log_g: 0.0, area: 0.0, coschi: 0.0, rel_dlamb: 0.0, v_tot: 0.0, coord_1: coord_1, coord_2: coord_2, triangle_index:None }
     }
 
     /// Sets all the local values of a [SurfaceCell] to zero, except for its coordinates. 
@@ -371,38 +436,99 @@ impl SurfaceCell{
         k:& Coordinates,
         temperature_0:f64,
         g0:f64,
-        tar_collections:&[Option<TARCollection>]){
+        tar_collections:&[Option<TARCollection>],
+        //associated_triangle:Option<& mut[marching_step_triangulation::Point;3]>
+        triangulation:Option<& mut Triangles>
+        ){
         // Select the type of geometry
-        // So far it's the same for Spherical or healpix
-        let theta = self.coord_1;
-        let phi = self.coord_2;
-        let area = match parameters.mesh{
-            MeshConfig::Sphere { theta_step, phi_step }=>{theta.sin().abs()*theta_step*phi_step}
-            MeshConfig::HSphere { depth }=>{
-                let npix = 12*nside(depth).pow(2);
-                4.0*PI/(npix as f64)
+        match triangulation{
+            None =>{
+                // So far it's the same for Spherical or healpix
+                let theta = self.coord_1;
+                let phi = self.coord_2;
+                let area = match parameters.mesh{
+                    MeshConfig::Sphere { theta_step, phi_step }=>{theta.sin().abs()*theta_step*phi_step}
+                    MeshConfig::HSphere { depth }=>{
+                        let npix = 12*nside(depth).pow(2);
+                        4.0*PI/(npix as f64)
+                    }
+                    _ =>{panic!("Other meshes require a triangulation. The program shouldn't have arrived to this arm.")}// code shouldn't arrive to this case
+                };
+                let k_spherical = k.transform(theta, phi);
+                
+                let s_normal = surface_normal(parameters,
+                     theta, phi, tar_collections).unwrap();
+        
+            
+                let cos_chi = reference_frames::cos_chi(
+                    &s_normal,
+                   &k_spherical,
+                    theta, phi);
+                
+                if cos_chi <= std::f64::EPSILON { 
+                    self.set_local_values_to_zero();
+                }
+                else {
+                    self.coschi = cos_chi;
+                    self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap()+project_vrot(parameters, theta, phi, k);
+                    (self.t_eff,self.log_g) = local_surface_temperature_logg(parameters, theta,phi, g0, temperature_0, tar_collections);
+                    self.area = area * s_normal.project_vector(&k_spherical).unwrap();
+                }
             }
-        };
-        let k_spherical = k.transform(theta, phi);
-        
-        let s_normal = surface_normal(parameters,
-             theta, phi, tar_collections).unwrap();
+            Some(triangles)=>{
+                // move points of the 
+                // update local quantities as usual for every point. 
+                let cell_index = self.triangle_index.expect("empty triangle!");
+                let first_vertex = triangles.triangles.triangles[cell_index][0];
+                let second_vertex = triangles.triangles.triangles[cell_index][1];
+                let third_vertex = triangles.triangles.triangles[cell_index][2];
+                //triangles.update_point_quantities(parameters, k, tar_collections, self.triangle_index.expect("empty triangle!"));
+                // every cell has an associated triangle. Compute the centroid and the coordinates theta, and phi of the centroid will be theta and phi (although profile program doesn't use this information.)
+                let (centroid,//spherical coordinates
+                    surface_normal,
+                    area) = self.barycenter_surface_normal_area(&triangles.triangles);
+                
+                
+                let coschi = surface_normal.project_vector(&k).expect("different vector base!");
+                // compute t_eff,log_g and v_total via interpolation
+                let t_eff = triangles.triangles.interpolate_in_centroid(&[
+                    triangles.effective_temp_of_points[first_vertex],
+                    triangles.effective_temp_of_points[second_vertex],
+                    triangles.effective_temp_of_points[third_vertex],
+                ]);
+                let log_g = triangles.triangles.interpolate_in_centroid(&[
+                    triangles.log_g_of_points[first_vertex],
+                    triangles.log_g_of_points[second_vertex],
+                    triangles.log_g_of_points[third_vertex],
+                ]);
+                let v_tot = triangles.triangles.interpolate_in_centroid(&[
+                    triangles.velocity_of_points[first_vertex],
+                    triangles.velocity_of_points[second_vertex],
+                    triangles.velocity_of_points[third_vertex],
+                ]);
+                // compute s_normal and area as usual
+                let theta = match centroid{
+                    Coordinates::Spherical(value)=>{value.y}
+                    _=>{panic!("expecting spherical coordinates of centroid")}
+                };
+                let phi = match centroid{
+                    Coordinates::Spherical(value)=>{value.z}
+                    _=>{panic!("expecting spherical coordinates of centroid")}
+                };
+                //let coschi= cos_chi(&surface_normal, k, theta, phi);
 
-    
-        let cos_chi = reference_frames::cos_chi(
-            &s_normal,
-           &k_spherical,
-            theta, phi);
-        
-        if cos_chi <= std::f64::EPSILON { 
-            self.set_local_values_to_zero();
-        }
-        else {
-            self.coschi = cos_chi;
-            self.v_tot = observed_pulsation_velocity(parameters, theta, phi,k,tar_collections).unwrap()+project_vrot(parameters, theta, phi, k);
-            (self.t_eff,self.log_g) = local_surface_temperature_logg(parameters, theta,phi, g0, temperature_0, tar_collections);
-            self.area = area * s_normal.project_vector(&k_spherical).unwrap();
-        }
+                self.coord_1 = theta;
+                self.coord_2 = phi;
+                self.area = area * coschi;
+                self.log_g = log_g;
+                self.t_eff = t_eff;
+                self.v_tot = v_tot;
+
+
+                // compute observed surface area
+
+            }
+    }
     }   
 }
 

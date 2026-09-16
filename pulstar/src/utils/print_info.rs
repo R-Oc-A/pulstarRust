@@ -76,6 +76,7 @@ pub fn print_report(now:&Instant,
     print!(" Vsini: {:8.5} km/s ",parameters.star_data.v_omega * parameters.star_data.inclination_angle.to_radians().sin());
     println!(" Inclination angle: {} degrees", parameters.star_data.inclination_angle);
 
+    println!("ddf is {:?}",&ddf.head(Some(3)));
     println!("\nVISIBLE SURFACE DATA");
     println!("+-----------------+-----------------+------------+-----------+--------------+-------------+");
     println!("| Min. Proj. Vtot | Max. Proj. Vtot |  Min. T    |  Max. T   | Min. log(g)  | Max. log(g) |");

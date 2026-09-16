@@ -5,7 +5,7 @@ use na::Vector3;
 /// Module used to compute surface normal, centroid of a triangle..and other stuff.
 pub mod triangle_functions;
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct ExtractedTriangulation{
     pub triangles:Vec<[usize;3]>,
     pub points:Vec<Point>
@@ -65,8 +65,6 @@ pub fn extract_triangles_from_dataframe(points_df:&DataFrame,triangles_df:&DataF
 
     let mut point_collection:Vec<Point> = Vec::new();
     for (index,point_number) in point_id.into_iter().enumerate(){
-        println!("extracting point collection");
-        println!("point {}, index {}",point_number,index);
         let point = Point{
             coords:Vector3::from([
                 coords_x[index],

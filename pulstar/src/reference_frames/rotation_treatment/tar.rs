@@ -42,6 +42,10 @@ impl PulsationMode{
         let npts = match pulsconfig.mesh{
             MeshConfig::Sphere { theta_step, phi_step:_ }=>{(180.0/theta_step) as usize}
             MeshConfig::HSphere { depth }=>{n_isolatitude_rings(nside(depth)) as usize}
+            MeshConfig::TSphere { triangle_length:side_length }=>{ 
+                let estimate_number = (2.0*PI/side_length).floor();
+                (estimate_number * 2.0e1)
+                as usize}
         };
         let (lambda,
             mu_values,

@@ -2977,6 +2977,7 @@ name = "pulstar"
 version = "0.1.0"
 dependencies = [
  "cdshealpix",
+ "marching_step_triangulation",
  "nalgebra",
  "ndarray 0.17.2",
  "polars",

@@ -10,7 +10,7 @@ use polars::prelude::*;
 
 
 /// Module used to extract data from a [Tetrahedrization]. 
-mod write_output;
+pub mod write_output;
 
 
 /// Module that contains the potential, the derivatives, the initial point, as well as the δt step usefull to perform a triangulation.
@@ -47,12 +47,12 @@ pub struct FrontPoint{
 }
 
 /// A point on a surface. It is defined in x,y,z coordinates and has also a point identifier. These points are shared between [Triangle], [FrontPoint], and [Tetrahedrization].
-#[derive(PartialEq,Clone)]
+#[derive(PartialEq,Clone,Debug)]
 pub struct Point{
     /// * `coords` - the x,y,z coordinates of the point q close to the surface passed as a &[f64;3]
-    coords:Vector3<f64>,
+    pub coords:Vector3<f64>,
     /// * `point_number` - a [usize] that identifies the new point to be created.
-    point_number:usize
+    pub point_number:usize
 }
 
 /// This is the abstraction of triangles. It is defined as a collection of 3 vertex
