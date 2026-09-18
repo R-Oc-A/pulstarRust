@@ -5,7 +5,6 @@ use temp_name_lib::{type_def::{GRAVCONSTANT, MASSSUN, RADIUSSUN,PI}, utils::MACH
 
 //TODO: Check units
 pub fn unperturbed_local_g_en_teff(parameters:&PulstarConfig,point_coords:&Vector3<f64>,g0:f64,t_eff:f64)->(f64,f64){
-    let b = compute_b_dimensionless_quantity(parameters);
     let stheta= point_coords.z/point_coords.norm();//assuming cartesian coordinates
     let mut theta = stheta.asin();
     if theta >=0.0{
@@ -17,7 +16,8 @@ pub fn unperturbed_local_g_en_teff(parameters:&PulstarConfig,point_coords:&Vecto
     //let stheta = point_coords.y.sin(); //assuming spherical coordinates.
     //let s2theta = (2.0*point_coords.y).sin();//assuming spherical coordinates
     let accuracy = MACHINE_PRECISION;
-    let x = compute_r_rp_ratio(b, stheta, accuracy);
+    let b = compute_b_dimensionless_quantity(parameters);
+    let x = compute_r_rp_ratio(parameters, stheta, accuracy);
 
     let beta = 0.25;
     
@@ -25,27 +25,17 @@ pub fn unperturbed_local_g_en_teff(parameters:&PulstarConfig,point_coords:&Vecto
         (1.0/x.powi(2) - 2.0*b*x*stheta.powi(2)).powi(2)
         + (b * x * s2theta).powi(2)
     ).sqrt();
-
     let temperature = t_eff*(g/g0).powf(beta);
 
     (g.log10(), temperature)
 
 }
 
-pub fn compute_b_dimensionless_quantity(parameters:&PulstarConfig)->f64{
-    //let rotation_frequency=//parameters.get_rotation_frequency()*CYCLI2RAD;//in Hz
-    let mut rotation_frequency = roche_rotationally_deformed_model::rotation_frequency(parameters);
-    let G= GRAVCONSTANT;//in something
-    let R = parameters.star_data.radius * RADIUSSUN; //in m I guess, and this is the polar radius
-    let M = parameters.star_data.mass*MASSSUN;
-    rotation_frequency *= (G*M/R.powi(3)).sqrt();
-    let u_pow2 = 27.0/8.0 * R.powi(3)*rotation_frequency.powi(2)/(G*M);
-    4.0*u_pow2/27.0
-}
 
 //Adapted from Wenjin Huang code
 // ratio radius/polar_radius
-fn compute_r_rp_ratio(beta:f64,stheta:f64,accuracy:f64)->f64{
+fn compute_r_rp_ratio(parameters:&PulstarConfig,stheta:f64,accuracy:f64)->f64{
+    let beta = compute_b_dimensionless_quantity(parameters);
     if stheta.abs()<=MACHINE_PRECISION {return 1.0*stheta.signum()}
     let a = beta * stheta.powi(2);
     let mut x = (1.0-2.0*a)/(1.0-3.0*a);
@@ -57,6 +47,16 @@ fn compute_r_rp_ratio(beta:f64,stheta:f64,accuracy:f64)->f64{
         x = x_new;
     }
     x
+}
+
+fn compute_b_dimensionless_quantity(parameters:&PulstarConfig)->f64{
+    //let rotation_frequency=//parameters.get_rotation_frequency()*CYCLI2RAD;//in Hz
+    let rotation_frequency = roche_rotationally_deformed_model::rotation_frequency(parameters);
+    let G= GRAVCONSTANT;//in something
+    let R = parameters.star_data.radius * RADIUSSUN; //in m I guess, and this is the polar radius
+    let M = parameters.star_data.mass*MASSSUN;
+    0.5 * rotation_frequency.powi(2) * R.powi(3)/(G * M)
+
 }
 
 /// Returns the rotation frequency in Hz (s^{-1})
@@ -81,10 +81,9 @@ pub fn get_rotation_velocity(parameters:&PulstarConfig,theta:f64)->f64{
     let rotation_frequency = roche_rotationally_deformed_model::rotation_frequency(
         parameters
     );
-    let b = compute_b_dimensionless_quantity(parameters);
     let stheta = theta.sin();
     let accuracy = 1.0e-8;
-    let x = compute_r_rp_ratio(b, stheta, accuracy);
+    let x = compute_r_rp_ratio(parameters, stheta, accuracy);
     let mut r_sintheta = x*parameters.star_data.radius * RADIUSSUN * stheta;//radius in m
     r_sintheta *= 1.0e-3;//radius in km
     r_sintheta * rotation_frequency
