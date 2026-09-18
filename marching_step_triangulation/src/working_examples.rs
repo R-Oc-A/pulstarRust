@@ -36,13 +36,17 @@ pub fn sphere_radius4()-> Tetrahedrization{
 
 /// Triangularization of a flattened
 pub fn roche_model(w:f64,delta_t:f64)->Result<Tetrahedrization,MathErrors>{
-    if delta_t < 0.2 || delta_t>0.7{ Err(MathErrors::ResolutionNotSupported)}
+    if (delta_t < 0.1 || delta_t>0.5)|| w>0.43{ 
+        println!("triangle side length is {}",delta_t);
+        println!("rotation frequency is {}",w);
+        Err(MathErrors::ResolutionNotSupported)}
+
     else{
     let ww=w;
     let potential = move |point_coords:&Vector3<f64>|{
         let rotation_freq = ww;
         1.0/point_coords.norm() 
-        + 0.5 * rotation_freq *(point_coords.x.powi(2) + point_coords.y.powi(2))
+        + 0.5 * rotation_freq.powi(2) *(point_coords.x.powi(2) + point_coords.y.powi(2))
         - 1.0
     };
     let grad_potential = move |point_coords:&Vector3<f64>|{

@@ -2,6 +2,7 @@ use crate::local_pulsation_velocity::centrifugal_deformation::v_deformed;
 use crate::local_pulsation_velocity::non_rotating::v_non_rotating;
 use crate::local_pulsation_velocity::perturbative_coriolis::v_perturbative;
 use crate::local_pulsation_velocity::tar::v_tar;
+use crate::triangularization::roche_rotationally_deformed_model;
 use super::PulstarConfig;
 use super::reference_frames::Coordinates;
 use super::na;
@@ -147,8 +148,17 @@ pub fn project_vrot(
     phi:f64,
     k:&Coordinates
     )->f64 {
+
+        let v_omega = match parameters.mesh{
+            MeshConfig::DSphere { triangle_length:_,rotation_frequency:_ }=>{
+                roche_rotationally_deformed_model::get_rotation_velocity(parameters, theta)
+            }
+            _=>{parameters.star_data.v_omega}
+        };
+
+
         let v_rot = Coordinates::Cartesian(
-            parameters.star_data.v_omega *  na::Vector3::new(
+            v_omega *  na::Vector3::new(
                 theta.sin() * phi.sin(),
                 theta.sin() * phi.cos(),
                 0.0

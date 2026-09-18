@@ -13,16 +13,16 @@ step = 0.01
 [[mode_data]]
 l = 2 # Reference degree of the mode; Deformation couples modes with l ± 2; 
 m = 0 # Azimuthal order; Deformation couples only modes with the same azimuthal order.
-rel_dr = 0.024 #relative lagrangian displacement amplitude of the resulting mode.
+rel_dr = 0.0 #0.024 #relative lagrangian displacement amplitude of the resulting mode.
 k = 0.05 #this should be model defined rather than user defined, This is related the ratio of horizontal displacement/vertical displacement
 frequency = 8.5210 # in an inertial frame cycles/day
 phase_offset = 0.00 #values in the [0,1] domain
-rel_dtemp = 2.62 
+rel_dtemp = 0.0#2.62 
 phase_rel_dtemp = 180.0
-rel_dg = 10.0
+rel_dg = 0.0#10.0
 phase_rel_dg = 34.0
 [mode_data.rotation_effects.CentrifugalDeformation]
-coefficient_expansion = [0.0,0.0,0.0] # first element is for the reference degree; second is for l+2 and third is for l-2; if l-2<0 whatever you set on the third coefficient is dismissed.
+coefficient_expansion = [-0.8,0.0125,0.0] # first element is for the reference degree; second is for l+2 and third is for l-2; if l-2<0 whatever you set on the third coefficient is dismissed.
 
 [star_data]
 mass = 10.0
@@ -31,5 +31,6 @@ effective_temperature = 22642.0
 v_omega = 20.0 #Rotation velocity
 inclination_angle = 45.0
 
-[mesh.HSphere]
-depth = 3
+[mesh.DSphere]
+triangle_length = 0.2
+rotation_frequency = 0.43

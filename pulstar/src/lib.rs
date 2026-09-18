@@ -165,15 +165,15 @@ pub enum MeshConfig{
     /// A sphere tesselated using the [marching_step_triangulation]
     TSphere{
         triangle_length:f64
-    }
+    },
     
-    /*
     /// A sphere that has been deformed by rotation.
     /// The deviation from spherical geometry is expresed by the first two coefficients of the expansion in Legendre polynomials (even number because they should retain symmetry around the equator)
     /// Also, here we provide 
-    DeformedSphere{
+    DSphere{
         triangle_length:f64,
-    }*/   
+        rotation_frequency:f64,
+    }   
     //[Ricardo:]Here maybe some other geometries may rise
 }
 
@@ -305,6 +305,24 @@ impl PulstarConfig {
                 }
 
                 rasterized_star.triangularization=Some(triangles);
+            }
+            MeshConfig::DSphere { 
+                triangle_length:length ,
+                rotation_frequency:omega
+                }=>{
+                let w = omega;//compute rotation frequency.
+                let mut tetra = marching_step_triangulation::working_examples::roche_model(w, length).expect("unable to create triangulation");
+                let mut triangulation = tetra.triangulation_output();
+                let triangles = new_triangles( & self, triangulation);
+                for (index,_triangle) in triangles.triangles.triangles.iter().enumerate(){
+                    rasterized_star.cells.push(
+                        cell_from_triangle(&triangles, index)
+                    )
+                }
+                println!("number of triangles is {}",triangles.triangles.triangles.len());
+                println!("number of points is {}",triangles.triangles.points.len());
+                rasterized_star.triangularization=Some(triangles);
+
             }
         }
 

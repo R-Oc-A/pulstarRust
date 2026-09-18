@@ -46,6 +46,11 @@ impl PulsationMode{
                 let estimate_number = (2.0*PI/side_length).floor();
                 (estimate_number * 2.0e1)
                 as usize}
+            MeshConfig::DSphere { triangle_length:side_length ,
+            rotation_frequency:_}=>{ 
+                let estimate_number = (2.0*PI/side_length).floor();
+                (estimate_number * 2.0e1)
+                as usize}
         };
         let (lambda,
             mu_values,

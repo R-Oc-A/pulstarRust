@@ -3,7 +3,7 @@ use marching_step_triangulation::{
     write_output::ExtractedTriangulation};
 
 use temp_name_lib::utils::{MACHINE_PRECISION, MathErrors};
-use crate::MeshConfig::TSphere;
+use crate::MeshConfig::{TSphere,DSphere};
 use crate::na::Vector3;
 //use crate::reference_frames::rotation_treatment::tar::TARCollection;
 use crate::{PI, PulstarConfig, TARCollection};
@@ -12,6 +12,8 @@ use crate::{observed_pulsation_velocity,project_vrot,local_surface_temperature_l
 
 
 use crate::SurfaceCell;
+
+pub mod roche_rotationally_deformed_model;
 
 #[derive(Clone,Debug)]
 pub struct Triangles {
@@ -47,6 +49,29 @@ pub fn unperturbed_log_g_and_effective_temperature_for_triangles(
                 let t_eff = parameters.star_data.effective_temperature;
                 let number_of_points = generated_triangles.points.len();
                 (vec![log_g0;number_of_points],vec![t_eff;number_of_points])
+            }
+            DSphere{
+                triangle_length:_,
+                rotation_frequency:_
+                }=>{
+
+                let points = &generated_triangles.points;
+                let number_of_points = generated_triangles.points.len();
+                let mut log_g_values:Vec<f64>=Vec::with_capacity(number_of_points);
+                let mut t_eff_values:Vec<f64>=Vec::with_capacity(number_of_points);
+                let log_g0 = 4.438 + parameters.star_data.mass.log10()
+                    - 2.0 * parameters.star_data.radius.log10();
+                let g0 = 1.0e1f64.powf(log_g0);
+                let t0_eff = parameters.star_data.effective_temperature;
+
+                for point in points.iter(){
+                    let (log_g,t_eff) = roche_rotationally_deformed_model::
+                    unperturbed_local_g_en_teff(parameters,&point.coords, g0, t0_eff);
+                    log_g_values.push(log_g);
+                    t_eff_values.push(t_eff);
+
+                }
+                (log_g_values,t_eff_values)
             }
             // Here I'll deal with the pain in the ass deformed sphere.
             _ =>{panic!("unexpected behaviour, this function should have been called only by meshing done via triangulation.")}
@@ -120,11 +145,6 @@ impl SurfaceCell{
 
 
 impl Triangles {
-    /*
-    pub fn update_points_of_the_triangulation(& mut self){
-
-    }
-    */
     /// This function updates the point quanities, that is to say 
     /// * it moves the point by computing the lagrangian displacement
     /// * it computes the associated total velocity field 
