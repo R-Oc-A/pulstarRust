@@ -2,8 +2,8 @@ use crate::triangularization::roche_rotationally_deformed_model;
 use crate::{MeshConfig::DSphere, PulstarConfig, na::Vector3};
 use temp_name_lib::{type_def::{GRAVCONSTANT, MASSSUN, RADIUSSUN,PI}, utils::MACHINE_PRECISION};
 
-
-//TODO: Check units
+//TODO: put documentation and references.
+//Adapted from Wenjin Huang code
 pub fn unperturbed_local_g_en_teff(parameters:&PulstarConfig,point_coords:&Vector3<f64>,g0:f64,t_eff:f64)->(f64,f64){
     let stheta= point_coords.z/point_coords.norm();//assuming cartesian coordinates
     let mut theta = stheta.asin();
@@ -32,7 +32,6 @@ pub fn unperturbed_local_g_en_teff(parameters:&PulstarConfig,point_coords:&Vecto
 }
 
 
-//Adapted from Wenjin Huang code
 // ratio radius/polar_radius
 fn compute_r_rp_ratio(parameters:&PulstarConfig,stheta:f64,accuracy:f64)->f64{
     let beta = compute_b_dimensionless_quantity(parameters);
@@ -41,7 +40,8 @@ fn compute_r_rp_ratio(parameters:&PulstarConfig,stheta:f64,accuracy:f64)->f64{
     let mut x = (1.0-2.0*a)/(1.0-3.0*a);
     let mut eps = 1.0;
     
-    while (eps>accuracy){
+    while 
+    eps>accuracy{
         let x_new = (x + (x-1.5)/(3.0*a*x.powi(2) - 1.0))/1.5;
         eps = (x_new -x).abs();
         x = x_new;
