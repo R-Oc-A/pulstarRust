@@ -1,6 +1,6 @@
 use core::time;
 
-use crate::utils::IntensityFlux;
+use crate::{famias_profiles::gaussian_profile_mkr, utils::IntensityFlux};
 
 use super::*;
 use temp_name_lib::interpolation::ParameterSpaceHypercube;
@@ -164,4 +164,9 @@ pub fn profile_main(toml_string:&str,star_df:DataFrame)->DataFrame{
     //if let Ok(_)= intensity_collection.write_output(last_timepoint){
     //println!("finished computation for a star's pulsation")}
     //else{panic!("unable to write parquetfile")};
+}
+
+
+pub fn profile_gauss_main(toml_string:&str,star_df:DataFrame)->DataFrame{
+    gaussian_profile_mkr(toml_string, star_df)
 }

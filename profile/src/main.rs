@@ -5,7 +5,6 @@ use std::time::Instant;
 use profile::profile_mkr::*;
 use profile::utils::IntensityFlux;
 use std::fs;
-use polars::prelude::*;
 
 fn main() {
 

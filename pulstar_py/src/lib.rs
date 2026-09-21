@@ -65,6 +65,19 @@ mod pulstar_py {
 
             Ok(PyDataFrame(df))
     }
+
+    #[pyfunction]
+    fn profile_gauss(gaussian_profile_input:&str,
+        star_df:PyDataFrame)-> PyResult<PyDataFrame>{
+            println!("----------------------------------------");
+            println!("----------------------------------------");
+
+            let profile_input_rs = gaussian_profile_input.replace("\n", &format!("\n"));
+            let star_df_rust:DataFrame = star_df.into();
+            let df = profile_mkr::profile_gauss_main(&profile_input_rs,star_df_rust);
+
+            Ok(PyDataFrame(df))
+        }
 }
 
 
