@@ -53,6 +53,25 @@ impl IntensityGrid {
                     Field::new("mu7_c".into(),DataType::Float64),//continuum intensity for mu=0.2673
                 ]
             }
+            IntensityGrid::EmaParquet { temperature:_, log_gravity:_, metalicity:_, filename:_ }=>{
+                vec![
+                    Field::new("wavelength".into(), DataType::Float64),
+                    Field::new("I1".into(),DataType::Float64),
+                    Field::new("I2".into(),DataType::Float64),
+                    Field::new("I3".into(),DataType::Float64),
+                    Field::new("I4".into(),DataType::Float64),
+                    Field::new("I5".into(),DataType::Float64),
+                    Field::new("I6".into(),DataType::Float64),
+                    Field::new("I7".into(),DataType::Float64),
+                    Field::new("cont1".into(),DataType::Float64),
+                    Field::new("cont2".into(),DataType::Float64),
+                    Field::new("cont3".into(),DataType::Float64),
+                    Field::new("cont4".into(),DataType::Float64),
+                    Field::new("cont5".into(),DataType::Float64),
+                    Field::new("cont6".into(),DataType::Float64),
+                    Field::new("cont7".into(),DataType::Float64),
+                ]
+            }
         }
 
 
@@ -71,13 +90,40 @@ impl IntensityGrid {
         let filename = match self {
             Self::Joris { temperature:_, log_gravity:_, filename:path_to_grid}=>{path_to_grid} 
             Self::Nadya { temperature:_, log_gravity:_, metalicity:_, filename: path_to_grid }=>{path_to_grid}
+            Self::EmaParquet { temperature:_, log_gravity:_, metalicity:_, filename: path_to_grid}=>{path_to_grid}
         };
         let path = PlRefPath::new(format!("{}{}",path_to_grid,filename));
         let schema = Schema::from_iter(self.get_schema());
-        let lf= LazyCsvReader::new(path)
-        .with_separator(b' ')
-        .with_has_header(false)
-        .with_schema(Some(Arc::new(schema))).finish()?;
+
+        let lf= match self{
+            Self::EmaParquet { temperature:_, log_gravity:_, metalicity:_, filename:_ }=>{
+                let args = ScanArgsParquet::default();
+                let old_column_name =LazyFrame::scan_parquet(path, args)?;
+                old_column_name.select([
+                    col("wavelength"),
+                    col("I1").alias("mu1_s"),
+                    col("I2").alias("mu2_s"),
+                    col("I3").alias("mu3_s"),
+                    col("I4").alias("mu4_s"),
+                    col("I5").alias("mu5_s"),
+                    col("I6").alias("mu6_s"),
+                    col("I7").alias("mu7_s"),
+                    col("cont1").alias("mu1_c"),
+                    col("cont2").alias("mu2_c"),
+                    col("cont3").alias("mu3_c"),
+                    col("cont4").alias("mu4_c"),
+                    col("cont5").alias("mu5_c"),
+                    col("cont6").alias("mu6_c"),
+                    col("cont7").alias("mu7_c"),
+                ])
+            },
+            _ =>{
+                    LazyCsvReader::new(path)
+                        .with_separator(b' ')
+                        .with_has_header(false)
+                        .with_schema(Some(Arc::new(schema))).finish()?
+            }
+        };
         Ok(lf)
     }
 
@@ -96,6 +142,7 @@ impl IntensityGrid {
             minval_rel_dopplershift);
         let grid_df = match self{
                 Self::Nadya { temperature:_, log_gravity:_, metalicity:_, filename:_ }=>{filtered_lf.collect().unwrap()}
+                Self::EmaParquet { temperature:_, log_gravity:_, metalicity:_, filename:_ }=>{filtered_lf.collect().unwrap()}
                 Self::Joris { temperature:_, log_gravity:_, filename:_ }=>{convert_joris_grid_to_regular_grid(filtered_lf.clone()).collect().unwrap()}
                 _=> unreachable!("this grid type {:?} hasn't been coded!",self)
         };
@@ -142,7 +189,9 @@ impl ProfileConfig{
                 t_eff[1]=temperature;
                 log_g[1]=log_gravity;
             }
-            IntensityGrid::Nadya { temperature , log_gravity , metalicity:_ , filename:_}=>{
+            IntensityGrid::Nadya { temperature , log_gravity , metalicity:_ , filename:_}|
+            IntensityGrid::EmaParquet { temperature , log_gravity , metalicity:_ , filename:_}
+            =>{
                 t_eff[1]=temperature;
                 log_g[1]=log_gravity;
             }
@@ -155,7 +204,9 @@ impl ProfileConfig{
                 t_eff[0]=temperature;
                 log_g[0]=log_gravity;
             }
-            IntensityGrid::Nadya { temperature , log_gravity , metalicity:_ , filename:_  }=>{
+            IntensityGrid::Nadya { temperature , log_gravity , metalicity:_ , filename:_  }|
+            IntensityGrid::EmaParquet { temperature , log_gravity , metalicity:_ , filename:_  }
+            =>{
                 t_eff[0]=temperature;
                 log_g[0]=log_gravity; 
             }

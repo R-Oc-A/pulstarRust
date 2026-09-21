@@ -48,6 +48,10 @@ impl IntensityGrid{
                 metalicity:_,
                 log_gravity:_,
                 temperature:_} => { filename.clone()}
+            Self::EmaParquet{filename,
+                metalicity:_,
+                log_gravity:_,
+                temperature:_} => { filename.clone()}
         };
         let full_name = format!("{}{}",String::from(path), file_name);
         File::open(&full_name)

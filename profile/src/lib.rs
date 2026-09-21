@@ -156,6 +156,12 @@ pub enum IntensityGrid{
         log_gravity: f64,
         metalicity: f64,
         filename:String,
+    },
+    EmaParquet{
+        temperature:f64,
+        log_gravity:f64,
+        metalicity:f64,
+        filename:String,
     }
 }
 
