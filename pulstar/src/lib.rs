@@ -205,7 +205,7 @@ pub struct RasterizedStar{
     /// A [Vec] collection  that contains the [SurfaceCell]s of the star excluding the poles. 
     cells: Vec<SurfaceCell>,
     /// A [f64] value that holds the current phase of pulsation to be analized. 
-    time_stamp: f64,
+    pub time_stamp: f64,
     /// The effective temperature of the star. 
     pub t_eff: f64,
     /// The surface gravity of the star. 
@@ -381,6 +381,7 @@ impl RasterizedStar{
                 let mut copy_triangles = triangularization.clone();
                 // update points of the triangulation
                 let number_of_points = triangularization.triangles.points.len();
+                
                 for index in 0usize.. number_of_points{
                     let _ = copy_triangles.update_point_quantities(parameters,
                         k,
@@ -394,10 +395,11 @@ impl RasterizedStar{
                         self.g_0,
                         tar_collections, 
                          Some(& mut copy_triangles));
+                    }
                 }
                 // Should save moving points to see what's going on;
                 
-            }
+            
         }
     }
 
