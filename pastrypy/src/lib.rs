@@ -3,7 +3,7 @@ use pulstar::pulstar_mkr;
 use profile::profile_mkr;
 /// A Python module implemented in Rust.
 #[pymodule]
-mod pulstar_py {
+mod pastrypy {
     use polars::frame::DataFrame;
     use pyo3::prelude::*;
     use pyo3_polars::PyDataFrame;
