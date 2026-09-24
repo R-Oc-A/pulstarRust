@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use pulstar::pulstar_mkr;
 use profile::profile_mkr;
+use marching_step_triangulation;
 /// A Python module implemented in Rust.
 #[pymodule]
 mod pastrypy {
@@ -9,6 +10,7 @@ mod pastrypy {
     use pyo3_polars::PyDataFrame;
     use crate::pulstar_mkr;
     use crate::profile_mkr;
+    use crate::marching_step_triangulation;
     
 
     #[pyfunction]
@@ -59,9 +61,11 @@ mod pastrypy {
             println!("----------------------------------------");
             println!("----------------------------------------");
             let profile_input_rs = profile_input.replace("\n",&format!("\n"));
+            println!("{:?}",profile_input_rs);
             let star_df_rust: DataFrame = star_df.into();
 
             let df = profile_mkr::profile_main(&profile_input_rs,star_df_rust);
+
 
             Ok(PyDataFrame(df))
     }
@@ -74,10 +78,51 @@ mod pastrypy {
 
             let profile_input_rs = gaussian_profile_input.replace("\n", &format!("\n"));
             let star_df_rust:DataFrame = star_df.into();
+            println!("{:?}",star_df_rust.head(Some(5)));
             let df = profile_mkr::profile_gauss_main(&profile_input_rs,star_df_rust);
 
             Ok(PyDataFrame(df))
         }
+
+
+    #[pyfunction]
+    fn sphere_triangulation_points()
+    -> PyResult<PyDataFrame>{
+        let mut tetra = marching_step_triangulation::Tetrahedrization::default();
+        let points=PyDataFrame(tetra.extract_points());
+        Ok(points)
+    }
+
+    #[pyfunction]
+    fn sphere_triangulation_triangles()
+    -> PyResult<PyDataFrame>{
+        let mut tetra = marching_step_triangulation::Tetrahedrization::default();
+        let points=PyDataFrame(tetra.extract_triangles());
+        Ok(points)
+    }
+    
+    #[pyfunction]
+    fn roche_deformed_triangulation_points(w:f64,length:f64)
+    -> PyResult<PyDataFrame>{
+        let delta_t =length;
+        let mut tetra = marching_step_triangulation::working_examples::roche_model(w, delta_t)
+        .expect("unable to create triangularization");
+        let points=PyDataFrame(tetra.extract_points());
+        Ok(points)
+    }
+
+    #[pyfunction]
+    fn roche_deformed_triangulation_triangles(w:f64,length:f64)
+    -> PyResult<PyDataFrame>{
+        let delta_t =length;
+        let mut tetra = marching_step_triangulation::working_examples::roche_model(w, delta_t)
+        .expect("unable to create a triangularization");
+        let points=PyDataFrame(tetra.extract_triangles());
+        Ok(points)
+    }
+
+    
+
 }
 
 

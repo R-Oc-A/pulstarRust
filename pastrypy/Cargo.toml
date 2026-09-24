@@ -15,3 +15,4 @@ pyo3-polars = "0.28.0"
 temp_name_lib = {path ="../temp_name_lib"}
 pulstar = {path ="../pulstar"}
 profile = {path ="../profile"}
+marching_step_triangulation = {path = "../marching_step_triangulation"}
