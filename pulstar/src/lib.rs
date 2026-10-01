@@ -395,11 +395,11 @@ impl RasterizedStar{
                         self.g_0,
                         tar_collections, 
                          Some(& mut copy_triangles));
-                    }
                 }
-                // Should save moving points to see what's going on;
-                
-            
+                // Should save moving points to see what's going on;    
+                let name = self.time_stamp;
+                copy_triangles.triangles.write_parquet(&format!("{}",name)).expect("unable to store points");
+            }
         }
     }
 

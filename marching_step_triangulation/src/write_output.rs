@@ -146,3 +146,55 @@ impl Tetrahedrization{
         extract_triangles_from_dataframe(&points_df, &triangles_df)
     }
 }
+
+impl ExtractedTriangulation{
+    pub fn write_parquet(&self,name:&str)->PolarsResult<()>{
+        //extract point coordinates
+        let points = &self.points;
+
+        let coords:Vec<Vector3<f64>> = points.iter().map(|x|x.coords).collect();
+        let point_ids:Vec<u32> = points.iter().map(|x|x.point_number as u32).collect();
+
+        let coords_x:Vec<f64> = coords.iter().map(|x|x.x).collect();
+        let coords_y:Vec<f64> = coords.iter().map(|x|x.y).collect();
+        let coords_z:Vec<f64> = coords.iter().map(|x|x.z).collect();
+
+        let mut points_df=df![
+            "point_id" => point_ids,
+            "x coordinate" => coords_x,
+            "y coordinate" => coords_y,
+            "z coordinate" => coords_z,
+        ]?;
+
+        
+        let triangles = &self.triangles;
+    
+        let first_vertex:Vec<u32> = triangles.iter().map(|x|
+            x[0] as u32
+        ).collect();
+        let second_vertex:Vec<u32> = triangles.iter().map(|x|
+            x[1] as u32
+        ).collect();
+        let third_vertex:Vec<u32> = triangles.iter().map(|x|
+            x[2] as u32
+        ).collect();
+    
+        let mut triangles_df=df![
+            "first vertex" => first_vertex,
+            "second vertex" => second_vertex,
+            "third vertex" => third_vertex
+        ]?;
+        
+
+        let new_path = format!("points{}.parquet",name);
+        let mut new_parquet_file = std::fs::File::create(new_path)?;
+        ParquetWriter::new(&mut new_parquet_file).finish(&mut points_df.clone())?;
+
+        let new_path = format!("triangles{}.parquet",name);
+        let mut new_parquet_file = std::fs::File::create(new_path)?;
+        ParquetWriter::new(&mut new_parquet_file).finish(&mut triangles_df.clone())?;
+
+        Ok(())
+
+    }
+}
