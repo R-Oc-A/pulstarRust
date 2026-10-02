@@ -67,8 +67,8 @@ pub fn gaussian_profile_mkr(toml_string:&str,star_df:DataFrame)->DataFrame{
             Some(value)=>{value}
         }
     ).collect();
-    println!("sanity check control. This are the time points");
-    println!("{:?}",time_points);
+    //println!("sanity check control. This are the time points");
+    //println!("{:?}",time_points);
     /*let tf = star_lf.clone().select([col("time").unique(),]).collect().unwrap();
     let extract_time_series = tf.column("time").unwrap();
     let time_points:Vec<f64> = extract_time_series.f64().unwrap().into_iter().flatten().collect();

@@ -1,5 +1,5 @@
 use polars::{error::ErrString, prelude::*};
-use serde::Deserialize;
+use serde::{Serialize,Deserialize};
 use temp_name_lib::type_def::{CLIGHT,N_FLUX_POINTS};//Velocity of light in m/s
 
 use std::fs;
@@ -129,14 +129,15 @@ pub struct ProfileConfig{
     /// This is a [Vec] collection of [IntensityGrid]s. 
     pub intensity_grids:Vec<IntensityGrid>,
 }
-/// The wave length range is defined in nanometers.
-/// The start should be bigger than the end and the step should be reasonable enough
-#[derive(Deserialize,Debug,PartialEq)]
-pub struct WavelengthRange{
-    pub start: f64,
-    pub end: f64,
-    pub step: f64,
+/// The wave length range is defined in Angstrom.
+#[derive(Deserialize,Serialize,Debug,PartialEq)]
+pub enum WavelengthRange{
+    Explicit{collection:Vec<f64>},
+    Uniform{start: f64,
+            end: f64,
+        step: f64,},
 }
+
 /// The intensity grids are characterized by
 /// 
 /// - the file name stored as a string,
@@ -198,15 +199,26 @@ impl WavelengthRange{
     /// This method returns the wavelength vector out of  the range specified on the toml file
     /// It also checks if the step size is reasonable enough
     pub fn get_wavelength_vector(&self)->Vec<f64>{
-        if self.end < self.start {panic!("Wave length range is ill defined. Please correct the toml file")}
-        let capacity = ((self.end-self.start)/self.step).floor() as usize + 1usize;
-        if capacity >= N_FLUX_POINTS as usize {panic!("Error, too many flux points requested.")}
-	    
-        let mut wavelength:Vec<f64> = Vec::with_capacity(capacity);
-	    for i in 0..=capacity {//<- inclussive loop so wavelength[capacity]==λ_f.
-	            wavelength.push( self.start + self.step * (i as f64) );
-        }
-        wavelength
+
+        let wavelength_vector= match self{
+            Self::Uniform { start, end, step }=>
+            {   
+                if end < start {panic!("Wave length range is ill defined. Please correct the toml file")}
+                let capacity = ((end-start)/step).floor() as usize + 1usize;
+                if capacity >= N_FLUX_POINTS as usize {panic!("Error, too many flux points requested.")}
+        	    
+                let mut wavelength:Vec<f64> = Vec::with_capacity(capacity);
+        	    for i in 0..=capacity {//<- inclussive loop so wavelength[capacity]==λ_f.
+        	            wavelength.push( start + step * (i as f64) );}
+                wavelength
+            },
+            Self::Explicit { collection:wavelengths }=>{//let's assume that the wavelength array is sorted. 
+                let start = wavelengths.get(0).expect("empty wavelength array");
+                let end = wavelengths.get(wavelengths.len()-1).unwrap();
+                if end < start {panic!("Wave length range is ill defined. Please correct the toml file")};
+                wavelengths.clone()}
+            };
+        wavelength_vector
     }
 }
 

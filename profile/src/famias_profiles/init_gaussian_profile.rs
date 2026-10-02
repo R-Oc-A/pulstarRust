@@ -1,6 +1,7 @@
 use polars::frame::DataFrame;
 use serde::{Deserialize,Serialize};
 use super::GaussianProfile;
+use crate::WavelengthRange;
 use std::f64::consts::PI;
 use temp_name_lib::type_def::{CLIGHT, GRAVCONSTANT, MASSSUN, RADIUSSUN};
 
@@ -16,12 +17,16 @@ pub struct GaussianProfileInit{
     zero_point_shift:f64,
     ///Central Wavelength
     central_wavelength:f64,
+    /// this is the requested wavelength range
+    wavelength_range:WavelengthRange,
+    /*
     //leftmost wavelength
     left_wavelength:f64,
     //Rightmost wavelength
     right_wavelength:f64,
     //Lambda_resolution
     step:f64,
+    */
     // Star temperature
     t_eff:f64,
     //Star mass
@@ -91,12 +96,7 @@ impl GaussianProfileInit{
     }
 
     fn init_wavelength_arr(&self)->Vec<f64>{
-        let npts = ((self.right_wavelength-self.left_wavelength)/self.step).floor() as usize;
-        let mut wavelength_arr:Vec<f64> = Vec::with_capacity(npts+1);
-        for i in 0..=npts{
-            wavelength_arr.push(self.left_wavelength + self.step * (i as f64));
-        }
-        wavelength_arr
+        self.wavelength_range.get_wavelength_vector()
     }
 
 
