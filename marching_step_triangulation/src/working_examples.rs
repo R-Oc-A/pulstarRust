@@ -21,6 +21,21 @@ impl Default for Tetrahedrization{
     }
 }
 
+/// Triangularization of a sphere of radius 1
+pub fn sphere_radius1(delta_t:f64)->Tetrahedrization{
+    let potential = |point_coords:&Vector3<f64>|{
+    point_coords.norm().powi(2)-1.0}; // radius 1
+    
+    let grad_potential = |point_coords:&Vector3<f64>|{
+        2.0*point_coords
+    };
+
+    let starting_point:Vector3<f64> = Vector3::from([-1.0,0.0,-4.0e-2]);
+
+    tetrahedrize(delta_t, starting_point, potential, grad_potential)
+    
+}
+
 /// Triangularization of a sphere of radius 4
 pub fn sphere_radius4()-> Tetrahedrization{
     let delta_t =0.3;
@@ -36,7 +51,7 @@ pub fn sphere_radius4()-> Tetrahedrization{
 
 /// Triangularization of a flattened
 pub fn roche_model(w:f64,delta_t:f64)->Result<Tetrahedrization,MathErrors>{
-    if (delta_t < 0.1 || delta_t>0.5)|| w>0.43{ 
+    if (delta_t < 0.1 || delta_t>0.5)|| w>0.5{ 
         println!("triangle side length is {}",delta_t);
         println!("rotation frequency is {}",w);
         Err(MathErrors::ResolutionNotSupported)}
@@ -52,10 +67,10 @@ pub fn roche_model(w:f64,delta_t:f64)->Result<Tetrahedrization,MathErrors>{
     let grad_potential = move |point_coords:&Vector3<f64>|{
         let rotation_freq = w;
         -point_coords/(point_coords.norm().powi(3))
-        +rotation_freq * (Vector3::<f64>::x()*point_coords.x
+        +rotation_freq.powi(2) * (Vector3::<f64>::x()*point_coords.x
         +Vector3::<f64>::y()*point_coords.y)
     };
-    let starting_point:Vector3<f64> = Vector3::from([0.0,0.0,1.1]);
+    let starting_point:Vector3<f64> = Vector3::from([0.01,0.01,1.1]);
 
     Ok(tetrahedrize(delta_t, starting_point, potential, grad_potential))
     }
