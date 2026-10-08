@@ -86,17 +86,19 @@ mod pastrypy {
 
 
     #[pyfunction]
-    fn sphere_triangulation_points()
+    fn sphere_triangulation_points(length:f64)
     -> PyResult<PyDataFrame>{
-        let mut tetra = marching_step_triangulation::Tetrahedrization::default();
+        let mut tetra = marching_step_triangulation::working_examples::sphere_radius1(length)
+        .expect("unable to create triangulation");
         let points=PyDataFrame(tetra.extract_points());
         Ok(points)
     }
 
     #[pyfunction]
-    fn sphere_triangulation_triangles()
+    fn sphere_triangulation_triangles(length:f64)
     -> PyResult<PyDataFrame>{
-        let mut tetra = marching_step_triangulation::Tetrahedrization::default();
+        let mut tetra = marching_step_triangulation::working_examples::sphere_radius1(length)
+        .expect("unable to create triangulation");
         let points=PyDataFrame(tetra.extract_triangles());
         Ok(points)
     }
@@ -106,7 +108,7 @@ mod pastrypy {
     -> PyResult<PyDataFrame>{
         let delta_t =length;
         let mut tetra = marching_step_triangulation::working_examples::roche_model(w, delta_t)
-        .expect("unable to create triangularization");
+        .expect("unable to create triangulation");
         let points=PyDataFrame(tetra.extract_points());
         Ok(points)
     }
@@ -116,7 +118,7 @@ mod pastrypy {
     -> PyResult<PyDataFrame>{
         let delta_t =length;
         let mut tetra = marching_step_triangulation::working_examples::roche_model(w, delta_t)
-        .expect("unable to create a triangularization");
+        .expect("unable to create a triangulation");
         let points=PyDataFrame(tetra.extract_triangles());
         Ok(points)
     }

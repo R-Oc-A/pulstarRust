@@ -294,7 +294,8 @@ impl PulstarConfig {
                 }
             }
             MeshConfig::TSphere { triangle_length }=>{
-                let mut tetra = Tetrahedrization::default();
+                let mut tetra = marching_step_triangulation::working_examples::
+                sphere_radius1(triangle_length).expect("unable to create triangulation");
                 let mut triangulation = tetra.triangulation_output();
                 let triangles = new_triangles(& self, triangulation);
 

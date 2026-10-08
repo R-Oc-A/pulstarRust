@@ -22,7 +22,11 @@ impl Default for Tetrahedrization{
 }
 
 /// Triangularization of a sphere of radius 1
-pub fn sphere_radius1(delta_t:f64)->Tetrahedrization{
+pub fn sphere_radius1(delta_t:f64)->Result<Tetrahedrization,MathErrors>{
+    if (delta_t < 0.1 || delta_t>0.5){ 
+        println!("triangle side length is {} which is outside of [0.1,0.5]",delta_t);
+        Err(MathErrors::ResolutionNotSupported)}
+    else{
     let potential = |point_coords:&Vector3<f64>|{
     point_coords.norm().powi(2)-1.0}; // radius 1
     
@@ -32,8 +36,8 @@ pub fn sphere_radius1(delta_t:f64)->Tetrahedrization{
 
     let starting_point:Vector3<f64> = Vector3::from([-1.0,0.0,-4.0e-2]);
 
-    tetrahedrize(delta_t, starting_point, potential, grad_potential)
-    
+    Ok(tetrahedrize(delta_t, starting_point, potential, grad_potential))
+    }    
 }
 
 /// Triangularization of a sphere of radius 4
