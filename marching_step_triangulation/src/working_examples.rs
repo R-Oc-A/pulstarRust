@@ -53,25 +53,33 @@ pub fn sphere_radius4()-> Tetrahedrization{
     tetrahedrize(delta_t, starting_point, potential, grad_potential)
 }
 
-/// Triangularization of a flattened
-pub fn roche_model(w:f64,delta_t:f64)->Result<Tetrahedrization,MathErrors>{
-    if (delta_t < 0.1 || delta_t>0.5)|| w>0.5{ 
+/// Triangularization of the Roche aproximation of a flatenned sphere
+/// This model is applied to rotating stars in the classical approximation where it is assumed the point mass approximation.
+/// While not necessary, in this case we assume solid body like rotation 
+/// The changing of factors is taken from the page 24 of chapter 2 of the book "Mechanical equilibrium of rotating stars" by Maeder et al. 2009
+/// ### Arguments:
+/// * `rotation_frequency` - a f64 value that can go up to 98% critical rotation
+/// * `delta_t` - The approximate length of each triangle that covers the surface in normalized units
+/// ### Returns: 
+/// * This function returns a [Result] where the [Ok] variant contains a [Tetrahedrization] of a flattened star and the [Err] variant is presented when the requested resolution is out of bounds. 
+pub fn roche_model(rotation_frequency:f64,delta_t:f64)->Result<Tetrahedrization,MathErrors>{
+    if (delta_t < 0.1 || delta_t>0.5)|| rotation_frequency>0.98{ 
         println!("triangle side length is {}",delta_t);
-        println!("rotation frequency is {}",w);
+        println!("rotation frequency is {} critical, which is above what's supported",rotation_frequency);
         Err(MathErrors::ResolutionNotSupported)}
 
     else{
-    let ww=w;
+    let w=(8.0f64/27.0f64).sqrt()*rotation_frequency;//
     let potential = move |point_coords:&Vector3<f64>|{
-        let rotation_freq = ww;
+        let ww = w;
         1.0/point_coords.norm() 
-        + 0.5 * rotation_freq.powi(2) *(point_coords.x.powi(2) + point_coords.y.powi(2))
+        + 0.5 * ww.powi(2) *(point_coords.x.powi(2) + point_coords.y.powi(2))
         - 1.0
     };
     let grad_potential = move |point_coords:&Vector3<f64>|{
-        let rotation_freq = w;
+        let ww = w;
         -point_coords/(point_coords.norm().powi(3))
-        +rotation_freq.powi(2) * (Vector3::<f64>::x()*point_coords.x
+        +ww.powi(2) * (Vector3::<f64>::x()*point_coords.x
         +Vector3::<f64>::y()*point_coords.y)
     };
     let starting_point:Vector3<f64> = Vector3::from([0.01,0.01,1.1]);

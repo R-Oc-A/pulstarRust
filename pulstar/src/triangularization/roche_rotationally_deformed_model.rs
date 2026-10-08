@@ -60,15 +60,17 @@ fn compute_b_dimensionless_quantity(parameters:&PulstarConfig)->f64{
 }
 
 /// Returns the rotation frequency in Hz (s^{-1})
+/// The formula to compute this rotation frequency in the classical approximation of the Roche model is found on
+/// page 24 of chapter 2 of the book "Mechanical equilibrium of rotating stars" by Maeder et al. 2009 
 fn rotation_frequency(parameters:&PulstarConfig)->f64{
     let mut rotation_frequency = match parameters.mesh{
         DSphere{ triangle_length:_,rotation_frequency:omega}=>{omega},
         _=>{panic!("this function should only be called for the Deformed star case")}
     };
-    let G= GRAVCONSTANT;//in
-    let R = parameters.star_data.radius * RADIUSSUN; //in m I guess, and this is the polar radius
+    let G= GRAVCONSTANT;// Constant 
+    let R = parameters.star_data.radius * RADIUSSUN; //in m, and this is the polar radius
     let M = parameters.star_data.mass*MASSSUN;
-    rotation_frequency *= (G*M/ R.powi(3)).sqrt();
+    rotation_frequency *= (G*M/ R.powi(3)*8.0/27.0).sqrt();
     rotation_frequency
 }
 ///Returns the rotation velocity in km/s. This value is dependant on the colatitudinal angle θ
