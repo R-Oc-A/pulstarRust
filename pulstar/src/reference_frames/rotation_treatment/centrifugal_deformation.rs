@@ -187,6 +187,7 @@ pub fn add_deformations_generic<F,T>(
                 if new_l <0 {continue}//skip negative values
                 else{
                     temp_mode.l = new_l as u16;
+                    if coeff_expansion[index as usize]==0.0{continue}
                     let temp_contribution = coeff_expansion[index as usize] * function_to_eval(&temp_mode,
                         sintheta, costheta, phi, radial_amplitude, tangential_amplitude)?;
                     sum_of_basis_modes += temp_contribution;

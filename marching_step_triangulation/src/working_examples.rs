@@ -63,7 +63,7 @@ pub fn sphere_radius4()-> Tetrahedrization{
 /// ### Returns: 
 /// * This function returns a [Result] where the [Ok] variant contains a [Tetrahedrization] of a flattened star and the [Err] variant is presented when the requested resolution is out of bounds. 
 pub fn roche_model(rotation_frequency:f64,delta_t:f64)->Result<Tetrahedrization,MathErrors>{
-    if (delta_t < 0.1 || delta_t>0.5)|| rotation_frequency>0.98{ 
+    if (delta_t < 0.05 || delta_t>0.495)|| rotation_frequency>0.97{ 
         println!("triangle side length is {}",delta_t);
         println!("rotation frequency is {} critical, which is above what's supported",rotation_frequency);
         Err(MathErrors::ResolutionNotSupported)}
