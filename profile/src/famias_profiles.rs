@@ -145,7 +145,7 @@ impl GaussianProfile{
             *intensity + 
             fl_in_ul * (
                 1.0 -w_eintr * self.sigmag_sqrtpi_sqrt2 *
-                (-(shifted_wavelength - self.wavelength[index]).powi(2)*self.sigmag_sqrt2_pow2).exp()
+                (-(-shifted_wavelength + self.wavelength[index]).powi(2)*self.sigmag_sqrt2_pow2).exp()
             )
         }
         ).collect();
@@ -390,7 +390,7 @@ mod parse_famias_grid{
 
     fn trim_teff_logg(t_eff:f64,log_g:f64,df:&DataFrame)->DataFrame{
         let teffs = extract_column_as_vectorf64("Teff", df);
-        let min_teff = teffs.iter().fold(teffs[0],|acc,t|{if *t<t_eff {*t}else{acc}});
+        let min_teff = teffs.iter().fold(teffs[0],|acc,t|{if *t<=t_eff {*t}else{acc}});
         let max_teff =  teffs.iter().fold(teffs[0],|acc,t|{if acc>=t_eff+3000.0 {acc}else{*t}});
 
         let ddf = df.clone().lazy().filter(col("Teff").eq(lit(min_teff)).or(col("Teff").eq(lit(max_teff))))
