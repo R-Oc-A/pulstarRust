@@ -46,6 +46,9 @@ jobs:
             elif command -v apt-get &> /dev/null; then
               apt-get update && apt-get install -y libssl-dev libopenblas-dev
             fi
+          env:
+            OPENSSL_LIB_DIR: /usr/lib64
+            OPENSSL_INCLUDE_DIR: /usr/include
       - name: Upload wheels
         uses: actions/upload-artifact@v5
         with:
